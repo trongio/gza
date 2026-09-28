@@ -32,6 +32,14 @@ class PlanScreenScreenshotTest(
         PlanScreen(mode = PlanMode.ArriveBy, onModeSelected = {})
     }
 
+    @Test
+    // The width of the user's phone (Galaxy S22 Ultra at default display size).
+    @Config(qualifiers = "w384dp-h823dp-xxhdpi")
+    fun planScreenLargeFont() =
+        composeRule.captureThemed("plan_screen_font_scale_150", darkTheme, fontScale = 1.5f, fullScreen = true) {
+            PlanScreen(mode = PlanMode.ArriveBy, onModeSelected = {})
+        }
+
     companion object {
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")

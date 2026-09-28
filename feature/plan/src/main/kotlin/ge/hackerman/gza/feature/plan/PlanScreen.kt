@@ -2,8 +2,12 @@ package ge.hackerman.gza.feature.plan
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -19,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -67,17 +72,26 @@ private fun ModeSelector(mode: PlanMode, onModeSelected: (PlanMode) -> Unit) {
         PlanMode.DepartAt to R.string.plan_mode_depart_at,
         PlanMode.ArriveBy to R.string.plan_mode_arrive_by
     )
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+    // Intrinsic height so a label that wraps makes all three segments taller, not just its own.
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         PlanMode.entries.forEachIndexed { index, entry ->
             SegmentedButton(
                 selected = entry == mode,
                 onClick = { onModeSelected(entry) },
                 shape = SegmentedButtonDefaults.itemShape(index, PlanMode.entries.size),
                 // Material draws these 40dp tall; the whole button should be a 48dp target.
-                modifier = Modifier.heightIn(min = 48.dp).testTag(PlanTestTags.mode(entry)),
+                modifier = Modifier.fillMaxHeight().heightIn(min = 48.dp).testTag(PlanTestTags.mode(entry)),
                 icon = {},
+                // Tighter than Material's 12dp sides, and two lines, so "Leave now" stays whole
+                // at large font sizes in a third of a phone.
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                 label = {
-                    Text(stringResource(labels.getValue(entry)), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        stringResource(labels.getValue(entry)),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
                 }
             )
         }
