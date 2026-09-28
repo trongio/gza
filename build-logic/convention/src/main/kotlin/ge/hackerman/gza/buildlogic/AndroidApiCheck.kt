@@ -24,6 +24,7 @@ internal fun Project.configureAndroidApiCheck() {
         sourceSets = listOf(extensions.getByType<SourceSetContainer>().getByName("main"))
     }
 
-    // `lint` is in the local gate and CI; `check` is not, so hang the API check on lint.
-    tasks.named("lint").configure { dependsOn("animalsnifferMain") }
+    // `lint` is in the local gate and CI, and `check` is what Gradle users reach for: both run
+    // the API check, so neither route can skip it.
+    listOf("lint", "check").forEach { name -> tasks.named(name).configure { dependsOn("animalsnifferMain") } }
 }
