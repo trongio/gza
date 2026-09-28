@@ -1,15 +1,22 @@
 package ge.hackerman.gza.feature.map
 
 import androidx.compose.material3.Surface
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import ge.hackerman.gza.core.designsystem.theme.GzaTheme
 import ge.hackerman.gza.core.testing.assertInteractiveNodesAccessible
+import kotlin.test.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -46,8 +53,24 @@ class MapScreenTest {
     }
 
     @Test
+    fun sheetHandleIsAnnouncedOnce() {
+        composeRule.onAllNodes(hasContentDescription(HANDLE), useUnmergedTree = true).assertCountEquals(1)
+        val bounds = composeRule.onNodeWithContentDescription(HANDLE).fetchSemanticsNode().boundsInRoot
+        val focusable = composeRule.onAllNodes(hasClickAction() or hasLongClickAction(), useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .filter { it.boundsInRoot == bounds }
+        assertEquals(1, focusable.size, "TalkBack would stop on the handle ${focusable.size} times")
+    }
+
+    private fun hasLongClickAction() = SemanticsMatcher.keyIsDefined(SemanticsActions.OnLongClick)
+
+    @Test
     fun everyInteractiveElementIsNamedAndBigEnough() {
         // The sheet handle is the one control.
         composeRule.assertInteractiveNodesAccessible(expectAtLeast = 1)
+    }
+
+    private companion object {
+        const val HANDLE = "Drag to expand or collapse"
     }
 }

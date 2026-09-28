@@ -1,6 +1,7 @@
 package ge.hackerman.gza.core.designsystem.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -16,13 +17,19 @@ import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.collapse
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.expand
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -30,11 +37,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import ge.hackerman.gza.core.designsystem.R
 import ge.hackerman.gza.core.designsystem.theme.GzaTheme
+import kotlinx.coroutines.launch
 
 /**
  * The map-with-a-sheet layout (PLAN 2.7): [content] fills the screen and the sheet peeks
- * from the bottom. Material attaches expand and collapse actions around the drag handle,
- * so TalkBack users can open the sheet without dragging. Callers opt in to
+ * from the bottom. Material 1.4's own drag handle slot wraps the handle in a tooltip box and
+ * a click-to-toggle box, so TalkBack stops on it twice and gets no expand or collapse
+ * action. The slot is left empty and [GzaSheetDragHandle] leads the sheet content instead:
+ * one node that toggles on a double tap and offers expand or collapse. Dragging still works
+ * because Material makes the whole sheet draggable. Callers opt in to
  * ExperimentalMaterial3Api because [scaffoldState] is Material's experimental state type.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,31 +55,55 @@ fun GzaBottomSheetScaffold(
     modifier: Modifier = Modifier,
     scaffoldState: BottomSheetScaffoldState = rememberBottomSheetScaffoldState(),
     sheetPeekHeight: Dp = 168.dp,
-    sheetDragHandle: @Composable () -> Unit = { GzaSheetDragHandle() },
+    dragHandleModifier: Modifier = Modifier,
     content: @Composable (PaddingValues) -> Unit
 ) {
     BottomSheetScaffold(
-        sheetContent = sheetContent,
+        sheetContent = {
+            GzaSheetDragHandle(scaffoldState.bottomSheetState, dragHandleModifier)
+            sheetContent()
+        },
         modifier = modifier,
         scaffoldState = scaffoldState,
         sheetPeekHeight = sheetPeekHeight,
         sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         sheetShadowElevation = 8.dp,
-        sheetDragHandle = sheetDragHandle,
+        sheetDragHandle = null,
         content = content
     )
 }
 
 /** A full-width 48dp target around a small pill, so the handle is easy to grab. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GzaSheetDragHandle(modifier: Modifier = Modifier) {
+private fun GzaSheetDragHandle(sheetState: SheetState, modifier: Modifier = Modifier) {
     val description = stringResource(R.string.sheet_drag_handle)
+    val scope = rememberCoroutineScope()
+    val expanded = sheetState.currentValue == SheetValue.Expanded
+    val toggle = {
+        scope.launch { if (expanded) sheetState.partialExpand() else sheetState.expand() }
+        Unit
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(48.dp)
-            .semantics { contentDescription = description },
+            .clickable(role = Role.Button, onClick = toggle)
+            .semantics {
+                contentDescription = description
+                if (expanded) {
+                    collapse {
+                        toggle()
+                        true
+                    }
+                } else {
+                    expand {
+                        toggle()
+                        true
+                    }
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
         Box(

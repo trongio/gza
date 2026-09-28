@@ -8,11 +8,15 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import ge.hackerman.gza.core.designsystem.theme.GzaTheme
@@ -52,8 +56,6 @@ class GzaBottomSheetScaffoldTest {
         }
     }
 
-    // Material 1.4 makes the drag handle a button that toggles the sheet (no separate
-    // Expand/Collapse actions), so TalkBack users open it with a double tap.
     private fun handle() = composeRule.onNode(hasClickAction() and hasContentDescription(HANDLE))
 
     @Test
@@ -73,6 +75,35 @@ class GzaBottomSheetScaffoldTest {
         composeRule.mainClock.advanceTimeBy(1_000)
         composeRule.waitForIdle()
         assertEquals(SheetValue.PartiallyExpanded, state.bottomSheetState.currentValue)
+    }
+
+    @Test
+    fun handleIsOneAccessibilityNode() {
+        val bounds = handle().fetchSemanticsNode().boundsInRoot
+        // Material's own handle slot stacked a long-clickable tooltip box on a clickable box,
+        // both covering the handle: TalkBack stopped there twice.
+        val actionable = composeRule.onAllNodes(hasAnyAction(), useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .filter { it.boundsInRoot == bounds }
+        assertEquals(1, actionable.size)
+        composeRule.onAllNodes(hasContentDescription(HANDLE), useUnmergedTree = true).assertCountEquals(1)
+    }
+
+    @Test
+    fun handleOffersExpandAndThenCollapse() {
+        handle().performSemanticsAction(SemanticsActions.Expand)
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.waitForIdle()
+        assertEquals(SheetValue.Expanded, state.bottomSheetState.currentValue)
+
+        handle().performSemanticsAction(SemanticsActions.Collapse)
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.waitForIdle()
+        assertEquals(SheetValue.PartiallyExpanded, state.bottomSheetState.currentValue)
+    }
+
+    private fun hasAnyAction() = SemanticsMatcher("has a click or long click action") {
+        SemanticsActions.OnClick in it.config || SemanticsActions.OnLongClick in it.config
     }
 
     private companion object {

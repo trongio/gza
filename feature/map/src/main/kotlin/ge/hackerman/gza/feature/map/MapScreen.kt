@@ -19,7 +19,6 @@ import ge.hackerman.gza.core.designsystem.component.DepartureRow
 import ge.hackerman.gza.core.designsystem.component.DepartureStatus
 import ge.hackerman.gza.core.designsystem.component.GzaBanner
 import ge.hackerman.gza.core.designsystem.component.GzaBottomSheetScaffold
-import ge.hackerman.gza.core.designsystem.component.GzaSheetDragHandle
 import ge.hackerman.gza.core.designsystem.component.GzaSheetHeader
 import ge.hackerman.gza.core.designsystem.component.TransitMode
 import ge.hackerman.gza.core.designsystem.theme.GzaTheme
@@ -36,7 +35,7 @@ fun MapScreen(modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxSize().testTag(MapTestTags.SCREEN),
         // Handle, title and the first departure: the waiting bus is visible without dragging.
         sheetPeekHeight = 232.dp,
-        sheetDragHandle = { GzaSheetDragHandle(Modifier.testTag(MapTestTags.SHEET_HANDLE)) },
+        dragHandleModifier = Modifier.testTag(MapTestTags.SHEET_HANDLE),
         sheetContent = { SheetContent() }
     ) {
         MapPreviewCanvas(
