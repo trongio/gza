@@ -1,5 +1,7 @@
 package ge.hackerman.gza.core.ttc
 
+import ge.hackerman.gza.core.ttc.firebase.FirebaseWebCredentials
+
 /**
  * Gateway settings baked in at build time from `ttc.properties`. Used only when the key
  * cannot be fetched from TTC's Remote Config at runtime.
@@ -12,6 +14,12 @@ data class TtcFallbackConfig(
     val firebaseAppId: String
 ) {
     val hasGatewayKey: Boolean get() = gatewayKey.isNotBlank()
+
+    fun firebaseCredentials(): FirebaseWebCredentials = FirebaseWebCredentials(
+        apiKey = firebaseApiKey.trim(),
+        projectId = firebaseProjectId.trim(),
+        appId = firebaseAppId.trim()
+    )
 
     // A data class prints every field, so a logged config would leak the key.
     override fun toString(): String = "TtcFallbackConfig(" +

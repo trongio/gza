@@ -1,0 +1,9 @@
+{
+  "name": "projects/000000000000/installations/cSentinelFid0000000001",
+  "fid": "cSentinelFid0000000001",
+  "refreshToken": "sentinel-refresh-token-0001",
+  "authToken": {
+    "token": "sentinel-auth-token-0001",
+    "expiresIn": "604800s"
+  }
+}

@@ -1,6 +1,7 @@
 package ge.hackerman.gza.core.ttc
 
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
@@ -44,5 +45,19 @@ class TtcFallbackConfigTest {
     @Test
     fun `non blank key counts as present`() {
         assertTrue(config.hasGatewayKey)
+    }
+
+    @Test
+    fun `firebase credentials map the build time fields`() {
+        val credentials = config.copy(firebaseProjectId = " tbilisi-transit-production ").firebaseCredentials()
+        assertEquals("tbilisi-transit-production", credentials.projectId)
+        assertEquals("sentinel-firebase-456", credentials.apiKey)
+        assertEquals("sentinel-app-789", credentials.appId)
+        assertTrue(credentials.isComplete)
+    }
+
+    @Test
+    fun `blank firebase fields make the credentials incomplete`() {
+        assertFalse(config.copy(firebaseAppId = "").firebaseCredentials().isComplete)
     }
 }

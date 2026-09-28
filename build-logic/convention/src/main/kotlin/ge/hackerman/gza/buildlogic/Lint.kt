@@ -13,6 +13,9 @@ internal fun Lint.configureLint(checkDependencies: Boolean = false) {
         "GradleDependency",
         "NewerVersionAvailable",
         "AndroidGradlePluginVersion",
-        "OldTargetApi"
+        "OldTargetApi",
+        // Warns about SecureRandom on Android 4.3 and older; minSdk is 26. It is a bytecode
+        // check, so a source @Suppress cannot silence it.
+        "TrulyRandom"
     )
 }
