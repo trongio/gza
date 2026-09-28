@@ -12,7 +12,7 @@ val BadgeInk = Color(0xFF0B0F0E)
 /** Parses the gateway's `color` field (`"00B38B"`, `"#f5861f"`); anything else is null. */
 fun parseRouteColor(hex: String?): Color? {
     val digits = hex?.let { HexColor.matchEntire(it.trim()) }?.groupValues?.get(1) ?: return null
-    return Color(0xFF000000 or digits.toLong(radix = 16))
+    return Color(OPAQUE or digits.toLong(radix = HEX_RADIX))
 }
 
 /** TTC's colour for a route when the gateway sent none or a malformed one. */
@@ -38,3 +38,5 @@ fun contrastRatio(a: Color, b: Color): Float {
 }
 
 private const val WCAG_FLARE = 0.05f
+private const val OPAQUE = 0xFF000000
+private const val HEX_RADIX = 16

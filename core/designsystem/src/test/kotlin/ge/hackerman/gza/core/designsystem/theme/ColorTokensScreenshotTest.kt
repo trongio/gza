@@ -31,7 +31,11 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w411dp-h891dp-xxhdpi")
-class ColorTokensScreenshotTest(private val theme: String, private val darkTheme: Boolean) {
+class ColorTokensScreenshotTest(
+    // Only names the parameterised run in reports.
+    @Suppress("unused") theme: String,
+    private val darkTheme: Boolean
+) {
     @get:Rule
     val composeRule = createComposeRule()
 
@@ -82,12 +86,13 @@ private fun Swatch(
     name: String,
     color: Color,
     onColor: Color,
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     outline: Color = Color.Transparent,
     dot: Color? = null
 ) {
     Row(
         modifier = modifier
+            .fillMaxWidth()
             .height(36.dp)
             .background(color, MaterialTheme.shapes.small)
             .border(1.dp, outline, MaterialTheme.shapes.small)
