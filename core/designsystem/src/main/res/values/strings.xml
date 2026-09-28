@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Route badges: what TalkBack reads for a badge. -->
+    <string name="route_badge_bus">Bus %1$s</string>
+    <string name="route_badge_minibus">Minibus %1$s</string>
+    <string name="route_badge_metro">Metro line %1$s</string>
+    <string name="route_badge_cable_car">Cable car %1$s</string>
+    <!-- Departure status chips. The waiting chip is the headline: a parked bus at the
+         terminus is waiting, not arriving. %1$s is a time like 17:13. -->
+    <string name="status_waiting">Waiting at terminus, leaves %1$s</string>
+    <string name="status_live">Live</string>
+    <plurals name="status_live_stops_away">
+        <item quantity="one">Live, %d stop away</item>
+        <item quantity="other">Live, %d stops away</item>
+    </plurals>
+    <plurals name="status_late_minutes">
+        <item quantity="one">Running %d min late</item>
+        <item quantity="other">Running %d min late</item>
+    </plurals>
+    <string name="status_timetable_only">Timetable only</string>
+    <!-- Leave-by countdown. The hero shows "Leave in" above a big number and its unit. -->
+    <string name="countdown_leave_in">Leave in</string>
+    <string name="countdown_unit_minutes">min</string>
+    <string name="countdown_unit_hours">h</string>
+    <string name="countdown_now">Leave now</string>
+    <plurals name="countdown_a11y_minutes">
+        <item quantity="one">Leave in %d minute</item>
+        <item quantity="other">Leave in %d minutes</item>
+    </plurals>
+    <plurals name="countdown_a11y_seconds">
+        <item quantity="one">Leave in %d second</item>
+        <item quantity="other">Leave in %d seconds</item>
+    </plurals>
+    <string name="countdown_a11y_hours">Leave in %1$d h %2$d min</string>
+    <!-- Departure row. %1$s is a time like 17:08. -->
+    <string name="departure_leave_by">leave by %1$s</string>
+    <!-- One sentence for TalkBack: badge name, destination, time, leave-by time, status. -->
+    <string name="departure_a11y">%1$s to %2$s. Departs %3$s. Leave by %4$s. %5$s</string>
+    <string name="departure_a11y_no_leave_by">%1$s to %2$s. Departs %3$s. %4$s</string>
+    <!-- The row sentence above (%1$s) followed by the optional detail line, like "4 min walk" (%2$s). -->
+    <string name="departure_a11y_with_detail">%1$s. %2$s</string>
+    <string name="departure_show_on_map">Show on map</string>
+    <!-- TalkBack state of a bottom sheet handle, read after the sheet name. -->
+    <string name="sheet_state_expanded">Expanded</string>
+    <string name="sheet_state_collapsed">Collapsed</string>
+</resources>

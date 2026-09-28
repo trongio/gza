@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Gza</string>
-    <string name="placeholder_title">Gza</string>
-    <string name="placeholder_subtitle">Unofficial Tbilisi public transport app</string>
+    <!-- Bottom bar destinations. -->
+    <string name="nav_now">Now</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_map">Map</string>
+    <string name="nav_plan">Plan</string>
+    <string name="nav_settings">Settings</string>
 </resources>

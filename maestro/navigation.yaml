@@ -1,0 +1,32 @@
+# clearState wipes Gza's data. Fine in T06 (no user data exists yet); revisit once
+# favourites land (T07) before running on a phone with real data.
+appId: ge.hackerman.gza
+name: Navigation - the bottom bar reaches all five destinations
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "now_screen"
+- tapOn:
+    id: "nav_search"
+- assertVisible:
+    id: "search_screen"
+- tapOn:
+    id: "nav_map"
+- assertVisible:
+    id: "map_screen"
+- tapOn:
+    id: "nav_plan"
+- assertVisible:
+    id: "plan_screen"
+- tapOn:
+    id: "nav_settings"
+- assertVisible:
+    id: "settings_screen"
+- back
+- assertVisible:
+    id: "now_screen"
+- tapOn:
+    id: "departure_row_0"
+- assertVisible:
+    id: "map_screen"

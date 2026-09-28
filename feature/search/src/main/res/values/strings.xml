@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="search_title">Search</string>
+    <string name="search_field_label">Stop name or code</string>
+    <string name="search_recent_header">Recent stops</string>
+    <!-- %1$s is a stop code like 970. -->
+    <string name="search_stop_code">Code %1$s</string>
+</resources>

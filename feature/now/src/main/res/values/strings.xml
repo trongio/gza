@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sample content until the Now screen gets real data (T07). -->
+    <string name="now_sample_place">Home</string>
+    <!-- Under the place name: %1$s is the stop, %2$s the walk, like "4 min walk". -->
+    <string name="now_subtitle">%1$s · %2$s</string>
+    <!-- No-break spaces keep "4 min walk" on one line when the subtitle wraps. -->
+    <plurals name="now_walk_minutes">
+        <item quantity="one">%d\u00A0min\u00A0walk</item>
+        <item quantity="other">%d\u00A0min\u00A0walk</item>
+    </plurals>
+    <!-- %1$s is the destination, %2$s a time like 17:13. -->
+    <string name="now_hero_route">to %1$s, departs %2$s</string>
+    <!-- %1$s is a route number, %2$s a time. -->
+    <string name="now_miss_it">Miss it? %1$s at %2$s</string>
+    <string name="now_departures_header">Departures</string>
+</resources>

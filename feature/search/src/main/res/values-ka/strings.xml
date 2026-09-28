@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="search_title">ძიება</string>
+    <string name="search_field_label">გაჩერების სახელი ან კოდი</string>
+    <string name="search_recent_header">ბოლოს ნანახი გაჩერებები</string>
+    <string name="search_stop_code">კოდი %1$s</string>
+</resources>
