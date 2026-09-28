@@ -6,8 +6,10 @@ on:
     branches: [main]
 
 concurrency:
-  group: ci-${{ github.ref }}
-  # Cancel superseded PR runs only, so every push to main gets its own result.
+  # PRs share one group per branch so a new push cancels the superseded run. Pushes to
+  # main get a group per commit: a shared group keeps only one pending run, so
+  # back-to-back merges would silently drop a queued run.
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
