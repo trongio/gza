@@ -7,4 +7,6 @@
     <string name="sample_headsign_551">Tbilisi Mall</string>
     <string name="sample_headsign_301">Saint Barbare District</string>
     <string name="sample_stop_ana_politkovskaia">Ana Politkovskaia Street</string>
+    <string name="sample_stop_freedom_square">Freedom Square</string>
+    <string name="sample_stop_liberty_square_metro">M/S Liberty Square</string>
 </resources>

@@ -26,6 +26,7 @@ dependencies {
     implementation(projects.core.ttc)
     implementation(projects.core.model)
     implementation(projects.feature.now)
+    implementation(projects.feature.search)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
