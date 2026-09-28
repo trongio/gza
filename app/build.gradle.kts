@@ -27,6 +27,7 @@ dependencies {
     implementation(projects.core.model)
     implementation(projects.feature.now)
     implementation(projects.feature.search)
+    implementation(projects.feature.map)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

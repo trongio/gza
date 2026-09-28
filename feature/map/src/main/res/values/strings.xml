@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="map_preview_description">Map preview with sample buses on route 326</string>
+    <!-- %1$s is a stop name. -->
+    <string name="map_sheet_title">Departures from %1$s</string>
+</resources>

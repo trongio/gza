@@ -44,6 +44,7 @@ fun GzaBottomSheetScaffold(
     modifier: Modifier = Modifier,
     scaffoldState: BottomSheetScaffoldState = rememberBottomSheetScaffoldState(),
     sheetPeekHeight: Dp = 168.dp,
+    sheetDragHandle: @Composable () -> Unit = { GzaSheetDragHandle() },
     content: @Composable (PaddingValues) -> Unit
 ) {
     BottomSheetScaffold(
@@ -54,7 +55,7 @@ fun GzaBottomSheetScaffold(
         sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         sheetShadowElevation = 8.dp,
-        sheetDragHandle = { GzaSheetDragHandle() },
+        sheetDragHandle = sheetDragHandle,
         content = content
     )
 }
