@@ -21,7 +21,10 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Landscape with the camera cutout on the left: content must start after it, on every screen. */
+/**
+ * Landscape with the camera cutout on the left: content and the bottom bar must start after
+ * it, on every screen.
+ */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
@@ -38,6 +41,12 @@ class GzaAppInsetsTest {
             .build()
         composeRule.runOnUiThread { ViewCompat.dispatchApplyWindowInsets(root, insets) }
         composeRule.waitForIdle()
+
+        // The bottom bar is outside the content insets, so it has to clear the cutout itself.
+        // Material's default bar insets include the cutout; this guards against losing that.
+        val firstTab = composeRule.onNodeWithTag(TopLevelDestination.entries.first().testTag)
+            .fetchSemanticsNode().boundsInRoot
+        assertTrue(firstTab.left >= CUTOUT_PX, "first tab starts at ${firstTab.left}px, under the cutout")
 
         composeRule.onNodeWithTag(TopLevelDestination.PLAN.testTag).performClick()
         val field = composeRule.onNodeWithTag(PlanTestTags.FROM).fetchSemanticsNode().boundsInRoot
