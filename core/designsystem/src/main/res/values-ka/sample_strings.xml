@@ -2,4 +2,8 @@
 <!-- Sample content for placeholder screens, removed when real data lands (T07+). -->
 <resources>
     <string name="sample_data_banner">სანიმუშო მონაცემები. რეალური გასვლები შემდეგ განახლებაში გამოჩნდება.</string>
+    <string name="sample_headsign_326">ბარათაშვილის ქ.</string>
+    <string name="sample_headsign_551">თბილისი მოლი</string>
+    <string name="sample_headsign_301">წმინდა ბარბარეს უბანი</string>
+    <string name="sample_stop_ana_politkovskaia">ანა პოლიტკოვსკაიას ქუჩა</string>
 </resources>

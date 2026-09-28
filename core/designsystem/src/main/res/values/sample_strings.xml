@@ -2,4 +2,9 @@
 <!-- Sample content for placeholder screens, removed when real data lands (T07+). -->
 <resources>
     <string name="sample_data_banner">Sample data. Live departures arrive in a later update.</string>
+    <!-- Real gateway names for stop 1:970 and around it (docs/TTC_API.md). -->
+    <string name="sample_headsign_326">Baratashvili St</string>
+    <string name="sample_headsign_551">Tbilisi Mall</string>
+    <string name="sample_headsign_301">Saint Barbare District</string>
+    <string name="sample_stop_ana_politkovskaia">Ana Politkovskaia Street</string>
 </resources>

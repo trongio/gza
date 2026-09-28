@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="now_sample_place">სახლი</string>
+    <plurals name="now_walk_minutes">
+        <item quantity="one">%d წთ ფეხით</item>
+        <item quantity="other">%d წთ ფეხით</item>
+    </plurals>
+    <string name="now_hero_route">მიმართულება: %1$s, გადის %2$s-ზე</string>
+    <string name="now_miss_it">გამოგრჩათ? %1$s, %2$s-ზე</string>
+    <string name="now_departures_header">გასვლები</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sample content until the Now screen gets real data (T07). -->
+    <string name="now_sample_place">Home</string>
+    <plurals name="now_walk_minutes">
+        <item quantity="one">%d min walk</item>
+        <item quantity="other">%d min walk</item>
+    </plurals>
+    <!-- %1$s is the destination, %2$s a time like 17:13. -->
+    <string name="now_hero_route">to %1$s, departs %2$s</string>
+    <!-- %1$s is a route number, %2$s a time. -->
+    <string name="now_miss_it">Miss it? %1$s at %2$s</string>
+    <string name="now_departures_header">Departures</string>
+</resources>
