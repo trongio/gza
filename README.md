@@ -21,6 +21,8 @@ Status: **building the MVP**. See [PLAN.md](PLAN.md) for the full plan,
 
 ```sh
 ./tools/fetch-ttc-config.sh   # writes ttc.properties (gitignored) with the current gateway key
+./gradlew spotlessCheck detekt lint test assembleDebug verifyRoborazziDebug   # the CI gate
+./tools/check-no-secrets.sh   # fails if a key from ttc.properties is in the tree or history
 ```
 
 Not affiliated with Tbilisi Transport Company. All data belongs to its owners.
