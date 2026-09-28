@@ -25,6 +25,7 @@ dependencies {
     compileOnly(libs.hilt.gradle.plugin)
     compileOnly(libs.detekt.gradle.plugin)
     compileOnly(libs.roborazzi.gradle.plugin)
+    compileOnly(libs.animalsniffer.gradle.plugin)
 }
 
 tasks {

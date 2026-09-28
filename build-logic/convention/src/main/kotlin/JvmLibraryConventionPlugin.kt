@@ -1,4 +1,5 @@
 import com.android.build.api.dsl.Lint
+import ge.hackerman.gza.buildlogic.configureAndroidApiCheck
 import ge.hackerman.gza.buildlogic.configureDetekt
 import ge.hackerman.gza.buildlogic.configureJUnitPlatform
 import ge.hackerman.gza.buildlogic.configureKotlinJvm
@@ -19,6 +20,7 @@ class JvmLibraryConventionPlugin : Plugin<Project> {
             }
             configureDetekt()
             configureJUnitPlatform()
+            configureAndroidApiCheck()
         }
     }
 }
