@@ -53,6 +53,36 @@ internal object LenientStrings : LenientListSerializer<String>(String.serializer
 internal fun requireSomeFit(array: JsonArray, decodedCount: Int) {
     if (decodedCount == 0) {
         val present = array.count { it !is JsonNull }
-        if (present > 0) throw SerializationException("None of $present elements fit the expected shape")
+        if (present > 0) throw noneFit(present)
     }
 }
+
+/*
+ * The same rule after mapping. Every DTO field is optional and unknown keys are ignored, so an
+ * item whose fields were all renamed decodes fine, as an empty DTO, and only the mapper finds it
+ * unusable. When every item of a list goes that way the gateway has changed shape just as
+ * surely as when none decode, so the mappers apply the rule again on what they keep.
+ */
+
+/**
+ * The items of a nested list that [transform] keeps, or null when the list has non-null items
+ * and not one is kept: the caller then drops the parent, as a decode-level misfit would.
+ * `null`, `[]` and `[null]` stay empty.
+ */
+internal inline fun <T : Any, R : Any> List<T?>?.mapEachOrNull(transform: (index: Int, item: T) -> R?): List<R>? {
+    var present = 0
+    val kept = ArrayList<R>()
+    orEmpty().forEachIndexed { index, item ->
+        if (item != null) {
+            present++
+            transform(index, item)?.let(kept::add)
+        }
+    }
+    return kept.takeUnless { it.isEmpty() && present > 0 }
+}
+
+/** [mapEachOrNull] for a list that is the response itself: none kept is a malformed response. */
+internal inline fun <T : Any, R : Any> List<T?>?.mapEachOrMalformed(transform: (item: T) -> R?): List<R> =
+    mapEachOrNull { _, item -> transform(item) } ?: throw noneFit(orEmpty().count { it != null })
+
+internal fun noneFit(present: Int) = SerializationException("None of $present elements fit the expected shape")
