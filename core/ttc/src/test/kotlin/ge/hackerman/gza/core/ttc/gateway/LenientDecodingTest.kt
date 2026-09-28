@@ -53,6 +53,32 @@ class LenientDecodingTest {
     }
 
     @Test
+    fun `a list with elements none of which fit is malformed`() {
+        assertFailsWith<SerializationException> { json("[1,2]").decodeEachElement<StopDto>() }
+        assertFailsWith<SerializationException> { json("""[null,{"id":{}}]""").decodeEachElement<StopDto>() }
+    }
+
+    @Test
+    fun `an empty list, or one of only nulls, is empty`() {
+        assertEquals(emptyList(), json("[]").decodeEachElement<StopDto>())
+        assertEquals(emptyList(), json("[null,null]").decodeEachElement<StopDto>())
+    }
+
+    @Test
+    fun `a pattern whose vehicles all misfit fails the positions`() {
+        assertFailsWith<SerializationException> {
+            json("""{"0:01":[{"vehicleId":"1:1"}],"1:01":[{"heading":"NaN"},7]}""").toPositionDtos()
+        }
+    }
+
+    @Test
+    fun `a pattern with no vehicles or only nulls is empty`() {
+        val positions = json("""{"0:01":[],"1:01":[null]}""").toPositionDtos()
+        assertEquals(emptyList(), positions["0:01"])
+        assertEquals(emptyList(), positions["1:01"])
+    }
+
+    @Test
     fun `a body that is not a list is malformed`() {
         assertFailsWith<SerializationException> { json("""{"id":"1:970"}""").decodeEachElement<StopDto>() }
         assertFailsWith<SerializationException> { json("null").decodeEachElement<StopDto>() }
@@ -91,6 +117,13 @@ class LenientDecodingTest {
     @Test
     fun `itineraries of the wrong shape are malformed`() {
         assertFailsWith<SerializationException> { json("""{"itineraries":"none"}""").toPlanResponseDto() }
+    }
+
+    @Test
+    fun `itineraries none of which fit are malformed`() {
+        assertFailsWith<SerializationException> {
+            json("""{"itineraries":[{"duration":"long"},null]}""").toPlanResponseDto()
+        }
     }
 
     @Test

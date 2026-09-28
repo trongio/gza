@@ -22,8 +22,13 @@ import ge.hackerman.gza.core.model.TripRequest
 /**
  * Typed access to every TTC gateway endpoint Gza uses. Main-safe: the network runs on
  * OkHttp's threads and decoding and mapping on the dispatcher given to
- * [TtcGatewayClientFactory.create]. Every failure is a [TtcGatewayException]; list endpoints
- * return whatever items survive lenient mapping, which may be none.
+ * [TtcGatewayClientFactory.create]. Every failure is a [TtcGatewayException].
+ *
+ * Lists are lenient item by item: a mistyped or incomplete item is dropped and the rest are
+ * returned. An empty result means the gateway really sent nothing (or only nulls). When it
+ * sent items and not one of them decodes, the response is [TtcGatewayException.Malformed],
+ * never an empty list, so a caller can safely treat empty as empty. The same holds for the
+ * vehicles of any one pattern in [positions].
  */
 @Suppress("TooManyFunctions") // Mirrors the gateway, one function per endpoint.
 interface TtcGatewayClient {

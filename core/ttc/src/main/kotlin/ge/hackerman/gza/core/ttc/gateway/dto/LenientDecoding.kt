@@ -15,6 +15,11 @@ import kotlinx.serialization.json.decodeFromJsonElement
  * every list is decoded element by element and a mistyped element drops only itself. A body
  * that is not the expected top-level shape still fails (SerializationException), which the
  * client reports as Malformed.
+ *
+ * Dropping has a limit: when a list has elements and not one of them fits, the gateway has
+ * changed shape, not drifted, and returning an empty list would read as "nothing there" (a
+ * sync would then wipe its cache). So an all-misfit list fails too. An empty list, or one of
+ * only nulls, is what the gateway really sent (the gondola board sends `[]`) and stays empty.
  */
 
 /** Null for a JSON null or an element that does not fit [T]. */
@@ -29,10 +34,23 @@ internal inline fun <reified T : Any> JsonElement.decodeOrNull(json: Json = TtcJ
     }
 }
 
-/** The elements of a top-level array that fit [T]; anything but an array is malformed. */
+/**
+ * The elements of a top-level array that fit [T]. Anything but an array is malformed, and so
+ * is an array with non-null elements none of which fit.
+ */
 internal inline fun <reified T : Any> JsonElement.decodeEachElement(json: Json = TtcJson): List<T> {
     val array = this as? JsonArray ?: throw SerializationException("Expected a JSON array, got ${shapeOf(this)}")
-    return array.mapNotNull { it.decodeOrNull<T>(json) }
+    val decoded = array.mapNotNull { it.decodeOrNull<T>(json) }
+    requireSomeFit(array, decoded.size)
+    return decoded
+}
+
+/** Throws when [array] has non-null elements and none of them decoded. */
+internal fun requireSomeFit(array: JsonArray, decodedCount: Int) {
+    if (decodedCount == 0) {
+        val present = array.count { it !is JsonNull }
+        if (present > 0) throw SerializationException("None of $present elements fit the expected shape")
+    }
 }
 
 /** A single top-level object; a mistyped field fails it, since there is nothing else to keep. */
@@ -53,7 +71,9 @@ internal fun shapeOf(element: JsonElement): String = when (element) {
 /**
  * Positions and polylines are objects keyed by pattern suffix, so their keys are data, not
  * fields: an extra key of another shape (say `"timestamp": 123`) must drop that entry, not
- * the response. Within a pattern, one mistyped vehicle drops only itself.
+ * the response. Within a pattern, one mistyped vehicle drops only itself, but a pattern whose
+ * vehicles all misfit fails the whole response: showing no buses when the gateway sent some
+ * would pass for an empty road.
  */
 internal fun JsonElement.toPositionDtos(): Map<String, List<VehiclePositionDto>?> =
     requireObject().mapValues { (_, value) ->

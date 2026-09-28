@@ -130,17 +130,20 @@ class TtcGatewayClientErrorTest {
         assertEquals(0, gateway.server.requestCount)
     }
 
+    // A list with items none of which fit is a changed gateway, not an empty one.
     @ParameterizedTest
-    @ValueSource(strings = ["not json", "", "null", """{"id":5}""", "\"stops\"", "5"])
+    @ValueSource(
+        strings = ["not json", "", "null", """{"id":5}""", "\"stops\"", "5", "[1,2]", """[{"id":{}}]""", "[null,7]"]
+    )
     fun `a 200 that is not the expected shape is malformed`(body: String) {
         gateway.respondWith { FixtureGateway.response(200, body, "application/json") }
         fails<TtcGatewayException.Malformed> { gateway.client().stops(Language.EN) }
     }
 
-    // A list is the right shape even when no element fits: each bad element drops only itself.
+    // Empty, or only nulls, is what the gateway really sent (the gondola board sends []).
     @ParameterizedTest
-    @ValueSource(strings = ["[1,2]", """[{"id":{}}]""", "[null]", "[]"])
-    fun `a list whose elements all misfit is empty, not malformed`(body: String) {
+    @ValueSource(strings = ["[null]", "[]"])
+    fun `a list with nothing in it is empty, not malformed`(body: String) {
         gateway.respondWith { FixtureGateway.response(200, body, "application/json") }
         assertTrue(runBlocking { gateway.client().stops(Language.EN) }.isEmpty())
     }
@@ -163,6 +166,25 @@ class TtcGatewayClientErrorTest {
         val body = "[null," + Fixtures.text("stop/1-970-en.json") + "]"
         gateway.respondWith { FixtureGateway.response(200, body, "application/json") }
         assertEquals(listOf(stop), runBlocking { gateway.client().stops(Language.EN) }.map { it.id })
+    }
+
+    @Test
+    fun `a pattern whose vehicles all misfit fails the whole positions response`() {
+        val body = """{"0:01":[{"vehicleId":"1:1","lat":41.7,"lon":44.7}],"1:01":[{"vehicleId":"1:2","lat":"north"}]}"""
+        gateway.respondWith { FixtureGateway.response(200, body, "application/json") }
+        fails<TtcGatewayException.Malformed> {
+            gateway.client().positions(route, listOf(PatternSuffix("0:01"), PatternSuffix("1:01")))
+        }
+    }
+
+    @Test
+    fun `a pattern with no vehicles, or only nulls, is not malformed`() {
+        val body = """{"0:01":[{"vehicleId":"1:1","lat":41.7,"lon":44.7}],"1:01":[],"2:01":[null]}"""
+        gateway.respondWith { FixtureGateway.response(200, body, "application/json") }
+        val positions = runBlocking {
+            gateway.client().positions(route, listOf(PatternSuffix("0:01"), PatternSuffix("1:01")))
+        }
+        assertEquals(1, positions.vehicles.size)
     }
 
     @Test
