@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="route_badge_bus">ავტობუსი %1$s</string>
+    <string name="route_badge_minibus">მიკროავტობუსი %1$s</string>
+    <string name="route_badge_metro">მეტროს ხაზი %1$s</string>
+    <string name="route_badge_cable_car">საბაგირო %1$s</string>
+</resources>
