@@ -81,6 +81,34 @@ class PlanMappersTest {
     }
 
     @Test
+    fun `an itinerary without legs is dropped`() {
+        assertNull(itinerary.copy(legs = emptyList()).toItineraryOrNull())
+        assertNull(itinerary.copy(legs = null).toItineraryOrNull())
+        assertNull(itinerary.copy(legs = listOf(null)).toItineraryOrNull())
+    }
+
+    @Test
+    fun `an itinerary that ends before it starts is dropped`() {
+        assertNull(itinerary.copy(startTime = end, endTime = start).toItineraryOrNull())
+        val plan = PlanResponseDto(here, there, listOf(itinerary.copy(startTime = end, endTime = start), itinerary))
+            .toTripPlan(request)
+        assertEquals(listOf(Instant.parse("2026-09-28T16:43:46Z")), plan.itineraries.map { it.start })
+    }
+
+    @Test
+    fun `an itinerary that starts and ends at once is kept`() {
+        val instant = itinerary.copy(endTime = start, legs = listOf(walk.copy(startTime = start, endTime = start)))
+        assertEquals(Duration.ZERO, requireNotNull(instant.copy(duration = null).toItineraryOrNull()).duration)
+    }
+
+    @Test
+    fun `a leg that ends before it starts is invalid and drops its itinerary`() {
+        val backwards = bus.copy(startTime = end, endTime = start)
+        assertNull(backwards.toLegOrNull())
+        assertNull(itinerary.copy(legs = listOf(backwards, walk)).toItineraryOrNull())
+    }
+
+    @Test
     fun `a walk leg has no route and keeps its steps`() {
         val leg = assertIs<WalkLeg>(walk.toLegOrNull())
         assertEquals("Queen Tamar Avenue", leg.steps.single().streetName)

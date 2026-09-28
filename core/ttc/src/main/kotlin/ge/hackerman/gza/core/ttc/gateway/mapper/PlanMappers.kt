@@ -30,14 +30,18 @@ internal fun PlanResponseDto.toTripPlan(request: TripRequest): TripPlan = TripPl
     itineraries = itineraries.orEmpty().mapNotNull { it?.toItineraryOrNull() }
 )
 
-/** Null when a time is unreadable or any leg is invalid: a plan with a hole is worse than none. */
+/**
+ * Null when a time is unreadable, the itinerary ends before it starts, it has no legs, or any
+ * leg is invalid: a plan with a hole is worse than none, and an empty or backwards one is
+ * nothing a rider can follow.
+ */
 internal fun ItineraryDto.toItineraryOrNull(): Itinerary? {
-    val start = startTime.toInstantOrNull()
-    val end = endTime.toInstantOrNull()
+    val times = orderedOrNull(startTime.toInstantOrNull(), endTime.toInstantOrNull())
     val mappedLegs = legs.orEmpty().map { it?.toLegOrNull() }
-    return if (start == null || end == null || null in mappedLegs) {
+    return if (times == null || mappedLegs.isEmpty() || null in mappedLegs) {
         null
     } else {
+        val (start, end) = times
         Itinerary(
             start = start,
             end = end,
@@ -49,8 +53,9 @@ internal fun ItineraryDto.toItineraryOrNull(): Itinerary? {
     }
 }
 
+/** Null without both places and both times, or when the leg ends before it starts. */
 internal fun LegDto.toLegOrNull(): Leg? {
-    val times = bothOrNull(startTime.toInstantOrNull(), endTime.toInstantOrNull())
+    val times = orderedOrNull(startTime.toInstantOrNull(), endTime.toInstantOrNull())
     val places = bothOrNull(from?.toPlaceOrNull(), to?.toPlaceOrNull())
     return if (times == null || places == null) {
         null
@@ -84,6 +89,10 @@ internal fun LegDto.toLegOrNull(): Leg? {
         )
     }
 }
+
+/** Both instants, and only when the end is not before the start. */
+private fun orderedOrNull(start: Instant?, end: Instant?): Pair<Instant, Instant>? =
+    bothOrNull(start, end)?.takeUnless { (from, to) -> to < from }
 
 private fun <A : Any, B : Any> bothOrNull(a: A?, b: B?): Pair<A, B>? = if (a != null && b != null) a to b else null
 
