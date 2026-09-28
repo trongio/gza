@@ -31,7 +31,13 @@ internal class GatewayConfigRules(private val policy: GatewayConfigPolicy, priva
         ConfigCandidate(fallbackBaseUrl, it, null)
     }
 
-    fun isWithinTtl(fetchedAt: Instant?, now: Instant): Boolean = fetchedAt != null && now < fetchedAt + policy.ttl
+    /**
+     * A fetchedAt in the future (the clock moved back, or a corrupt cache) is not fresh:
+     * it could otherwise stay "fresh" for as long as the skew. Duration.between cannot
+     * overflow the way fetchedAt + ttl can near Instant.MAX.
+     */
+    fun isWithinTtl(fetchedAt: Instant?, now: Instant): Boolean =
+        fetchedAt != null && !fetchedAt.isAfter(now) && Duration.between(fetchedAt, now) < policy.ttl
 
     fun isInForcedRefreshCooldown(lastForcedRefreshAt: Instant?, now: Instant): Boolean =
         lastForcedRefreshAt != null && now < lastForcedRefreshAt + policy.minForcedRefreshInterval

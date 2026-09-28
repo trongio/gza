@@ -7,8 +7,10 @@ import ge.hackerman.gza.core.ttc.testing.FirebaseFixtures.PRODUCTION_BASE_URL
 import ge.hackerman.gza.core.ttc.testing.MutableClock
 import java.io.IOException
 import java.time.Duration
+import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -88,6 +90,41 @@ class DefaultGatewayConfigProviderTest {
         assertEquals(1, remote.fetches.get())
         assertEquals(REMOTE_KEY, provider.peek()?.apiKey)
         assertEquals(ConfigSource.REMOTE, provider.current().source)
+    }
+
+    @Test
+    fun `cache fetched in the future is stale and refetched`() = runTest {
+        // The device clock moved back by a day since the fetch.
+        seedCache(age = Duration.ofDays(-1))
+        val provider = provider()
+        assertEquals(ConfigSource.STALE_CACHE, provider.current().source)
+        runCurrent()
+        assertEquals(1, remote.fetches.get())
+        assertEquals(REMOTE_KEY, provider.current().apiKey)
+    }
+
+    @Test
+    fun `extreme fetched at values do not overflow`() = runTest {
+        listOf(Instant.MAX, Instant.MIN).forEach { fetchedAt ->
+            cache.writeConfig(CachedGatewayConfig(PRODUCTION_BASE_URL, CACHED_KEY, fetchedAt))
+            val provider = provider()
+            assertEquals(ConfigSource.STALE_CACHE, provider.current().source)
+            runCurrent()
+            assertEquals(REMOTE_KEY, provider.current().apiKey)
+        }
+    }
+
+    @Test
+    fun `ttl window is closed at fetch time and open at fetch plus ttl`() {
+        val rules = GatewayConfigRules(policy, fallback)
+        val now = clock.now
+        assertTrue(rules.isWithinTtl(now, now))
+        assertTrue(rules.isWithinTtl(now - policy.ttl + Duration.ofNanos(1), now))
+        assertFalse(rules.isWithinTtl(now - policy.ttl, now))
+        assertFalse(rules.isWithinTtl(now + Duration.ofNanos(1), now))
+        assertFalse(rules.isWithinTtl(null, now))
+        assertFalse(rules.isWithinTtl(Instant.MAX, now))
+        assertFalse(rules.isWithinTtl(Instant.MIN, now))
     }
 
     @Test
