@@ -1,13 +1,17 @@
 package ge.hackerman.gza.core.ttc.gateway.dto
 
 import ge.hackerman.gza.core.ttc.TtcJson
+import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.serializer
 
 /*
  * The gateway drifts one item at a time: a stop with a numeric code, a vehicle with a string
@@ -23,16 +27,24 @@ import kotlinx.serialization.json.decodeFromJsonElement
  */
 
 /** Null for a JSON null or an element that does not fit [T]. */
-internal inline fun <reified T : Any> JsonElement.decodeOrNull(json: Json = TtcJson): T? = if (this is JsonNull) {
-    null
-} else {
-    try {
-        json.decodeFromJsonElement<T>(this)
-    } catch (_: IllegalArgumentException) {
-        // SerializationException is an IllegalArgumentException.
+internal inline fun <reified T : Any> JsonElement.decodeOrNull(json: Json = TtcJson): T? =
+    decodeOrNull(serializer<T>(), json)
+
+internal fun <T : Any> JsonElement.decodeOrNull(deserializer: DeserializationStrategy<T>, json: Json): T? =
+    if (this is JsonNull) {
         null
+    } else if (deserializer.descriptor.kind is PrimitiveKind && this !is JsonPrimitive) {
+        // kotlinx throws IndexOutOfBoundsException, not SerializationException, when a
+        // primitive is decoded from an object or array at the root, so rule it out first.
+        null
+    } else {
+        try {
+            json.decodeFromJsonElement(deserializer, this)
+        } catch (_: IllegalArgumentException) {
+            // SerializationException is an IllegalArgumentException.
+            null
+        }
     }
-}
 
 /**
  * The elements of a top-level array that fit [T]. Anything but an array is malformed, and so

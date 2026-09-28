@@ -20,4 +20,7 @@ internal data class StopRefDto(val id: String? = null, val name: String? = null)
 
 /** One entry of `stops-of-patterns`: a stop and the requested patterns that serve it. */
 @Serializable
-internal data class PatternStopDto(val stop: StopDto? = null, val patternSuffixes: List<String?>? = null)
+internal data class PatternStopDto(
+    val stop: StopDto? = null,
+    @Serializable(with = LenientStrings::class) val patternSuffixes: List<String?>? = null
+)

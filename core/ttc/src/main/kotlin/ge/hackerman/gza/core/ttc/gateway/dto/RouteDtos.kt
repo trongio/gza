@@ -18,7 +18,7 @@ internal data class RouteDetailDto(
     val longName: String? = null,
     val color: String? = null,
     val mode: String? = null,
-    val patterns: List<PatternDto?>? = null,
+    @Serializable(with = LenientPatterns::class) val patterns: List<PatternDto?>? = null,
     val defaultPatternSuffix: String? = null
 )
 

@@ -39,9 +39,9 @@ internal data class LegDto(
     val distance: Double? = null,
     val duration: Long? = null,
     val route: LegRouteDto? = null,
-    val intermediateStops: List<StopDto?>? = null,
+    @Serializable(with = LenientStops::class) val intermediateStops: List<StopDto?>? = null,
     val legPolyline: PolylineDto? = null,
-    val steps: List<StepDto?>? = null
+    @Serializable(with = LenientSteps::class) val steps: List<StepDto?>? = null
 )
 
 /** `id` and `mode` have been null in every plan seen so far. */

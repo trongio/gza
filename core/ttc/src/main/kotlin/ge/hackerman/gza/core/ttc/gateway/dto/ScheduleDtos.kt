@@ -6,8 +6,8 @@ import kotlinx.serialization.Serializable
 internal data class ServicePeriodDto(
     val fromDay: String? = null,
     val toDay: String? = null,
-    val serviceDates: List<String?>? = null,
-    val stops: List<ScheduledStopDto?>? = null
+    @Serializable(with = LenientStrings::class) val serviceDates: List<String?>? = null,
+    @Serializable(with = LenientScheduledStops::class) val stops: List<ScheduledStopDto?>? = null
 )
 
 @Serializable
