@@ -237,7 +237,51 @@ class FirebaseRemoteConfigClientTest {
         assertFalse("appInstanceIdToken" in fetchRequest().json())
     }
 
+    @Test
+    fun `installation response with an unsafe refresh token counts as a failure`() {
+        firebase.onInstall = {
+            FirebaseFixtures.json(
+                200,
+                FirebaseFixtures.read("installation-ok.json").replace(REFRESH_TOKEN, "bad\\u0001token")
+            )
+        }
+        assertEquals(GATEWAY_KEY, fetch().apiKey)
+        assertNull(runBlocking { cache.readInstallation() })
+        assertFalse("appInstanceIdToken" in fetchRequest().json())
+    }
+
+    @Test
+    fun `stored refresh token unusable in a header is replaced by a new installation`() {
+        listOf("bad\ntoken", "tok\u0000en", "ტოკენი", "").forEach { token ->
+            runBlocking {
+                cache.writeInstallation(
+                    FirebaseInstallation(
+                        FID,
+                        token,
+                        "seeded-auth",
+                        clock.now + Duration.ofMinutes(30)
+                    )
+                )
+            }
+            firebase.installations.set(0)
+            firebase.tokenRefreshes.set(0)
+            assertEquals(GATEWAY_KEY, fetch().apiKey)
+            assertEquals(0, firebase.tokenRefreshes.get())
+            assertEquals(1, firebase.installations.get())
+            assertEquals(REFRESH_TOKEN, runBlocking { cache.readInstallation() }?.refreshToken)
+        }
+    }
+
     // Error mapping
+
+    @Test
+    fun `api key unusable in a header is malformed, not a crash, and sends nothing`() {
+        val error =
+            fetchFailure(client(credentials = FirebaseWebCredentials("$FIREBASE_KEY\n", "test-project", APP_ID)))
+        assertEquals(Reason.MALFORMED, error.reason)
+        assertNull(error.cause, "the cause would quote the key")
+        assertEquals(0, server.requestCount)
+    }
 
     @Test
     fun `fetch 400 maps to http with the google status`() {

@@ -1,5 +1,7 @@
 package ge.hackerman.gza.core.ttc.config
 
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
@@ -13,10 +15,14 @@ object GatewayKeys {
      * interceptor would crash the call instead of failing it. A key that fails this check is
      * treated as absent, whatever its source.
      */
-    fun isUsableApiKey(key: String?): Boolean = key != null &&
-        key.isNotEmpty() &&
-        key.length <= MAX_KEY_LENGTH &&
-        key.all { it in FIRST_VISIBLE_ASCII..LAST_VISIBLE_ASCII }
+    fun isUsableApiKey(key: String?): Boolean = isHeaderSafe(key) && key.length <= MAX_KEY_LENGTH
+
+    /** Non-empty visible ASCII only, so `Request.Builder.header()` can never throw on it. */
+    @OptIn(ExperimentalContracts::class)
+    fun isHeaderSafe(value: String?): Boolean {
+        contract { returns(true) implies (value != null) }
+        return value != null && value.isNotEmpty() && value.all { it in FIRST_VISIBLE_ASCII..LAST_VISIBLE_ASCII }
+    }
 
     /** A gateway base URL, or null when it is not one we are willing to send the key to. */
     fun parseBaseUrl(raw: String?, requireHttps: Boolean): HttpUrl? {

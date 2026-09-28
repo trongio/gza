@@ -20,13 +20,19 @@ internal class FirebaseRest(private val httpClient: OkHttpClient, private val js
 
     /** The API key goes in a header, never the `?key=` query, so it stays out of URLs and URL logs. */
     fun <T> post(url: HttpUrl, serializer: SerializationStrategy<T>, body: T, authorization: String? = null): Result {
-        val request = Request.Builder()
-            .url(url)
-            .header(GOOG_API_KEY_HEADER, apiKey)
-            .header("Accept", JSON_MEDIA_TYPE)
-            .apply { authorization?.let { header(AUTHORIZATION_HEADER, it) } }
-            .post(json.encodeToString(serializer, body).toRequestBody(JSON_MEDIA_TYPE.toMediaType()))
-            .build()
+        val request = try {
+            Request.Builder()
+                .url(url)
+                .header(GOOG_API_KEY_HEADER, apiKey)
+                .header("Accept", JSON_MEDIA_TYPE)
+                .apply { authorization?.let { header(AUTHORIZATION_HEADER, it) } }
+                .post(json.encodeToString(serializer, body).toRequestBody(JSON_MEDIA_TYPE.toMediaType()))
+                .build()
+        } catch (ignored: IllegalArgumentException) {
+            // A header value OkHttp rejects. No cause on purpose: OkHttp quotes the value,
+            // which is the API key or a token, in the message.
+            throw RemoteConfigException(Reason.MALFORMED)
+        }
         return try {
             httpClient.newCall(request).execute().use { Result(it.code, it.body.string()) }
         } catch (e: IOException) {

@@ -48,6 +48,12 @@ class FirebaseRemoteConfigClient(
         return when {
             stored == null -> register()
 
+            // It goes in a header: one OkHttp rejects could never be refreshed, only replaced.
+            !GatewayKeys.isHeaderSafe(stored.refreshToken) -> {
+                cache.writeInstallation(null)
+                register()
+            }
+
             stored.authTokenExpiresAt > now + TOKEN_REFRESH_MARGIN -> stored
 
             else -> when (val refreshed = refreshToken(stored)) {
@@ -87,7 +93,7 @@ class FirebaseRemoteConfigClient(
         val fid = response.fid
         val refreshToken = response.refreshToken
         val authToken = response.authToken?.token
-        return if (fid.isNullOrBlank() || refreshToken.isNullOrBlank() || authToken.isNullOrBlank()) {
+        return if (fid.isNullOrBlank() || !GatewayKeys.isHeaderSafe(refreshToken) || authToken.isNullOrBlank()) {
             null
         } else {
             FirebaseInstallation(

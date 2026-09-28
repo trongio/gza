@@ -22,6 +22,15 @@ class GatewayKeysTest {
     }
 
     @Test
+    fun `header safe means non empty visible ascii of any length`() {
+        assertTrue(GatewayKeys.isHeaderSafe("a".repeat(2_000)))
+        assertTrue(GatewayKeys.isHeaderSafe("3_AS3qfw-LWq.zKF~"))
+        listOf(null, "", " ", "a b", "a\u0000", "a\u007f", "\u00e9").forEach {
+            assertFalse(GatewayKeys.isHeaderSafe(it), "expected unsafe: ${it?.length}")
+        }
+    }
+
+    @Test
     fun `https base url is accepted`() {
         val url = assertNotNull(GatewayKeys.parseBaseUrl("https://transit.ttc.com.ge/pis-gateway", true))
         assertEquals("/pis-gateway", url.encodedPath)
