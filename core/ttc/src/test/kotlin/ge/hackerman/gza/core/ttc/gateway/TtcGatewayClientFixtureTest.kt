@@ -160,7 +160,8 @@ class TtcGatewayClientFixtureTest {
         }
         val r472 = fixture("route/472-en.json") { gateway.client().route(route472, Language.EN) }
         assertEquals(listOf("0:03", "1:03"), r472.patterns.map { it.suffix.value })
-        assertEquals(PatternSuffix("1:03"), r472.defaultPattern)
+        // The default changes upstream between recordings, so only "one of its patterns" survives re-recording.
+        assertTrue(r472.defaultPattern in r472.patterns.map { it.suffix })
         assertEquals("უნივერსიტეტის მაღლივი კორპუსი", r472.patterns.first().headsign)
         assertEquals(TransportKind.MINIBUS, r472.kind)
         val metro = fixture("route/metro-1-en.json") { gateway.client().route(RouteId("1:Metro_Metro_1"), Language.EN) }
