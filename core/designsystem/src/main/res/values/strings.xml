@@ -32,4 +32,10 @@
         <item quantity="other">Leave in %d seconds</item>
     </plurals>
     <string name="countdown_a11y_hours">Leave in %1$d h %2$d min</string>
+    <!-- Departure row. %1$s is a time like 17:08. -->
+    <string name="departure_leave_by">leave by %1$s</string>
+    <!-- One sentence for TalkBack: badge name, destination, time, leave-by time, status. -->
+    <string name="departure_a11y">%1$s to %2$s. Departs %3$s. Leave by %4$s. %5$s</string>
+    <string name="departure_a11y_no_leave_by">%1$s to %2$s. Departs %3$s. %4$s</string>
+    <string name="departure_show_on_map">Show on map</string>
 </resources>

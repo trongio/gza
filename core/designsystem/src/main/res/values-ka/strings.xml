@@ -28,4 +28,8 @@
         <item quantity="other">გამოდით %d წამში</item>
     </plurals>
     <string name="countdown_a11y_hours">გამოდით %1$d სთ %2$d წთ-ში</string>
+    <string name="departure_leave_by">გამოდით %1$s-მდე</string>
+    <string name="departure_a11y">%1$s, მიმართულება: %2$s. გადის %3$s-ზე. გამოდით %4$s-მდე. %5$s</string>
+    <string name="departure_a11y_no_leave_by">%1$s, მიმართულება: %2$s. გადის %3$s-ზე. %4$s</string>
+    <string name="departure_show_on_map">რუკაზე ნახვა</string>
 </resources>
