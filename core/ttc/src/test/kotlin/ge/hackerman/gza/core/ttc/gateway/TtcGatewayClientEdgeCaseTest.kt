@@ -1,19 +1,29 @@
 package ge.hackerman.gza.core.ttc.gateway
 
 import ge.hackerman.gza.core.model.Language
+import ge.hackerman.gza.core.model.LatLon
 import ge.hackerman.gza.core.model.PatternSuffix
 import ge.hackerman.gza.core.model.RouteId
 import ge.hackerman.gza.core.model.StopId
+import ge.hackerman.gza.core.model.TripRequest
+import ge.hackerman.gza.core.ttc.TtcJson
 import ge.hackerman.gza.core.ttc.http.TtcGateway
 import ge.hackerman.gza.core.ttc.testing.FirebaseFixtures
 import ge.hackerman.gza.core.ttc.testing.FixtureGateway
 import ge.hackerman.gza.core.ttc.testing.Fixtures
+import java.time.OffsetDateTime
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class TtcGatewayClientEdgeCaseTest {
@@ -80,10 +90,8 @@ class TtcGatewayClientEdgeCaseTest {
         assertEquals("ka", url.queryParameter("locale"))
     }
 
-    // Type drift (not nulls): the plan accepts Malformed for a wrong type, but here nothing
-    // fails: one vehicle with a string heading silently empties its whole pattern group, so
-    // the route looks like it has no buses in that direction.
-    @Disabled("bug: one mistyped vehicle drops every vehicle of its pattern, silently")
+    // Type drift (not nulls): one vehicle with a string heading must not empty its whole
+    // pattern group, or the route looks like it has no buses in that direction.
     @Test
     fun `one mistyped vehicle drops only itself`() {
         gateway.respondWith {
@@ -98,8 +106,7 @@ class TtcGatewayClientEdgeCaseTest {
         assertEquals(listOf("1:2"), positions.vehicles.map { it.vehicleId.value })
     }
 
-    // Same drift in a list endpoint: one stop with a numeric code makes all 2,753 stops Malformed.
-    @Disabled("bug: one mistyped list element fails the whole list")
+    // Same drift in a list endpoint: one stop with a numeric code must not fail all 2,753 stops.
     @Test
     fun `one mistyped stop drops only itself`() {
         val good = Fixtures.text("stop/1-970-en.json")
@@ -112,5 +119,52 @@ class TtcGatewayClientEdgeCaseTest {
         }
         val stops = runBlocking { gateway.client().stops(Language.EN) }
         assertEquals(listOf(stop970), stops.map { it.id })
+    }
+
+    @Test
+    fun `one mistyped board row drops only itself`() {
+        val rows = TtcJson.parseToJsonElement(Fixtures.text("terminus/551-20260928T2043/arrival-times.json")).jsonArray
+        val drifted = buildJsonArray {
+            add(rows[0])
+            add(
+                buildJsonObject {
+                    rows[1].jsonObject.forEach { (k, v) -> put(k, v) }
+                    put("realtime", "yes")
+                }
+            )
+            add(rows[2])
+        }
+        gateway.respondWith { FixtureGateway.response(200, drifted.toString(), "application/json") }
+        val board = runBlocking { gateway.client().arrivalBoard(stop970, Language.EN) }
+        assertEquals(listOf("551", "326"), board.arrivals.map { it.routeShortName })
+    }
+
+    @Test
+    fun `one mistyped itinerary drops only itself`() {
+        val plan = TtcJson.parseToJsonElement(
+            Fixtures.text("plan/leave-now-970-to-freedom-square-20260928T2043.json")
+        ).jsonObject
+        val itineraries = plan.getValue("itineraries").jsonArray
+        val drifted = JsonObject(
+            plan + (
+                "itineraries" to buildJsonArray {
+                    add(
+                        buildJsonObject {
+                            itineraries[0].jsonObject.forEach { (k, v) -> put(k, v) }
+                            put("duration", "long")
+                        }
+                    )
+                    add(itineraries[1])
+                    add(itineraries[2])
+                }
+                )
+        )
+        gateway.respondWith { FixtureGateway.response(200, drifted.toString(), "application/json") }
+        val request = TripRequest(LatLon(41.722055, 44.703114), LatLon(41.694033, 44.801559))
+        val result = runBlocking { gateway.client().plan(request, Language.EN) }
+        val expected = listOf(1, 2).map { i ->
+            OffsetDateTime.parse(itineraries[i].jsonObject.getValue("startTime").jsonPrimitive.content).toInstant()
+        }
+        assertEquals(expected, result.itineraries.map { it.start })
     }
 }

@@ -25,6 +25,9 @@ import ge.hackerman.gza.core.ttc.gateway.dto.ProblemDto
 import ge.hackerman.gza.core.ttc.gateway.dto.RouteDto
 import ge.hackerman.gza.core.ttc.gateway.dto.ServicePeriodDto
 import ge.hackerman.gza.core.ttc.gateway.dto.StopDto
+import ge.hackerman.gza.core.ttc.gateway.dto.decodeEachElement
+import ge.hackerman.gza.core.ttc.gateway.dto.toFeatureCollectionDto
+import ge.hackerman.gza.core.ttc.gateway.dto.toPlanResponseDto
 import ge.hackerman.gza.core.ttc.gateway.dto.toPolylineDtos
 import ge.hackerman.gza.core.ttc.gateway.dto.toPositionDtos
 import ge.hackerman.gza.core.ttc.gateway.mapper.toGeocodeResults
@@ -41,8 +44,6 @@ import ge.hackerman.gza.core.ttc.gateway.mapper.toTripPlan
 import java.io.IOException
 import java.time.Clock
 import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.decodeFromJsonElement
 import okhttp3.ResponseBody
 import retrofit2.HttpException
 
@@ -55,7 +56,7 @@ import retrofit2.HttpException
 internal class RetrofitTtcGatewayClient(private val service: TtcGatewayService, private val clock: Clock) :
     TtcGatewayClient {
     override suspend fun stops(language: Language): List<Stop> = call {
-        service.stops(language.code).decode<List<StopDto?>>().toStops()
+        service.stops(language.code).decodeEachElement<StopDto>().toStops()
     }
 
     override suspend fun stop(id: StopId, language: Language): Stop = call {
@@ -63,16 +64,16 @@ internal class RetrofitTtcGatewayClient(private val service: TtcGatewayService, 
     }
 
     override suspend fun stopRoutes(id: StopId, language: Language): List<Route> = call {
-        service.stopRoutes(id.value, language.code).decode<List<RouteDto?>>().toRoutes()
+        service.stopRoutes(id.value, language.code).decodeEachElement<RouteDto>().toRoutes()
     }
 
     override suspend fun arrivalBoard(id: StopId, language: Language): StopBoard = call {
-        val rows = service.arrivalTimes(id.value, language.code).decode<List<BoardArrivalDto?>>()
+        val rows = service.arrivalTimes(id.value, language.code).decodeEachElement<BoardArrivalDto>()
         rows.toStopBoard(id, clock.instant())
     }
 
     override suspend fun routes(language: Language): List<Route> = call {
-        service.routes(QueryFormat.ROUTE_MODES, language.code).decode<List<RouteDto?>>().toRoutes()
+        service.routes(QueryFormat.ROUTE_MODES, language.code).decodeEachElement<RouteDto>().toRoutes()
     }
 
     override suspend fun route(id: RouteId, language: Language): RouteDetail = call {
@@ -80,12 +81,12 @@ internal class RetrofitTtcGatewayClient(private val service: TtcGatewayService, 
     }
 
     override suspend fun schedule(id: RouteId, pattern: PatternSuffix, language: Language): RouteSchedule = call {
-        service.schedule(id.value, pattern.value, language.code).decode<List<ServicePeriodDto?>>()
+        service.schedule(id.value, pattern.value, language.code).decodeEachElement<ServicePeriodDto>()
             .toRouteSchedule(id, pattern)
     }
 
     override suspend fun patternStops(id: RouteId, pattern: PatternSuffix, language: Language): PatternStops = call {
-        service.stopsOfPatterns(id.value, pattern.value, language.code).decode<List<PatternStopDto?>>()
+        service.stopsOfPatterns(id.value, pattern.value, language.code).decodeEachElement<PatternStopDto>()
             .toPatternStops(id, pattern)
     }
 
@@ -103,18 +104,17 @@ internal class RetrofitTtcGatewayClient(private val service: TtcGatewayService, 
     }
 
     override suspend fun plan(request: TripRequest, language: Language): TripPlan = call {
-        service.plan(QueryFormat.planQuery(request, language)).toTripPlan(request)
+        service.plan(QueryFormat.planQuery(request, language)).toPlanResponseDto().toTripPlan(request)
     }
 
-    override suspend fun geocode(query: String, language: Language, bounds: BoundingBox): List<GeocodeResult> =
-        call { service.geocode(query, language.code, QueryFormat.bbox(bounds)).toGeocodeResults() }
+    override suspend fun geocode(query: String, language: Language, bounds: BoundingBox): List<GeocodeResult> = call {
+        service.geocode(query, language.code, QueryFormat.bbox(bounds)).toFeatureCollectionDto().toGeocodeResults()
+    }
 
     override suspend fun reverseGeocode(at: LatLon, language: Language): List<GeocodeResult> = call {
         service.reverseGeocode(QueryFormat.coordinate(at.lat), QueryFormat.coordinate(at.lon), language.code)
-            .toGeocodeResults()
+            .toFeatureCollectionDto().toGeocodeResults()
     }
-
-    private inline fun <reified T> JsonElement.decode(): T = TtcJson.decodeFromJsonElement(this)
 
     /**
      * Every failure leaves as a [TtcGatewayException], except cancellation, which must reach

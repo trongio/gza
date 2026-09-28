@@ -131,10 +131,18 @@ class TtcGatewayClientErrorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = ["not json", "", "null", """{"id":5}""", "[1,2]", """[{"id":{}}]"""])
+    @ValueSource(strings = ["not json", "", "null", """{"id":5}""", "\"stops\"", "5"])
     fun `a 200 that is not the expected shape is malformed`(body: String) {
         gateway.respondWith { FixtureGateway.response(200, body, "application/json") }
         fails<TtcGatewayException.Malformed> { gateway.client().stops(Language.EN) }
+    }
+
+    // A list is the right shape even when no element fits: each bad element drops only itself.
+    @ParameterizedTest
+    @ValueSource(strings = ["[1,2]", """[{"id":{}}]""", "[null]", "[]"])
+    fun `a list whose elements all misfit is empty, not malformed`(body: String) {
+        gateway.respondWith { FixtureGateway.response(200, body, "application/json") }
+        assertTrue(runBlocking { gateway.client().stops(Language.EN) }.isEmpty())
     }
 
     @Test

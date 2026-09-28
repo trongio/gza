@@ -7,13 +7,15 @@ import ge.hackerman.gza.core.model.StopId
 import ge.hackerman.gza.core.model.TripRequest
 import ge.hackerman.gza.core.ttc.TtcJson
 import ge.hackerman.gza.core.ttc.gateway.dto.BoardArrivalDto
-import ge.hackerman.gza.core.ttc.gateway.dto.FeatureCollectionDto
 import ge.hackerman.gza.core.ttc.gateway.dto.PatternStopDto
-import ge.hackerman.gza.core.ttc.gateway.dto.PlanResponseDto
 import ge.hackerman.gza.core.ttc.gateway.dto.RouteDetailDto
 import ge.hackerman.gza.core.ttc.gateway.dto.RouteDto
 import ge.hackerman.gza.core.ttc.gateway.dto.ServicePeriodDto
 import ge.hackerman.gza.core.ttc.gateway.dto.StopDto
+import ge.hackerman.gza.core.ttc.gateway.dto.decodeEachElement
+import ge.hackerman.gza.core.ttc.gateway.dto.decodeObject
+import ge.hackerman.gza.core.ttc.gateway.dto.toFeatureCollectionDto
+import ge.hackerman.gza.core.ttc.gateway.dto.toPlanResponseDto
 import ge.hackerman.gza.core.ttc.gateway.dto.toPolylineDtos
 import ge.hackerman.gza.core.ttc.gateway.dto.toPositionDtos
 import ge.hackerman.gza.core.ttc.gateway.mapper.toGeocodeResults
@@ -62,41 +64,44 @@ class LenientParsingTest {
     private val pattern = PatternSuffix("0:01")
     private val trip = TripRequest(LatLon(41.722055, 44.703114), LatLon(41.694033, 44.801559))
 
+    // The client's own decoders, so the mutations exercise exactly what ships.
+    private fun parse(json: String): JsonElement = TtcJson.parseToJsonElement(json)
+
     private val roots = listOf(
-        Root("stops", "stops/all-en.json") { TtcJson.decodeFromString<List<StopDto?>>(it).toStops() },
+        Root("stops", "stops/all-en.json") { parse(it).decodeEachElement<StopDto>().toStops() },
         Root("stop", "stop/1-970-en.json", setOf(".id", ".lat", ".lon")) {
-            TtcJson.decodeFromString<StopDto>(it).toStopOrNull()
+            parse(it).decodeObject<StopDto>().toStopOrNull()
         },
         Root("stop routes", "stop-routes/1-970-en.json") {
-            TtcJson.decodeFromString<List<RouteDto?>>(it).toRoutes()
+            parse(it).decodeEachElement<RouteDto>().toRoutes()
         },
         Root("board", "terminus/551-20260928T2043/arrival-times.json") {
-            TtcJson.decodeFromString<List<BoardArrivalDto?>>(it).toStopBoard(StopId("1:970"), at)
+            parse(it).decodeEachElement<BoardArrivalDto>().toStopBoard(StopId("1:970"), at)
         },
-        Root("routes", "routes/all-en.json") { TtcJson.decodeFromString<List<RouteDto?>>(it).toRoutes() },
+        Root("routes", "routes/all-en.json") { parse(it).decodeEachElement<RouteDto>().toRoutes() },
         Root("route detail", "route/472-en.json", setOf(".id")) {
-            TtcJson.decodeFromString<RouteDetailDto>(it).toRouteDetailOrNull()
+            parse(it).decodeObject<RouteDetailDto>().toRouteDetailOrNull()
         },
         Root("schedule", "schedule/551-0-01-en.json") {
-            TtcJson.decodeFromString<List<ServicePeriodDto?>>(it).toRouteSchedule(route, pattern)
+            parse(it).decodeEachElement<ServicePeriodDto>().toRouteSchedule(route, pattern)
         },
         Root("stops of patterns", "stops-of-patterns/326-0-01-en.json") {
-            TtcJson.decodeFromString<List<PatternStopDto?>>(it).toPatternStops(route, pattern)
+            parse(it).decodeEachElement<PatternStopDto>().toPatternStops(route, pattern)
         },
         Root("polylines", "polylines/326.json") {
-            TtcJson.decodeFromString<Map<String, JsonElement>>(it).toPolylineDtos().toRoutePolylines()
+            parse(it).toPolylineDtos().toRoutePolylines()
         },
         Root("positions", "terminus/551-20260928T2043/positions.json") {
-            TtcJson.decodeFromString<Map<String, JsonElement>>(it).toPositionDtos().toRoutePositions(route, at)
+            parse(it).toPositionDtos().toRoutePositions(route, at)
         },
         Root("plan", "plan/leave-now-970-to-freedom-square-20260928T2043.json") {
-            TtcJson.decodeFromString<PlanResponseDto>(it).toTripPlan(trip)
+            parse(it).toPlanResponseDto().toTripPlan(trip)
         },
         Root("geocode", "geocode/rustaveli-en.json") {
-            TtcJson.decodeFromString<FeatureCollectionDto>(it).toGeocodeResults()
+            parse(it).toFeatureCollectionDto().toGeocodeResults()
         },
         Root("reverse geocode", "reverse-geocode/1-970-en.json") {
-            TtcJson.decodeFromString<FeatureCollectionDto>(it).toGeocodeResults()
+            parse(it).toFeatureCollectionDto().toGeocodeResults()
         }
     )
 
