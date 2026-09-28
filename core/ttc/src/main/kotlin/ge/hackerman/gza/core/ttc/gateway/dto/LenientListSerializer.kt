@@ -10,6 +10,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonNull
 
 /**
  * A list inside a DTO, decoded element by element like the top-level lists: one mistyped
@@ -47,3 +48,11 @@ internal object LenientStops : LenientListSerializer<StopDto>(StopDto.serializer
 internal object LenientSteps : LenientListSerializer<StepDto>(StepDto.serializer())
 
 internal object LenientStrings : LenientListSerializer<String>(String.serializer())
+
+/** Throws when [array] has non-null elements and none of them decoded. */
+internal fun requireSomeFit(array: JsonArray, decodedCount: Int) {
+    if (decodedCount == 0) {
+        val present = array.count { it !is JsonNull }
+        if (present > 0) throw SerializationException("None of $present elements fit the expected shape")
+    }
+}

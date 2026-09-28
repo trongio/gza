@@ -57,14 +57,6 @@ internal inline fun <reified T : Any> JsonElement.decodeEachElement(json: Json =
     return decoded
 }
 
-/** Throws when [array] has non-null elements and none of them decoded. */
-internal fun requireSomeFit(array: JsonArray, decodedCount: Int) {
-    if (decodedCount == 0) {
-        val present = array.count { it !is JsonNull }
-        if (present > 0) throw SerializationException("None of $present elements fit the expected shape")
-    }
-}
-
 /** A single top-level object; a mistyped field fails it, since there is nothing else to keep. */
 internal inline fun <reified T : Any> JsonElement.decodeObject(json: Json = TtcJson): T =
     json.decodeFromJsonElement<T>(requireObject())
