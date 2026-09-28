@@ -13,7 +13,7 @@ of which start there. Use it for manual checks and fixtures.
 
 ---
 
-## [ ] T01 Project foundation
+## [x] T01 Project foundation (PR #1)
 Depends: none
 - Multi-module Gradle project per CLAUDE.md, `build-logic/` convention plugins, version
   catalog with the latest stable AGP, Kotlin, Compose BOM, Hilt, Room, KSP, Retrofit,
@@ -27,9 +27,14 @@ Depends: none
 - `maestro/` with one smoke flow (app launches, placeholder visible).
 
 Acceptance:
-- [ ] Gate green locally and on CI for the T01 PR.
-- [ ] App installs and launches on the emulator; Maestro smoke flow passes.
-- [ ] No secret in the repo (`git grep` for the key and Firebase values finds nothing).
+- [x] Gate green locally and on CI for the T01 PR.
+- [x] App installs and launches on the emulator; Maestro smoke flow passes.
+- [x] No secret in the repo (`git grep` for the key and Firebase values finds nothing).
+
+Follow-ups:
+- Decide whether to require the `gate` CI check on `main` via branch protection.
+- Robolectric runs at `sdk=36`: SDK 37 rendered the second screenshot blank; retry 37 on the next Robolectric release.
+- Build-logic convention plugins have no Gradle TestKit tests (plugin order and the missing-application-plugin error were only checked by hand).
 
 ## [ ] T02 Gateway config and key rotation
 Depends: T01

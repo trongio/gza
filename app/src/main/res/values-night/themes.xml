@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark window so the frame before Compose draws matches the dark theme. -->
+    <style name="Theme.Gza" parent="android:Theme.Material.NoActionBar" />
+</resources>

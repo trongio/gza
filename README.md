@@ -19,9 +19,22 @@ Status: **building the MVP**. See [PLAN.md](PLAN.md) for the full plan,
 
 ## Development
 
+Needs JDK 21 and the Android SDK (platform 37). Gradle comes from the wrapper.
+
 ```sh
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ANDROID_HOME=~/Android/Sdk
 ./tools/fetch-ttc-config.sh   # writes ttc.properties (gitignored) with the current gateway key
+./gradlew assembleDebug
+./gradlew spotlessCheck detekt lint test assembleDebug verifyRoborazziDebug   # the CI gate
+./gradlew spotlessApply       # format
+./gradlew recordRoborazziDebug   # update screenshot goldens in */src/test/screenshots
+./gradlew connectedDebugAndroidTest   # instrumented tests, needs a device
+~/.maestro/bin/maestro test maestro/  # end-to-end flows (emulator only: they clear app data)
+./tools/check-no-secrets.sh   # fails if a key from ttc.properties is in the tree or history
 ```
+
+The build works without `ttc.properties` (it warns and bakes in an empty fallback key);
+CI writes a dummy one.
 
 Not affiliated with Tbilisi Transport Company. All data belongs to its owners.
 

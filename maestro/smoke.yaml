@@ -1,0 +1,12 @@
+# Flows use clearState, which wipes Gza's own data. Run against the device the manager
+# names, and ask the user before running on a phone that holds real Gza data.
+appId: ge.hackerman.gza
+name: Smoke - app launches and shows the placeholder
+---
+- launchApp:
+    clearState: true
+# By id, not text, so the flow passes under both en and ka.
+- assertVisible:
+    id: "placeholder_title"
+- assertVisible:
+    id: "placeholder_subtitle"
