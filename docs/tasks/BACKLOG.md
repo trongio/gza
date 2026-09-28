@@ -13,7 +13,7 @@ of which start there. Use it for manual checks and fixtures.
 
 ---
 
-## [ ] T01 Project foundation
+## [~] T01 Project foundation
 Depends: none
 - Multi-module Gradle project per CLAUDE.md, `build-logic/` convention plugins, version
   catalog with the latest stable AGP, Kotlin, Compose BOM, Hilt, Room, KSP, Retrofit,
