@@ -64,5 +64,9 @@ gradlePlugin {
             id = "gza.android.screenshot"
             implementationClass = "AndroidScreenshotTestConventionPlugin"
         }
+        register("ttcBuildConfig") {
+            id = "gza.ttc.buildconfig"
+            implementationClass = "TtcBuildConfigConventionPlugin"
+        }
     }
 }

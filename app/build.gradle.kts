@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.gza.android.application.compose)
     alias(libs.plugins.gza.hilt)
     alias(libs.plugins.gza.android.screenshot)
+    alias(libs.plugins.gza.ttc.buildconfig)
 }
 
 android {
