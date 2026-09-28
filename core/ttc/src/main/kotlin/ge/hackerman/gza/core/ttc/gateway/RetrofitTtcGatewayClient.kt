@@ -146,8 +146,11 @@ internal class RetrofitTtcGatewayClient(private val service: TtcGatewayService, 
     private fun problemOrNull(body: ResponseBody): GatewayProblem? = body.use {
         if (it.contentType()?.subtype?.contains("json", ignoreCase = true) != true) return@use null
         try {
-            val bytes = it.byteStream().readNBytes(MAX_PROBLEM_BYTES)
-            val problem = TtcJson.decodeFromString<ProblemDto>(bytes.decodeToString())
+            // Okio, not InputStream.readNBytes: that is API 33, and minSdk is 26.
+            val source = it.source()
+            source.request(MAX_PROBLEM_BYTES)
+            val text = source.buffer.readUtf8(minOf(source.buffer.size, MAX_PROBLEM_BYTES))
+            val problem = TtcJson.decodeFromString<ProblemDto>(text)
             GatewayProblem(problem.title, problem.detail)
         } catch (_: IOException) {
             null
@@ -157,6 +160,6 @@ internal class RetrofitTtcGatewayClient(private val service: TtcGatewayService, 
     }
 
     private companion object {
-        const val MAX_PROBLEM_BYTES = 4 * 1024
+        const val MAX_PROBLEM_BYTES = 4L * 1024
     }
 }

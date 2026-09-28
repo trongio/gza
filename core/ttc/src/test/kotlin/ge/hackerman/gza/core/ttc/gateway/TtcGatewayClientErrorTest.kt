@@ -70,6 +70,24 @@ class TtcGatewayClientErrorTest {
     }
 
     @Test
+    fun `a problem body over the cap keeps the status and drops the detail`() {
+        val huge = """{"title":"Bad Request","detail":"${"x".repeat(8 * 1024)}"}"""
+        gateway.respondWith { FixtureGateway.response(400, huge, "application/problem+json") }
+        val e = fails<TtcGatewayException.Http> { gateway.client().stopRoutes(stop, Language.EN) }
+        assertEquals(400, e.code)
+        assertNull(e.problem)
+    }
+
+    @Test
+    fun `a problem body just under the cap is read whole`() {
+        val detail = "y".repeat(4000)
+        val body = """{"title":"Bad Request","detail":"$detail"}"""
+        gateway.respondWith { FixtureGateway.response(400, body, "application/problem+json") }
+        val e = fails<TtcGatewayException.Http> { gateway.client().stopRoutes(stop, Language.EN) }
+        assertEquals(detail, e.problem?.detail)
+    }
+
+    @Test
     fun `plain text 400 has no problem`() {
         gateway.serve("errors/plan-departat-without-date-400.txt")
         val e = fails<TtcGatewayException.Http> { gateway.client().stopRoutes(stop, Language.EN) }
