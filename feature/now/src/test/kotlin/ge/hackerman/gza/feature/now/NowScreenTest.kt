@@ -55,13 +55,19 @@ class NowScreenTest {
     @Config(qualifiers = "w360dp-h780dp-xxhdpi")
     fun subtitleWrapsInsteadOfClippingAtLargeFont() {
         show(fontScale = 1.5f)
-        val subtitle = composeRule.onNodeWithText("Ana Politkovskaia Street · 4 min walk").assertIsDisplayed()
+        val subtitle = composeRule.onNodeWithText("Ana Politkovskaia Street · $WALK").assertIsDisplayed()
         val layouts = mutableListOf<TextLayoutResult>()
         subtitle.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
         val layout = layouts.single()
         assertTrue(layout.lineCount > 1, "expected the subtitle to wrap at 1.5x, got ${layout.lineCount} line")
         assertFalse(layout.isLineEllipsized(layout.lineCount - 1), "subtitle is ellipsized")
         assertFalse(layout.didOverflowHeight, "subtitle is cut off")
+        val walk = layout.layoutInput.text.indexOf(WALK)
+        assertEquals(
+            layout.getLineForOffset(walk),
+            layout.getLineForOffset(walk + WALK.length - 1),
+            "\"$WALK\" is split across lines"
+        )
         // The bar grew to fit: the node is as tall as its text, not clipped to 64dp.
         assertEquals(layout.size.height.toFloat(), subtitle.fetchSemanticsNode().size.height.toFloat())
     }
@@ -106,5 +112,9 @@ class NowScreenTest {
     fun georgianHero() {
         show()
         composeRule.onNodeWithContentDescription("გამოდით 7 წუთში").assertIsDisplayed()
+    }
+
+    private companion object {
+        const val WALK = "4\u00A0min\u00A0walk"
     }
 }
