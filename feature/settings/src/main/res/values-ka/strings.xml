@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">პარამეტრები</string>
+    <string name="settings_language">ენა</string>
+    <string name="settings_language_system">სისტემის ენა</string>
+    <string name="settings_theme">თემა</string>
+    <string name="settings_theme_system">სისტემის მიხედვით</string>
+    <string name="settings_buffer">მარაგი დრო გასვლამდე</string>
+    <plurals name="settings_buffer_minutes">
+        <item quantity="one">%d წთ</item>
+        <item quantity="other">%d წთ</item>
+    </plurals>
+    <string name="settings_about_unofficial">გზა არაოფიციალური აპლიკაციაა და არ არის დაკავშირებული თბილისის სატრანსპორტო კომპანიასთან.</string>
+    <string name="settings_version">ვერსია %1$s</string>
+</resources>
