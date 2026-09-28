@@ -81,10 +81,11 @@ class GatewayAuthInterceptorEdgeCaseTest {
 
     @AfterEach
     fun tearDown() {
-        refreshScope.close()
         firebaseServer.close()
         gatewayServer.close()
         otherServer.close()
+        // Last, because it fails the test if a background refresh threw.
+        refreshScope.close()
     }
 
     private fun provider(configCache: TtcConfigCache = cache) = DefaultGatewayConfigProvider(

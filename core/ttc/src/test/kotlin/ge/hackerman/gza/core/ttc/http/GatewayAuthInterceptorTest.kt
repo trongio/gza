@@ -61,9 +61,10 @@ class GatewayAuthInterceptorTest {
 
     @AfterEach
     fun tearDown() {
-        refreshScope.close()
         firebaseServer.close()
         gatewayServer.close()
+        // Last, because it fails the test if a background refresh threw.
+        refreshScope.close()
     }
 
     private fun provider() = DefaultGatewayConfigProvider(
