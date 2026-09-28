@@ -74,7 +74,7 @@ class DefaultGatewayConfigProviderBackgroundRefreshTest {
         )
         try {
             seedStaleCache()
-            remote.behavior = { throw IllegalStateException("boom") }
+            remote.behavior = { error("boom") }
             val provider = provider(scope)
             assertEquals(CACHED_KEY, runBlocking { provider.current() }.apiKey)
             scope.awaitChildren()
@@ -102,7 +102,7 @@ class DefaultGatewayConfigProviderBackgroundRefreshTest {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         try {
             seedStaleCache()
-            remote.behavior = { throw IllegalStateException("boom") }
+            remote.behavior = { error("boom") }
             val provider = provider(scope)
             runBlocking { provider.current() }
             scope.awaitChildren()
@@ -124,7 +124,7 @@ class DefaultGatewayConfigProviderBackgroundRefreshTest {
         val reads = AtomicInteger()
         val flakyClock = object : Clock() {
             override fun instant(): Instant {
-                if (reads.incrementAndGet() == 2) throw IllegalStateException("clock broke")
+                if (reads.incrementAndGet() == 2) error("clock broke")
                 return clock.instant()
             }
 
@@ -156,7 +156,7 @@ class DefaultGatewayConfigProviderBackgroundRefreshTest {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, _ -> })
         try {
             seedStaleCache()
-            remote.behavior = { throw IllegalStateException("boom") }
+            remote.behavior = { error("boom") }
             val provider = provider(scope)
             repeat(5) {
                 runBlocking { provider.current() }

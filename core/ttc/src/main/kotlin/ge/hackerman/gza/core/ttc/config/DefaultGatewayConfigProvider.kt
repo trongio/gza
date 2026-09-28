@@ -40,11 +40,10 @@ class DefaultGatewayConfigProvider(
     private val mutex = Mutex()
     private val revalidating = AtomicBoolean(false)
 
-    // The two fields peek() reads; everything else is only touched under the mutex.
+    // peek() reads this and backoff.nextAttemptAt; everything else is only touched under the mutex.
     @Volatile private var active: GatewayConfig? = null
 
-    @Volatile private var nextRemoteAttemptAt: Instant = Instant.MIN
-    private var consecutiveFailures = 0
+    private val backoff = RemoteBackoff(rules)
     private var lastForcedRefreshAt: Instant? = null
     private var generation = 0L
 
@@ -76,7 +75,7 @@ class DefaultGatewayConfigProvider(
                 // in use, and the next call after the backoff tries again.
             } catch (e: Exception) {
                 logFailure("Background config refresh", e)
-                mutex.withLock { recordRemoteFailure(clock.instant()) }
+                mutex.withLock { backoff.recordFailure(clock.instant()) }
             } finally {
                 revalidating.set(false)
             }
@@ -114,14 +113,21 @@ class DefaultGatewayConfigProvider(
 
     private suspend fun load(): GatewayConfig {
         val now = clock.instant()
-        val cached = if (active == null) rules.fromCache(readCacheOrNull()) else null
+        // An unreadable cache is a cache miss: Remote Config and the fallback still work.
+        val cached = if (active ==
+            null
+        ) {
+            rules.fromCache(bestEffort("Config cache read") { cache.readConfig() })
+        } else {
+            null
+        }
         return when {
             cached != null && rules.isWithinTtl(cached.fetchedAt, now) -> activate(cached, ConfigSource.CACHE)
 
             // Cold start over an expired cache: serve it now, refresh behind it.
             cached != null -> activate(cached, ConfigSource.STALE_CACHE).also { revalidateInBackground() }
 
-            now < nextRemoteAttemptAt -> staleOrFallbackOrThrow()
+            now < backoff.nextAttemptAt -> staleOrFallbackOrThrow()
 
             else -> fetchRemote(now) ?: staleOrFallbackOrThrow()
         }
@@ -131,45 +137,15 @@ class DefaultGatewayConfigProvider(
         val fetched = bestEffort("Remote Config fetch") { remote.fetch() }
         val apiKey = rules.usableKey(fetched?.apiKey)
         if (apiKey == null) {
-            recordRemoteFailure(now)
+            backoff.recordFailure(now)
             return null
         }
         val baseUrl = rules.baseUrlOrFallback(fetched?.baseUrl)
-        consecutiveFailures = 0
-        nextRemoteAttemptAt = Instant.MIN
+        backoff.reset()
         // The fetched key is good even if it cannot be persisted: use it now, and the next
         // launch simply fetches again.
         bestEffort("Config cache write") { cache.writeConfig(CachedGatewayConfig(baseUrl.toString(), apiKey, now)) }
         return activate(ConfigCandidate(baseUrl, apiKey, now), ConfigSource.REMOTE)
-    }
-
-    // An unreadable cache is a cache miss: Remote Config and the fallback still work.
-    private suspend fun readCacheOrNull(): CachedGatewayConfig? = bestEffort("Config cache read") { cache.readConfig() }
-
-    private fun recordRemoteFailure(now: Instant) {
-        consecutiveFailures++
-        nextRemoteAttemptAt = now + rules.backoff(consecutiveFailures)
-    }
-
-    /**
-     * Runs [block], turning any failure into null. Cancellation of the caller still
-     * propagates, but a CancellationException the block throws on its own (an inner
-     * timeout) is a failure like any other. Only the class name is logged: messages from
-     * the network or disk layers could carry URLs or tokens.
-     */
-    @Suppress("TooGenericExceptionCaught") // Whatever the source or cache throws is a failed attempt.
-    private suspend fun <T> bestEffort(what: String, block: suspend () -> T): T? = try {
-        block()
-    } catch (e: CancellationException) {
-        currentCoroutineContext().ensureActive()
-        logFailure(what, e)
-        null
-    } catch (expected: RemoteConfigException) {
-        // The normal way Remote Config fails; counted by the caller, not worth a log line.
-        null
-    } catch (e: Exception) {
-        logFailure(what, e)
-        null
     }
 
     // A key fetched from Remote Config is newer than the one baked at build time; if it has
@@ -196,7 +172,7 @@ class DefaultGatewayConfigProvider(
         ConfigSource.REMOTE, ConfigSource.CACHE -> rules.isWithinTtl(config.fetchedAt, now)
 
         // Only good until the backoff allows the next remote attempt.
-        ConfigSource.STALE_CACHE, ConfigSource.FALLBACK -> now < nextRemoteAttemptAt
+        ConfigSource.STALE_CACHE, ConfigSource.FALLBACK -> now < backoff.nextAttemptAt
     }
 
     private fun activate(candidate: ConfigCandidate, source: ConfigSource): GatewayConfig = GatewayConfig(
@@ -206,12 +182,49 @@ class DefaultGatewayConfigProvider(
         fetchedAt = candidate.fetchedAt.takeUnless { source == ConfigSource.FALLBACK },
         generation = ++generation
     ).also { active = it }
+}
 
-    private fun logFailure(what: String, e: Throwable) {
-        logger.warning("$what failed: ${e.javaClass.name}")
+/** Failure backoff for Remote Config. Written under the provider's mutex; peek() reads it. */
+private class RemoteBackoff(private val rules: GatewayConfigRules) {
+    private var consecutiveFailures = 0
+
+    @Volatile var nextAttemptAt: Instant = Instant.MIN
+        private set
+
+    fun recordFailure(now: Instant) {
+        consecutiveFailures++
+        nextAttemptAt = now + rules.backoff(consecutiveFailures)
     }
 
-    private companion object {
-        val logger: Logger = Logger.getLogger(DefaultGatewayConfigProvider::class.java.name)
+    fun reset() {
+        consecutiveFailures = 0
+        nextAttemptAt = Instant.MIN
     }
+}
+
+/**
+ * Runs [block], turning any failure into null. Cancellation of the caller still
+ * propagates, but a CancellationException the block throws on its own (an inner
+ * timeout) is a failure like any other. Only the class name is logged: messages from
+ * the network or disk layers could carry URLs or tokens.
+ */
+@Suppress("TooGenericExceptionCaught") // Whatever the source or cache throws is a failed attempt.
+private suspend fun <T> bestEffort(what: String, block: suspend () -> T): T? = try {
+    block()
+} catch (e: CancellationException) {
+    currentCoroutineContext().ensureActive()
+    logFailure(what, e)
+    null
+} catch (expected: RemoteConfigException) {
+    // The normal way Remote Config fails; counted by the caller, not worth a log line.
+    null
+} catch (e: Exception) {
+    logFailure(what, e)
+    null
+}
+
+private val logger: Logger = Logger.getLogger(DefaultGatewayConfigProvider::class.java.name)
+
+private fun logFailure(what: String, e: Throwable) {
+    logger.warning("$what failed: ${e.javaClass.name}")
 }

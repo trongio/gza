@@ -467,13 +467,13 @@ class DefaultGatewayConfigProviderTest {
 
         override suspend fun writeConfig(config: CachedGatewayConfig) {
             writes.incrementAndGet()
-            throw IllegalStateException("disk broke")
+            error("disk broke")
         }
     }
 
     @Test
     fun `a runtime exception from remote on a cold start falls back and backs off`() = runTest {
-        remote.behavior = { throw IllegalStateException("boom") }
+        remote.behavior = { error("boom") }
         val provider = provider()
         repeat(3) { assertEquals(ConfigSource.FALLBACK, provider.current().source) }
         runCurrent()
@@ -523,7 +523,7 @@ class DefaultGatewayConfigProviderTest {
     @Test
     fun `a cache read that throws is a cache miss`() = runTest {
         val unreadable = object : TtcConfigCache by cache {
-            override suspend fun readConfig(): CachedGatewayConfig? = throw IllegalStateException("corrupt")
+            override suspend fun readConfig(): CachedGatewayConfig? = error("corrupt")
         }
         val config = DefaultGatewayConfigProvider(
             unreadable,
