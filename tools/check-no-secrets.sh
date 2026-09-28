@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Fails if a secret from the local ttc.properties appears in the repo, in the working
-# tree or anywhere in history. Never prints a secret value, only the property name.
+# tree or anywhere in history, including commit messages. Never prints a secret value,
+# only the property name.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -12,6 +13,9 @@ if [[ ! -f $props ]]; then
 fi
 
 leak=0
+# Read once, then grep a here-string: piping git log into grep -q under pipefail would
+# report a SIGPIPE failure exactly when grep finds a match.
+messages=$(git log --all --format=%B)
 # gatewayBaseUrl and firebaseProjectId are public and documented in docs/TTC_API.md.
 for k in ttc.gatewayKey ttc.firebaseApiKey ttc.firebaseAppId; do
 	v=$(sed -n "s/^${k//./\\.}=//p" "$props" | head -1 | tr -d '[:space:]')
@@ -23,6 +27,11 @@ for k in ttc.gatewayKey ttc.firebaseApiKey ttc.firebaseAppId; do
 	hit=$(git log --all -S"$v" --format=%H | head -1 || true)
 	if [[ -n $hit ]]; then
 		echo "LEAK: $k in history"
+		leak=1
+	fi
+	# -S only searches diffs, so commit messages need their own pass.
+	if grep -qF -e "$v" <<<"$messages"; then
+		echo "LEAK: $k in commit message"
 		leak=1
 	fi
 done
