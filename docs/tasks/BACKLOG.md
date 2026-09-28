@@ -87,7 +87,7 @@ Acceptance:
 - [ ] Tests for Sunday to Monday rollover, 23:59 to 00:10 departures, empty service day, missing schedule.
 - [ ] Ports and passes the test cases from the ttc-leave-by prototype.
 
-## [ ] T06 App shell and design system
+## [~] T06 App shell and design system
 Depends: T01
 - `:core:designsystem`: color tokens (light/dark), typography (a display face, a body
   face, a mono face for times), route badge, departure row, chips (waiting, live,
