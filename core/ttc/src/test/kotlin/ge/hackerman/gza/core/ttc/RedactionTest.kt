@@ -6,6 +6,8 @@ import ge.hackerman.gza.core.ttc.config.FirebaseInstallation
 import ge.hackerman.gza.core.ttc.config.GatewayConfig
 import ge.hackerman.gza.core.ttc.config.GatewayConfigUnavailableException
 import ge.hackerman.gza.core.ttc.firebase.FirebaseWebCredentials
+import ge.hackerman.gza.core.ttc.firebase.RemoteConfigException
+import ge.hackerman.gza.core.ttc.firebase.RemoteGatewayConfig
 import java.time.Instant
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
@@ -58,6 +60,23 @@ class RedactionTest {
         assertContains(text, "refreshToken=<redacted>")
         assertContains(text, "authToken=<redacted>")
         assertContains(text, "fid-public")
+    }
+
+    @Test
+    fun `remote gateway config hides the key`() {
+        val text = RemoteGatewayConfig("https://transit.ttc.com.ge/pis-gateway", GATEWAY_KEY).toString()
+        assertNoSecrets(text)
+        assertContains(text, "apiKey=<redacted>")
+    }
+
+    @Test
+    fun `remote config exception message holds only reason, code and status`() {
+        val cause = IllegalStateException(GATEWAY_KEY)
+        val error = RemoteConfigException(RemoteConfigException.Reason.HTTP, 403, "PERMISSION_DENIED", cause)
+        assertNoSecrets(error.message)
+        assertContains(error.message.orEmpty(), "HTTP")
+        assertContains(error.message.orEmpty(), "403")
+        assertContains(error.message.orEmpty(), "PERMISSION_DENIED")
     }
 
     @Test

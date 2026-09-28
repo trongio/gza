@@ -1,0 +1,11 @@
+{
+  "entries": {
+    "MAPBOX_STYLE_URL": "mapbox://styles/sentinel/style",
+    "OTS_GATEWAY_BASE_URL": "https://example.invalid/ots",
+    "PIS_GATEWAY_BASE_URL": "https://transit.ttc.com.ge/pis-gateway",
+    "PIS_GATEWAY_KEY": "sentinel-gateway-key-0001",
+    "SENTINEL_HTML_CONTENT_EN": "<p>Sentinel body, never a real value.</p>"
+  },
+  "state": "UPDATE",
+  "templateVersion": "33"
+}
