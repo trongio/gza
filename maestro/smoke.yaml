@@ -1,4 +1,5 @@
-# Emulator only: clearState wipes app data, never run flows against the user's phone.
+# Flows use clearState, which wipes Gza's own data. Run against the device the manager
+# names, and ask the user before running on a phone that holds real Gza data.
 appId: ge.hackerman.gza
 name: Smoke - app launches and shows the placeholder
 ---
