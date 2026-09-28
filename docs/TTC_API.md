@@ -100,6 +100,9 @@ the next timetable departure was 20:47. `326` read `-30` scheduled.
 (null). `forEntireCurrentWeek=true` returned the identical body for 326.
 - Patterns are not always `0:01`/`1:01`: route 472 (`1:minibusR25521`) has `0:03` and
   `1:03`, default `1:03`. Always read the suffixes from the route detail.
+- `defaultPatternSuffix` is not stable: for 472 it flipped between `1:03` and `0:03` within
+  the evening of 2026-09-28. Treat it as a hint for which direction to show first, read it
+  fresh with the route detail, and never cache it as a constant or key anything on it.
 - Minibus `headsign` stays Georgian with `locale=en` (472: `ლობჟანიძის ქ.`).
 - Unknown route id: `500` `text/plain`.
 

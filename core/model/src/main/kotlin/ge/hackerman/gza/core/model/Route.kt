@@ -9,7 +9,11 @@ data class Route(
     val kind: TransportKind
 )
 
-/** A route with its patterns. Read the pattern suffixes from here, never assume `0:01`/`1:01`. */
+/**
+ * A route with its patterns. Read the pattern suffixes from here, never assume `0:01`/`1:01`.
+ * [defaultPattern] flips between directions over a day (see TTC_API.md): a hint for which
+ * direction to show first, never a constant to cache.
+ */
 data class RouteDetail(
     val id: RouteId,
     val shortName: String,
