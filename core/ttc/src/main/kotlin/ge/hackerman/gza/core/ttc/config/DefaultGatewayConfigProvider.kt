@@ -7,8 +7,12 @@ import java.io.IOException
 import java.time.Clock
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.logging.Logger
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -102,7 +106,7 @@ class DefaultGatewayConfigProvider(
 
     private suspend fun load(): GatewayConfig {
         val now = clock.instant()
-        val cached = if (active == null) rules.fromCache(cache.readConfig()) else null
+        val cached = if (active == null) rules.fromCache(readCacheOrNull()) else null
         return when {
             cached != null && rules.isWithinTtl(cached.fetchedAt, now) -> activate(cached, ConfigSource.CACHE)
 
@@ -116,23 +120,48 @@ class DefaultGatewayConfigProvider(
     }
 
     private suspend fun fetchRemote(now: Instant): GatewayConfig? {
-        val fetched = try {
-            remote.fetch()
-        } catch (expected: RemoteConfigException) {
-            // Counted as a failure below; the caller moves on to the stale cache or the fallback.
-            null
-        }
+        val fetched = bestEffort("Remote Config fetch") { remote.fetch() }
         val apiKey = rules.usableKey(fetched?.apiKey)
         if (apiKey == null) {
-            consecutiveFailures++
-            nextRemoteAttemptAt = now + rules.backoff(consecutiveFailures)
+            recordRemoteFailure(now)
             return null
         }
         val baseUrl = rules.baseUrlOrFallback(fetched?.baseUrl)
-        cache.writeConfig(CachedGatewayConfig(baseUrl.toString(), apiKey, now))
         consecutiveFailures = 0
         nextRemoteAttemptAt = Instant.MIN
+        // The fetched key is good even if it cannot be persisted: use it now, and the next
+        // launch simply fetches again.
+        bestEffort("Config cache write") { cache.writeConfig(CachedGatewayConfig(baseUrl.toString(), apiKey, now)) }
         return activate(ConfigCandidate(baseUrl, apiKey, now), ConfigSource.REMOTE)
+    }
+
+    // An unreadable cache is a cache miss: Remote Config and the fallback still work.
+    private suspend fun readCacheOrNull(): CachedGatewayConfig? = bestEffort("Config cache read") { cache.readConfig() }
+
+    private fun recordRemoteFailure(now: Instant) {
+        consecutiveFailures++
+        nextRemoteAttemptAt = now + rules.backoff(consecutiveFailures)
+    }
+
+    /**
+     * Runs [block], turning any failure into null. Cancellation of the caller still
+     * propagates, but a CancellationException the block throws on its own (an inner
+     * timeout) is a failure like any other. Only the class name is logged: messages from
+     * the network or disk layers could carry URLs or tokens.
+     */
+    @Suppress("TooGenericExceptionCaught") // Whatever the source or cache throws is a failed attempt.
+    private suspend fun <T> bestEffort(what: String, block: suspend () -> T): T? = try {
+        block()
+    } catch (e: CancellationException) {
+        currentCoroutineContext().ensureActive()
+        logFailure(what, e)
+        null
+    } catch (expected: RemoteConfigException) {
+        // The normal way Remote Config fails; counted by the caller, not worth a log line.
+        null
+    } catch (e: Exception) {
+        logFailure(what, e)
+        null
     }
 
     // A key fetched from Remote Config is newer than the one baked at build time; if it has
@@ -169,4 +198,12 @@ class DefaultGatewayConfigProvider(
         fetchedAt = candidate.fetchedAt.takeUnless { source == ConfigSource.FALLBACK },
         generation = ++generation
     ).also { active = it }
+
+    private fun logFailure(what: String, e: Throwable) {
+        logger.warning("$what failed: ${e.javaClass.name}")
+    }
+
+    private companion object {
+        val logger: Logger = Logger.getLogger(DefaultGatewayConfigProvider::class.java.name)
+    }
 }

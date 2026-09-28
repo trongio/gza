@@ -3,7 +3,9 @@ package ge.hackerman.gza.core.ttc.http
 import ge.hackerman.gza.core.ttc.TtcFallbackConfig
 import ge.hackerman.gza.core.ttc.config.CachedGatewayConfig
 import ge.hackerman.gza.core.ttc.config.DefaultGatewayConfigProvider
+import ge.hackerman.gza.core.ttc.config.GatewayConfig
 import ge.hackerman.gza.core.ttc.config.GatewayConfigPolicy
+import ge.hackerman.gza.core.ttc.config.GatewayConfigProvider
 import ge.hackerman.gza.core.ttc.config.InMemoryTtcConfigCache
 import ge.hackerman.gza.core.ttc.config.TtcConfigCache
 import ge.hackerman.gza.core.ttc.firebase.FirebaseEndpoints
@@ -106,7 +108,7 @@ class GatewayAuthInterceptorEdgeCaseTest {
 
     // The production gateway client, so its redirect policy is part of what is tested. The
     // logging slot, right after auth, records what auth passes on.
-    private fun client(provider: DefaultGatewayConfigProvider = provider()) = TtcHttpClients.gatewayClient(
+    private fun client(provider: GatewayConfigProvider = provider()) = TtcHttpClients.gatewayClient(
         OkHttpClient(),
         GatewayAuthInterceptor(provider),
         logging = { chain -> chain.proceed(chain.request().also { proceeded += it }) }
@@ -179,18 +181,34 @@ class GatewayAuthInterceptorEdgeCaseTest {
     @Test
     fun `rejected response is closed when the refetch throws`() {
         seedCache(OLD_KEY)
-        firebase.serveKey(NEW_KEY, baseUrl = gatewayBase)
         gateway.rejectionBody = "x".repeat(4_096)
+        val real = provider()
+        val failingRefresh = object : GatewayConfigProvider by real {
+            override suspend fun refreshAfterRejection(rejected: GatewayConfig): GatewayConfig? =
+                throw IOException("refresh broke")
+        }
+        val client = client(failingRefresh)
+
+        val error = assertFailsWith<IOException> { client.call() }
+
+        assertEquals("refresh broke", error.message)
+        assertEquals(listOf<String?>(OLD_KEY), gateway.keys())
+        // A 401 left open would keep its connection in use.
+        assertEquals(0, client.connectionPool.connectionCount() - client.connectionPool.idleConnectionCount())
+    }
+
+    @Test
+    fun `a cache write that fails during a 401 refetch still retries with the rotated key`() {
+        seedCache(OLD_KEY)
+        firebase.serveKey(NEW_KEY, baseUrl = gatewayBase)
         val failingCache = object : TtcConfigCache by cache {
             override suspend fun writeConfig(config: CachedGatewayConfig) = throw IOException("disk full")
         }
         val client = client(provider(failingCache))
 
-        val error = assertFailsWith<IOException> { client.call() }
+        assertEquals(200, client.call())
 
-        assertEquals("disk full", error.message)
-        assertEquals(listOf<String?>(OLD_KEY), gateway.keys())
-        // A 401 left open would keep its connection in use.
+        assertEquals(listOf<String?>(OLD_KEY, NEW_KEY), gateway.keys())
         assertEquals(0, client.connectionPool.connectionCount() - client.connectionPool.idleConnectionCount())
     }
 

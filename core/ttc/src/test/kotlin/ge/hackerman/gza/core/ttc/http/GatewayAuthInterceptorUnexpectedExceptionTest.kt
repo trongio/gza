@@ -20,7 +20,6 @@ import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 /**
@@ -33,12 +32,6 @@ class GatewayAuthInterceptorUnexpectedExceptionTest {
         behavior = { throw IllegalStateException("boom") }
     }
 
-    @Disabled(
-        "Bug: DefaultGatewayConfigProvider.fetchRemote only catches RemoteConfigException, and " +
-            "GatewayAuthInterceptor lets anything else through. OkHttp's AsyncCall reports an " +
-            "IOException to the callback and then rethrows the original on its dispatcher " +
-            "thread, which on Android is a process crash."
-    )
     @Test
     fun `a runtime exception while loading the config fails the enqueued call without an uncaught exception`() {
         val uncaught = CopyOnWriteArrayList<Throwable>()

@@ -78,8 +78,10 @@ class DefaultGatewayConfigProviderBackgroundRefreshTest {
             scope.awaitChildren()
             assertEquals(1, remote.fetches.get())
 
-            // The in-flight flag was reset in finally, so the next refresh is not blocked forever.
+            // The in-flight flag was reset in finally, so the next refresh is not blocked
+            // forever once the failure backoff has run out.
             remote.serve(REMOTE_KEY)
+            clock.advanceBy(GatewayConfigPolicy().failureBackoffMax)
             assertEquals(CACHED_KEY, runBlocking { provider.current() }.apiKey)
             scope.awaitChildren()
             assertEquals(2, remote.fetches.get())
@@ -116,11 +118,6 @@ class DefaultGatewayConfigProviderBackgroundRefreshTest {
         }
     }
 
-    @Disabled(
-        "Bug: a RuntimeException in the background refresh skips fetchRemote's failure " +
-            "bookkeeping, so no backoff is set and every later current() call starts another " +
-            "Firebase fetch at once."
-    )
     @Test
     fun `a runtime exception in a background refresh backs off like any other failure`() {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, _ -> })

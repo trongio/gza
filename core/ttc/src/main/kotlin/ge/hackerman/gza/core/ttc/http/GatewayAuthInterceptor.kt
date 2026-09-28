@@ -26,7 +26,8 @@ class GatewayAuthInterceptor(private val provider: GatewayConfigProvider) : Inte
         if (request.url.host != TtcGateway.PLACEHOLDER_HOST) return chain.proceed(request)
 
         // Throws GatewayConfigUnavailableException, an IOException, so the call fails cleanly.
-        val config = provider.peek() ?: runBlocking { provider.current() }.also { chain.throwIfCanceled() }
+        val config = provider.peek() ?: onlyIoFailures { runBlocking { provider.current() } }
+            .also { chain.throwIfCanceled() }
         val first = chain.proceed(request.authorizedWith(config))
         val retryWith = if (isRejection(first) && request.body?.isOneShot() != true) {
             refreshOrClose(first, config)
@@ -54,10 +55,25 @@ class GatewayAuthInterceptor(private val provider: GatewayConfigProvider) : Inte
     // and its connection would stay pinned.
     @Suppress("TooGenericExceptionCaught") // Closes on any failure, then rethrows it unchanged.
     private fun refreshOrClose(rejected: Response, config: GatewayConfig): GatewayConfig? = try {
-        runBlocking { provider.refreshAfterRejection(config) }
+        onlyIoFailures { runBlocking { provider.refreshAfterRejection(config) } }
     } catch (e: Throwable) {
         rejected.close()
         throw e
+    }
+
+    /**
+     * OkHttp reports an IOException from an enqueued call to its callback, but rethrows
+     * anything else on the dispatcher thread: on Android that kills the process. So whatever
+     * the provider throws leaves here as an IOException. Only the class name goes into the
+     * message; the cause keeps the rest for a debugger.
+     */
+    @Suppress("TooGenericExceptionCaught") // Converting every failure is the point.
+    private inline fun <T> onlyIoFailures(block: () -> T): T = try {
+        block()
+    } catch (e: IOException) {
+        throw e
+    } catch (e: Exception) {
+        throw IOException("Gateway config failed: ${e.javaClass.name}", e)
     }
 
     private fun isRejection(response: Response): Boolean =

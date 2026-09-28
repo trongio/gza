@@ -460,6 +460,83 @@ class DefaultGatewayConfigProviderTest {
         assertNull(provider.peek())
     }
 
+    // Failures that are not a RemoteConfigException
+
+    private val throwingWrites = object : TtcConfigCache by cache {
+        val writes = java.util.concurrent.atomic.AtomicInteger()
+
+        override suspend fun writeConfig(config: CachedGatewayConfig) {
+            writes.incrementAndGet()
+            throw IllegalStateException("disk broke")
+        }
+    }
+
+    @Test
+    fun `a runtime exception from remote on a cold start falls back and backs off`() = runTest {
+        remote.behavior = { throw IllegalStateException("boom") }
+        val provider = provider()
+        repeat(3) { assertEquals(ConfigSource.FALLBACK, provider.current().source) }
+        runCurrent()
+        assertEquals(1, remote.fetches.get())
+        clock.advanceBy(policy.failureBackoffInitial)
+        provider.current()
+        runCurrent()
+        assertEquals(2, remote.fetches.get())
+    }
+
+    @Test
+    fun `a cancellation exception thrown by remote itself is a failed fetch`() = runTest {
+        remote.behavior = { throw kotlinx.coroutines.CancellationException("inner timeout") }
+        val provider = provider()
+        assertEquals(ConfigSource.FALLBACK, provider.current().source)
+        provider.current()
+        runCurrent()
+        assertEquals(1, remote.fetches.get())
+    }
+
+    @Test
+    fun `a cache write that throws after a good cold start fetch still activates the key once`() = runTest {
+        val provider = DefaultGatewayConfigProvider(throwingWrites, remote, fallback, clock, backgroundScope, policy)
+        repeat(5) {
+            val config = provider.current()
+            assertEquals(REMOTE_KEY, config.apiKey)
+            assertEquals(ConfigSource.REMOTE, config.source)
+            runCurrent()
+        }
+        assertEquals(1, remote.fetches.get())
+        assertEquals(1, throwingWrites.writes.get())
+    }
+
+    @Test
+    fun `a cache write that throws in a background refresh still activates the key once`() = runTest {
+        seedCache(age = Duration.ofDays(1))
+        val provider = DefaultGatewayConfigProvider(throwingWrites, remote, fallback, clock, backgroundScope, policy)
+        assertEquals(CACHED_KEY, provider.current().apiKey)
+        runCurrent()
+        repeat(5) {
+            assertEquals(REMOTE_KEY, provider.current().apiKey)
+            runCurrent()
+        }
+        assertEquals(1, remote.fetches.get())
+    }
+
+    @Test
+    fun `a cache read that throws is a cache miss`() = runTest {
+        val unreadable = object : TtcConfigCache by cache {
+            override suspend fun readConfig(): CachedGatewayConfig? = throw IllegalStateException("corrupt")
+        }
+        val config = DefaultGatewayConfigProvider(
+            unreadable,
+            remote,
+            fallback,
+            clock,
+            backgroundScope,
+            policy
+        ).current()
+        assertEquals(REMOTE_KEY, config.apiKey)
+        assertEquals(REMOTE_KEY, cache.readConfig()?.apiKey)
+    }
+
     private companion object {
         const val REMOTE_KEY = "sentinel-remote-key"
         const val CACHED_KEY = "sentinel-cached-key"
