@@ -36,7 +36,7 @@ Follow-ups:
 - Robolectric runs at `sdk=36`: SDK 37 rendered the second screenshot blank; retry 37 on the next Robolectric release.
 - Build-logic convention plugins have no Gradle TestKit tests (plugin order and the missing-application-plugin error were only checked by hand).
 
-## [~] T02 Gateway config and key rotation
+## [x] T02 Gateway config and key rotation (PR #2)
 Depends: T01
 - `:core:ttc` pure JVM. Fetch `PIS_GATEWAY_KEY` and base URL at runtime from TTC's
   Firebase Remote Config (Installations + fetch REST, as `tools/fetch-ttc-config.sh`
@@ -45,8 +45,14 @@ Depends: T01
 - OkHttp interceptor adds `x-api-key`; on 401/403 it refetches the key once and retries.
 
 Acceptance:
-- [ ] Unit tests with MockWebServer: first launch fetch, cached reuse, 401 then refetch then success, Remote Config down so fallback used.
-- [ ] Key never logged (test asserts the logging interceptor redacts the header).
+- [x] Unit tests with MockWebServer: first launch fetch, cached reuse, 401 then refetch then success, Remote Config down so fallback used.
+- [x] Key never logged (test asserts the logging interceptor redacts the header).
+
+Follow-ups:
+- For T04: `FirebaseRemoteConfigClient` does not wrap `TtcConfigCache.readInstallation()` / `writeInstallation()`, so a throwing DataStore installation store makes every fetch fall back to the build-time key. Treat a read failure as "no installation" and writes as best effort, with tests (an installation read or write that throws still fetches the key).
+- `DefaultGatewayConfigProvider.current()` cold branch does not record a backoff failure for a non-IO exception outside the wrapped calls (e.g. from `rules.fromCache`); unlikely, optional fix.
+- Decide whether Settings shows where the gateway config came from (remote, cache, fallback).
+- Firebase web credentials are baked in at build time; consider reading them from TTC's web page at runtime.
 
 ## [ ] T03 Gateway client and fixtures
 Depends: T02
