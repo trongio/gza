@@ -36,7 +36,7 @@ Follow-ups:
 - Robolectric runs at `sdk=36`: SDK 37 rendered the second screenshot blank; retry 37 on the next Robolectric release.
 - Build-logic convention plugins have no Gradle TestKit tests (plugin order and the missing-application-plugin error were only checked by hand).
 
-## [ ] T02 Gateway config and key rotation
+## [~] T02 Gateway config and key rotation
 Depends: T01
 - `:core:ttc` pure JVM. Fetch `PIS_GATEWAY_KEY` and base URL at runtime from TTC's
   Firebase Remote Config (Installations + fetch REST, as `tools/fetch-ttc-config.sh`
