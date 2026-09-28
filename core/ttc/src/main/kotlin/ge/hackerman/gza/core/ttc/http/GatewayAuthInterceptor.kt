@@ -2,6 +2,7 @@ package ge.hackerman.gza.core.ttc.http
 
 import ge.hackerman.gza.core.ttc.config.GatewayConfig
 import ge.hackerman.gza.core.ttc.config.GatewayConfigProvider
+import java.io.IOException
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Request
@@ -25,7 +26,7 @@ class GatewayAuthInterceptor(private val provider: GatewayConfigProvider) : Inte
         if (request.url.host != TtcGateway.PLACEHOLDER_HOST) return chain.proceed(request)
 
         // Throws GatewayConfigUnavailableException, an IOException, so the call fails cleanly.
-        val config = provider.peek() ?: runBlocking { provider.current() }
+        val config = provider.peek() ?: runBlocking { provider.current() }.also { chain.throwIfCanceled() }
         val first = chain.proceed(request.authorizedWith(config))
         val retryWith = if (isRejection(first) && request.body?.isOneShot() != true) {
             refreshOrClose(first, config)
@@ -36,8 +37,17 @@ class GatewayAuthInterceptor(private val provider: GatewayConfigProvider) : Inte
             first
         } else {
             first.close()
+            chain.throwIfCanceled()
             chain.proceed(request.authorizedWith(retryWith))
         }
+    }
+
+    // runBlocking does not see Call.cancel() (nor the call timeout, which only cancels), so
+    // a cancelled call still waits out the blocking section. That is bounded by the Firebase
+    // client's call timeout per Firebase request, and one config load makes at most three.
+    // Checking afterwards at least keeps it from sending a request nobody wants any more.
+    private fun Interceptor.Chain.throwIfCanceled() {
+        if (call().isCanceled()) throw IOException("Canceled")
     }
 
     // The caller never sees [rejected] if the refresh throws, so nobody else would close it

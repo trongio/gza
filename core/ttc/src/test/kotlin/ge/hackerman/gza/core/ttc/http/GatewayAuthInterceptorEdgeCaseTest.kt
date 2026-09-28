@@ -101,9 +101,16 @@ class GatewayAuthInterceptorEdgeCaseTest {
         policy = GatewayConfigPolicy(requireHttpsBaseUrl = false)
     )
 
-    // The production gateway client, so its redirect policy is part of what is tested.
-    private fun client(provider: DefaultGatewayConfigProvider = provider()) =
-        TtcHttpClients.gatewayClient(OkHttpClient(), GatewayAuthInterceptor(provider), logging = null)
+    // Every request the auth interceptor hands on, including ones OkHttp would then refuse.
+    private val proceeded: MutableList<Request> = CopyOnWriteArrayList()
+
+    // The production gateway client, so its redirect policy is part of what is tested. The
+    // logging slot, right after auth, records what auth passes on.
+    private fun client(provider: DefaultGatewayConfigProvider = provider()) = TtcHttpClients.gatewayClient(
+        OkHttpClient(),
+        GatewayAuthInterceptor(provider),
+        logging = { chain -> chain.proceed(chain.request().also { proceeded += it }) }
+    )
 
     private fun OkHttpClient.call(request: Request = get()): Int = newCall(request).execute().use { it.code }
 
@@ -424,9 +431,10 @@ class GatewayAuthInterceptorEdgeCaseTest {
         call.cancel()
         releaseFetch.countDown()
 
-        assertIs<IOException>(outcome.get(10, TimeUnit.SECONDS))
-        // The cancelled call never reached the gateway with the new key.
+        assertEquals("Canceled", assertIs<IOException>(outcome.get(10, TimeUnit.SECONDS)).message)
+        // The cancelled call never reached the gateway with the new key, nor even tried to.
         assertEquals(listOf<String?>(OLD_KEY), gateway.keys())
+        assertEquals(listOf<String?>(OLD_KEY), proceeded.map { it.header(TtcGateway.API_KEY_HEADER) })
         // The mutex was released and the refetched key kept: the next call needs no Firebase.
         assertEquals(200, client.call())
         assertEquals(1, firebase.fetches.get())
@@ -451,8 +459,9 @@ class GatewayAuthInterceptorEdgeCaseTest {
         call.cancel()
         releaseFetch.countDown()
 
-        assertIs<IOException>(outcome.get(10, TimeUnit.SECONDS))
+        assertEquals("Canceled", assertIs<IOException>(outcome.get(10, TimeUnit.SECONDS)).message)
         assertEquals(0, gateway.requests.size)
+        assertTrue(proceeded.isEmpty(), "a cancelled call was passed on after the fetch")
         assertEquals(200, client.call())
         assertEquals(1, firebase.fetches.get())
     }
