@@ -11,4 +11,6 @@ android {
 dependencies {
     api(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
+
+    testImplementation(projects.core.testing)
 }
