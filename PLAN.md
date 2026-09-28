@@ -6,7 +6,8 @@ built on the same public gateway the official web app uses. The official app ans
 
 > **When do I leave, and when will the bus really be here?**
 
-Status: planning. The single-stop prototype `ttc-leave-by` (local, not published)
+Status: MVP in progress, executed task by task from `docs/tasks/BACKLOG.md`.
+The single-stop prototype `ttc-leave-by` (copied to `docs/reference/ttc-leave-by/`)
 (timetable plus GPS parked-bus detection for one stop) proved the approach on a real
 phone on 2026-09-28 and becomes the seed of Phase 1.
 
@@ -165,7 +166,7 @@ into the map.
 - Your location dot, with walking time to each nearby stop shown on its pin.
 
 **Map tech.**
-- MapLibre with an OpenStreetMap tile source (not TTC's Mapbox token), with a light and
+- MapLibre with OpenFreeMap vector tiles (free, no key; not TTC's Mapbox token), with a light and
   dark style matching the app theme.
 - Route polylines and stop order come from the cache, so the map draws instantly and
   only the bus positions need the network.
@@ -204,7 +205,7 @@ Kotlin and Jetpack Compose. The toolchain matches `gree-local` (Gradle 8.11.2, K
 :feature:trip    Live trip mode and its foreground service.
 :feature:map     MapLibre map.
 :widget          Glance widget and Quick Settings tile.
-:app             Navigation, DI wiring (manual, a small AppGraph), theme.
+:app             Navigation, Hilt DI wiring, theme.
 ```
 
 ### 3.1 Storage (Room)

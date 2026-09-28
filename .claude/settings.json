@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "JAVA_HOME": "/usr/lib/jvm/java-21-openjdk-amd64",
+    "ANDROID_HOME": "/home/azael/Android/Sdk",
+    "ANDROID_SDK_ROOT": "/home/azael/Android/Sdk"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git fetch:*)",
+      "Bash(git switch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git branch:*)",
+      "Bash(git merge:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git grep:*)",
+      "Bash(gh pr:*)",
+      "Bash(gh run:*)",
+      "Bash(gh repo view:*)",
+      "Bash(adb:*)",
+      "Bash(~/.maestro/bin/maestro:*)",
+      "Bash(/home/azael/.maestro/bin/maestro:*)",
+      "Bash(~/Android/Sdk/emulator/emulator:*)",
+      "Bash(./tools/:*)",
+      "Bash(curl:*)",
+      "Bash(jq:*)",
+      "Bash(rg:*)",
+      "Bash(fd:*)",
+      "WebSearch",
+      "WebFetch"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push origin --force:*)",
+      "Bash(git reset --hard origin/main:*)",
+      "Read(./ttc.properties)",
+      "Read(./keystore.properties)"
+    ]
+  }
+}

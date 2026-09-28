@@ -13,7 +13,8 @@ app confusing:
   the gateway's delay field, which is often wrong by up to an hour.
 - A trip planner with arrive-by times, transfer risk, and commute reminders.
 
-Status: **planning**. See [PLAN.md](PLAN.md) for the full plan and
+Status: **building the MVP**. See [PLAN.md](PLAN.md) for the full plan,
+[docs/tasks/BACKLOG.md](docs/tasks/BACKLOG.md) for progress, and
 [docs/TTC_API.md](docs/TTC_API.md) for the API as observed.
 
 ## Development
@@ -23,3 +24,18 @@ Status: **planning**. See [PLAN.md](PLAN.md) for the full plan and
 ```
 
 Not affiliated with Tbilisi Transport Company. All data belongs to its owners.
+
+## How this repo is built
+
+Development runs through a Claude Code "manager" session. Open Claude Code in this
+folder and run:
+
+```
+/task          # take the next ready backlog task and drive it to a merged PR
+/task status   # show backlog progress and what is next
+/task T08      # take a specific task (if its dependencies are done)
+```
+
+The manager uses the subagents in `.claude/agents/` (planner, implementer, reviewer,
+tester), works on a `task/*` branch, commits and pushes in small steps, and merges to
+`main` only when review, tests and CI are green. Rules for all sessions: `CLAUDE.md`.
