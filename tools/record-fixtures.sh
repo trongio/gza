@@ -124,14 +124,18 @@ save() {
 	echo "saved $file"
 }
 
-# record <out-relative-path-without-extension> <api-path-and-query> <expected-status> [header-file]
+# record <out-relative-path-without-extension> <api-path-and-query> <expected-status> [header-file] [jq-check]
 # A wrong status keeps the old fixture (a 502 must not replace a good one) and fails the run at the end.
+# A body failing [jq-check] (say an "empty" case that is not empty today) keeps the old fixture
+# with a warning: the gateway is fine, it just is not showing that case right now.
 record() {
-	local out=$1 path=$2 expected=$3
+	local out=$1 path=$2 expected=$3 check=${5:-}
 	fetch "$path" "${4:-$tmp/headers}"
 	if [[ $status != "$expected" ]]; then
 		echo "WARNING: $path gave $status, expected $expected; kept $out" >&2
 		failed=1
+	elif [[ -n $check ]] && ! jq -e "$check" "$tmp/body" >/dev/null 2>&1; then
+		echo "WARNING: $path does not match $check today; kept $out" >&2
 	else
 		save "$out" "$tmp/body" "$path" "$status" "$ctype" "$fetched_at"
 	fi
@@ -188,9 +192,9 @@ static() {
 	record stops-of-patterns/326-both-en "/v3/routes/${route_ids[326]}/stops-of-patterns?patternSuffixes=0:01,1:01&locale=en" 200
 	record geocode/rustaveli-en "/v2/geocode?query=rustaveli&locale=en&bbox=$bbox" 200
 	record geocode/rustaveli-ka "/v2/geocode?query=$(uri რუსთაველი)&locale=ka&bbox=$bbox" 200
-	record geocode/no-results "/v2/geocode?query=zzqxqzzqxq&locale=en&bbox=$bbox" 200
+	record geocode/no-results "/v2/geocode?query=zzqxqzzqxq&locale=en&bbox=$bbox" 200 "$tmp/headers" '.features | length == 0'
 	record reverse-geocode/1-970-en "/v2/geocode/reverse?lat=$stop970_lat&lon=$stop970_lon&locale=en" 200
-	record reverse-geocode/nowhere "/v2/geocode/reverse?lat=0&lon=0&locale=en" 200
+	record reverse-geocode/nowhere "/v2/geocode/reverse?lat=0&lon=0&locale=en" 200 "$tmp/headers" '.features | length == 0'
 }
 
 live() {
@@ -202,7 +206,8 @@ live() {
 	record_new "arrival-times/1-972-en-$ts" "/v2/stops/1:972/arrival-times?locale=en&ignoreScheduledArrivalTimes=false" 200
 	record_new "arrival-times/metro-1-1-en-$ts" "/v2/stops/1:metro_1_1/arrival-times?locale=en&ignoreScheduledArrivalTimes=false" 200
 	# Answered [] on 2026-09-28 evening; the metro stop above did too once, then sent a row.
-	record arrival-times/empty-gondola-5 "/v2/stops/1:gondola_5/arrival-times?locale=en&ignoreScheduledArrivalTimes=false" 200
+	record arrival-times/empty-gondola-5 "/v2/stops/1:gondola_5/arrival-times?locale=en&ignoreScheduledArrivalTimes=false" 200 \
+		"$tmp/headers" 'type == "array" and length == 0'
 	for name in "${routes[@]}"; do
 		record_new "positions/$name-$ts" \
 			"/v3/routes/${route_ids[$name]}/positions?patternSuffixes=$(joined_patterns_of "$name")" 200
@@ -212,7 +217,8 @@ live() {
 	record_new "plan/arrive-by-970-to-freedom-square-$ts" \
 		"/v2/plan?fromPlace=$from&toPlace=$freedom_square&departMode=arriveBy&date=$tomorrow&time=09:00&modes=$plan_modes&optimize=lessWalking&locale=en" 200
 	record plan/no-itineraries \
-		"/v2/plan?fromPlace=$from&toPlace=$from&departMode=leaveNow&modes=$plan_modes&optimize=quick&locale=en" 200
+		"/v2/plan?fromPlace=$from&toPlace=$from&departMode=leaveNow&modes=$plan_modes&optimize=quick&locale=en" 200 \
+		"$tmp/headers" '(.itineraries // []) | length == 0'
 }
 
 errors() {
@@ -222,7 +228,8 @@ errors() {
 	record errors/geocode-missing-bbox-400 "/v2/geocode?query=rustaveli&locale=en" 400
 	record errors/plan-departat-without-date-400 \
 		"/v2/plan?fromPlace=$from&toPlace=$freedom_square&departMode=departAt&modes=$plan_modes&optimize=quick&locale=en" 400
-	record errors/positions-unknown-pattern "/v3/routes/${route_ids[326]}/positions?patternSuffixes=9:99" 200
+	record errors/positions-unknown-pattern "/v3/routes/${route_ids[326]}/positions?patternSuffixes=9:99" 200 \
+		"$tmp/headers" 'type == "object" and length == 0'
 	record errors/wrong-key-401 "/v2/stops/$stop970?locale=en" 401 "$tmp/wrong-headers"
 }
 
