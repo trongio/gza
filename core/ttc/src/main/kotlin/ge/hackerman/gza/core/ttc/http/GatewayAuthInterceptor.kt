@@ -28,7 +28,7 @@ class GatewayAuthInterceptor(private val provider: GatewayConfigProvider) : Inte
         val config = provider.peek() ?: runBlocking { provider.current() }
         val first = chain.proceed(request.authorizedWith(config))
         val retryWith = if (isRejection(first) && request.body?.isOneShot() != true) {
-            runBlocking { provider.refreshAfterRejection(config) }
+            refreshOrClose(first, config)
         } else {
             null
         }
@@ -38,6 +38,16 @@ class GatewayAuthInterceptor(private val provider: GatewayConfigProvider) : Inte
             first.close()
             chain.proceed(request.authorizedWith(retryWith))
         }
+    }
+
+    // The caller never sees [rejected] if the refresh throws, so nobody else would close it
+    // and its connection would stay pinned.
+    @Suppress("TooGenericExceptionCaught") // Closes on any failure, then rethrows it unchanged.
+    private fun refreshOrClose(rejected: Response, config: GatewayConfig): GatewayConfig? = try {
+        runBlocking { provider.refreshAfterRejection(config) }
+    } catch (e: Throwable) {
+        rejected.close()
+        throw e
     }
 
     private fun isRejection(response: Response): Boolean =

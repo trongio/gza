@@ -5,6 +5,7 @@ import ge.hackerman.gza.core.ttc.config.CachedGatewayConfig
 import ge.hackerman.gza.core.ttc.config.DefaultGatewayConfigProvider
 import ge.hackerman.gza.core.ttc.config.GatewayConfigPolicy
 import ge.hackerman.gza.core.ttc.config.InMemoryTtcConfigCache
+import ge.hackerman.gza.core.ttc.config.TtcConfigCache
 import ge.hackerman.gza.core.ttc.firebase.FirebaseEndpoints
 import ge.hackerman.gza.core.ttc.firebase.FirebaseRemoteConfigClient
 import ge.hackerman.gza.core.ttc.testing.FakeFirebase
@@ -19,6 +20,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
@@ -83,8 +85,8 @@ class GatewayAuthInterceptorEdgeCaseTest {
         otherServer.close()
     }
 
-    private fun provider() = DefaultGatewayConfigProvider(
-        cache = cache,
+    private fun provider(configCache: TtcConfigCache = cache) = DefaultGatewayConfigProvider(
+        cache = configCache,
         remote = FirebaseRemoteConfigClient(
             httpClient = OkHttpClient(),
             endpoints = FirebaseEndpoints(firebaseServer.url("/"), firebaseServer.url("/")),
@@ -164,6 +166,24 @@ class GatewayAuthInterceptorEdgeCaseTest {
         // A 401 left open would pin its connection and force a second one for the retry.
         assertEquals(first.connectionIndex, retry.connectionIndex)
         assertEquals(first.exchangeIndex + 1, retry.exchangeIndex)
+        assertEquals(0, client.connectionPool.connectionCount() - client.connectionPool.idleConnectionCount())
+    }
+
+    @Test
+    fun `rejected response is closed when the refetch throws`() {
+        seedCache(OLD_KEY)
+        firebase.serveKey(NEW_KEY, baseUrl = gatewayBase)
+        gateway.rejectionBody = "x".repeat(4_096)
+        val failingCache = object : TtcConfigCache by cache {
+            override suspend fun writeConfig(config: CachedGatewayConfig) = throw IOException("disk full")
+        }
+        val client = client(provider(failingCache))
+
+        val error = assertFailsWith<IOException> { client.call() }
+
+        assertEquals("disk full", error.message)
+        assertEquals(listOf<String?>(OLD_KEY), gateway.keys())
+        // A 401 left open would keep its connection in use.
         assertEquals(0, client.connectionPool.connectionCount() - client.connectionPool.idleConnectionCount())
     }
 
