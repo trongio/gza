@@ -200,7 +200,9 @@ live() {
 	record_new "arrival-times/1-970-en-$ts" "/v2/stops/$stop970/arrival-times?locale=en&ignoreScheduledArrivalTimes=false" 200
 	record_new "arrival-times/1-970-ka-$ts" "/v2/stops/$stop970/arrival-times?locale=ka&ignoreScheduledArrivalTimes=false" 200
 	record_new "arrival-times/1-972-en-$ts" "/v2/stops/1:972/arrival-times?locale=en&ignoreScheduledArrivalTimes=false" 200
-	record arrival-times/metro-empty "/v2/stops/1:metro_1_1/arrival-times?locale=en&ignoreScheduledArrivalTimes=false" 200
+	record_new "arrival-times/metro-1-1-en-$ts" "/v2/stops/1:metro_1_1/arrival-times?locale=en&ignoreScheduledArrivalTimes=false" 200
+	# Answered [] on 2026-09-28 evening; the metro stop above did too once, then sent a row.
+	record arrival-times/empty-gondola-5 "/v2/stops/1:gondola_5/arrival-times?locale=en&ignoreScheduledArrivalTimes=false" 200
 	for name in "${routes[@]}"; do
 		record_new "positions/$name-$ts" \
 			"/v3/routes/${route_ids[$name]}/positions?patternSuffixes=$(joined_patterns_of "$name")" 200
