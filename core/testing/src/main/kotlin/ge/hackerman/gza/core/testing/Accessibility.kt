@@ -33,16 +33,16 @@ fun SemanticsNodeInteractionsProvider.assertInteractiveNodesAccessible(
 }
 
 private fun SemanticsNode.accessibilityProblem(minTouchTarget: Dp): String? {
+    val layoutSize = size
     val problems = buildList {
         if (accessibleName().isBlank()) add("no accessible name")
         val minPx = with(layoutInfo.density) { minTouchTarget.toPx() } - HALF_PIXEL
-        // Layout bounds, not touchBoundsInRoot: Compose widens every pointer-input node's
-        // touchBoundsInRoot to the 48dp minimum, so checking it could never fail. Material
-        // components meet 48dp in layout through minimumInteractiveComponentSize.
-        val bounds = boundsInRoot
-        if (bounds.width < minPx || bounds.height < minPx) {
+        // The layout size: not touchBoundsInRoot, which Compose widens to the 48dp minimum for
+        // every pointer-input node (so it could never fail), and not boundsInRoot, which is
+        // clipped by scrolling (a row half under the bottom bar is still a full-size target).
+        if (layoutSize.width < minPx || layoutSize.height < minPx) {
             val density = layoutInfo.density.density
-            add("touch target ${bounds.width / density}dp x ${bounds.height / density}dp < $minTouchTarget")
+            add("touch target ${layoutSize.width / density}dp x ${layoutSize.height / density}dp < $minTouchTarget")
         }
     }
     if (problems.isEmpty()) return null
