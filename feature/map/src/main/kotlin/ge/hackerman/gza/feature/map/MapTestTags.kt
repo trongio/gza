@@ -4,5 +4,6 @@ package ge.hackerman.gza.feature.map
 object MapTestTags {
     const val SCREEN = "map_screen"
     const val SHEET_HANDLE = "map_sheet_handle"
+    const val SHEET_CONTENT = "map_sheet_content"
     const val CANVAS = "map_canvas"
 }

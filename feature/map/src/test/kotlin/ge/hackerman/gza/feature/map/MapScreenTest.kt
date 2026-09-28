@@ -3,15 +3,21 @@ package ge.hackerman.gza.feature.map
 import androidx.compose.material3.Surface
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import ge.hackerman.gza.core.designsystem.theme.GzaTheme
@@ -50,6 +56,16 @@ class MapScreenTest {
     @Test
     fun sheetHandleIsTallEnough() {
         composeRule.onNodeWithTag(MapTestTags.SHEET_HANDLE, useUnmergedTree = true).assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test
+    fun sheetContentScrollsToTheLastItem() {
+        composeRule.onNodeWithTag(MapTestTags.SHEET_CONTENT).assert(hasScrollAction())
+        composeRule.onNodeWithContentDescription(HANDLE).performClick()
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.onNodeWithTag(MapTestTags.SHEET_CONTENT)
+            .performScrollToNode(hasText("Sample data", substring = true))
+        composeRule.onNode(hasText("Sample data", substring = true)).assertIsDisplayed()
     }
 
     @Test

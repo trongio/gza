@@ -1,7 +1,10 @@
 package ge.hackerman.gza.feature.map
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +53,14 @@ fun MapScreen(modifier: Modifier = Modifier) {
 
 @Composable
 private fun SheetContent() {
+    // Scrolls so the whole list is reachable on short screens, in landscape and at large font sizes.
+    Column(Modifier.verticalScroll(rememberScrollState()).testTag(MapTestTags.SHEET_CONTENT)) {
+        SheetItems()
+    }
+}
+
+@Composable
+private fun SheetItems() {
     GzaSheetHeader(
         title = stringResource(R.string.map_sheet_title, stringResource(DesignR.string.sample_stop_ana_politkovskaia))
     )
