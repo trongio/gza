@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import dagger.hilt.android.AndroidEntryPoint
 import ge.hackerman.gza.core.designsystem.theme.GzaTheme
-import ge.hackerman.gza.ui.PlaceholderScreen
+import ge.hackerman.gza.ui.GzaApp
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             GzaTheme {
-                PlaceholderScreen()
+                GzaApp()
             }
         }
     }

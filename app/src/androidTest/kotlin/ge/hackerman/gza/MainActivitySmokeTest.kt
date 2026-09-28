@@ -1,10 +1,12 @@
 package ge.hackerman.gza
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import ge.hackerman.gza.ui.PlaceholderTestTags
+import ge.hackerman.gza.feature.now.NowTestTags
+import ge.hackerman.gza.navigation.TopLevelDestination
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -16,8 +18,8 @@ class MainActivitySmokeTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun launchesAndShowsThePlaceholder() {
-        composeRule.onNodeWithTag(PlaceholderTestTags.TITLE).assertIsDisplayed()
-        composeRule.onNodeWithTag(PlaceholderTestTags.SUBTITLE).assertIsDisplayed()
+    fun launchesOnTheNowTab() {
+        composeRule.onNodeWithTag(NowTestTags.SCREEN).assertIsDisplayed()
+        composeRule.onNodeWithTag(TopLevelDestination.NOW.testTag).assertIsDisplayed().assertIsSelected()
     }
 }

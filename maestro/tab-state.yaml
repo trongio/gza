@@ -1,0 +1,41 @@
+# clearState wipes Gza's data. Fine in T06 (no user data exists yet); revisit once
+# favourites land (T07) before running on a phone with real data.
+appId: ge.hackerman.gza
+name: Tab state - each tab keeps its state, back goes to Now and then leaves
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "now_screen"
+- tapOn:
+    id: "nav_plan"
+# Segmented buttons are radio buttons, which Android reports as checked, not selected.
+- tapOn:
+    id: "plan_mode_arrive_by"
+- assertVisible:
+    id: "plan_mode_arrive_by"
+    checked: true
+- tapOn:
+    id: "nav_search"
+- tapOn:
+    id: "search_field"
+- inputText: "Rustaveli"
+- hideKeyboard
+- tapOn:
+    id: "nav_map"
+- tapOn:
+    id: "nav_search"
+- assertVisible:
+    text: ".*Rustaveli.*"
+- tapOn:
+    id: "nav_plan"
+- assertVisible:
+    id: "plan_mode_arrive_by"
+    checked: true
+# Back from a non-home tab lands on Now; back on Now leaves the app.
+- back
+- assertVisible:
+    id: "now_screen"
+- back
+- assertNotVisible:
+    id: "now_screen"

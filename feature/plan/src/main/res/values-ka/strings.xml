@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plan_title">მგზავრობის დაგეგმვა</string>
+    <string name="plan_from">საიდან</string>
+    <string name="plan_to">სად</string>
+    <string name="plan_mode_leave_now">ახლავე</string>
+    <string name="plan_mode_depart_at">გასვლის დრო</string>
+    <string name="plan_mode_arrive_by">ჩასვლის დრო</string>
+    <string name="plan_leave_home">სახლიდან გამოდით %1$s-ზე</string>
+    <string name="plan_arrive">ჩახვალთ %1$s-ზე</string>
+    <plurals name="plan_walk_minutes">
+        <item quantity="one">%d წთ ფეხით</item>
+        <item quantity="other">%d წთ ფეხით</item>
+    </plurals>
+    <string name="plan_safe_transfer">უსაფრთხო გადაჯდომა</string>
+</resources>

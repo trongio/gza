@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Window only: Compose draws everything else. -->
-    <style name="Theme.Gza" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Gza" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/gza_window_background</item>
+    </style>
 </resources>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system">System language</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">Follows the system</string>
+    <string name="settings_buffer">Buffer before leaving</string>
+    <plurals name="settings_buffer_minutes">
+        <item quantity="one">%d min</item>
+        <item quantity="other">%d min</item>
+    </plurals>
+    <string name="settings_about_unofficial">Gza is an unofficial app. It is not affiliated with Tbilisi Transport Company.</string>
+    <!-- %1$s is the app version like 0.1.0. -->
+    <string name="settings_version">Version %1$s</string>
+</resources>

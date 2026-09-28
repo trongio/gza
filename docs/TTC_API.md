@@ -46,6 +46,31 @@ route 326 reported `0` with a bus parked and the next timetable departure at 17:
 | `GET /v3/routes/{routeId}/polylines?patternSuffixes=0:01` | Encoded polyline per pattern |
 | `GET /v3/routes/{routeId}/positions?patternSuffixes=0:01,1:01` | Live vehicles, below |
 
+### Transport kinds and route colours
+Checked live on 2026-09-28 (`/v3/routes`, `/v2/stops`, board of `1:970`):
+
+| Kind | How to tell | `color` | Count | `shortName` |
+|---|---|---|---|---|
+| Bus | `mode: BUS`, id `1:R<n>` | `00B38B` (teal green) | 111 | `101` to `399` |
+| Minibus | `mode: BUS`, id `1:minibusR<n>` | `0033B4` (blue) | 164 | `401` to `582` |
+| Metro | `mode: SUBWAY`, id `1:Metro_Metro_<line>` | line 1 `ff505b` (red), line 2 `5ca330` (green) | 2 | `1`, `2` |
+| Cable car | `mode: GONDOLA`, id `1:Gondola_Gondola_<n>` | `f5861f` (orange) | 3 | `1` to `3` |
+
+- **A minibus is `mode: BUS`**, and the board says `vehicleMode: "BUS"` for it too (route
+  551 at `1:970`). Only the route id prefix `minibus` or the colour tells it apart; the
+  board has no route id, so there the colour is the only signal.
+- `color` is 6 hex digits without `#`, and the case varies (`00B38B` but `f5861f`). Parse
+  it case-insensitively and fall back to the kind's colour when it is missing or malformed.
+- Every `shortName` is numeric, at most 3 characters. Metro and cable car numbers restart
+  at 1, so a badge must show the kind, not only the number.
+- Stops: `vehicleMode` is `BUS` (2,724), `SUBWAY` (23) or `GONDOLA` (6). Metro and cable
+  car stops have `code: null` and lower-case ids (`1:metro_1_11`, `1:gondola_1`), unlike
+  their route ids (`1:Metro_Metro_1`).
+- Georgian names use abbreviations: `მ/ს` (metro station), `ქ.` (street), `მ-ნი`
+  (square), `გამზ.` (avenue). Example: `1:970` is `Ana Politkovskaia Street` in `en` and
+  `ანა პოლიტკოვსკაიას ქუჩა` in `ka`; the 326 headsign is `Baratashvili St` /
+  `ბარათაშვილის ქ.`.
+
 ### Schedule
 ```json
 [{"fromDay":"MONDAY","toDay":"FRIDAY",

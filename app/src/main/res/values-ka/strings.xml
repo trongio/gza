@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">გზა</string>
-    <string name="placeholder_title">გზა</string>
-    <string name="placeholder_subtitle">თბილისის საზოგადოებრივი ტრანსპორტის არაოფიციალური აპლიკაცია</string>
+    <string name="nav_now">ახლა</string>
+    <string name="nav_search">ძიება</string>
+    <string name="nav_map">რუკა</string>
+    <string name="nav_plan">დაგეგმვა</string>
+    <string name="nav_settings">პარამეტრები</string>
 </resources>
