@@ -1,6 +1,9 @@
 package ge.hackerman.gza.feature.now
 
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -9,6 +12,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import ge.hackerman.gza.core.designsystem.theme.GzaTheme
 import ge.hackerman.gza.core.testing.assertInteractiveNodesAccessible
@@ -30,8 +36,10 @@ class NowScreenTest {
 
     private var clicks = 0
 
-    private fun show() = composeRule.setContent {
-        GzaTheme { Surface { NowScreen(onDepartureClick = { clicks++ }) } }
+    private fun show(fontScale: Float = 1f) = composeRule.setContent {
+        CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
+            GzaTheme { Surface { NowScreen(onDepartureClick = { clicks++ }) } }
+        }
     }
 
     private fun description(tag: String): String = composeRule.onNodeWithTag(tag).fetchSemanticsNode()
@@ -41,6 +49,21 @@ class NowScreenTest {
     fun saysItIsSampleData() {
         show()
         composeRule.onNodeWithText("Sample data. Live departures arrive in a later update.").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h780dp-xxhdpi")
+    fun subtitleWrapsInsteadOfClippingAtLargeFont() {
+        show(fontScale = 1.5f)
+        val subtitle = composeRule.onNodeWithText("Ana Politkovskaia Street · 4 min walk").assertIsDisplayed()
+        val layouts = mutableListOf<TextLayoutResult>()
+        subtitle.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        val layout = layouts.single()
+        assertTrue(layout.lineCount > 1, "expected the subtitle to wrap at 1.5x, got ${layout.lineCount} line")
+        assertFalse(layout.isLineEllipsized(layout.lineCount - 1), "subtitle is ellipsized")
+        assertFalse(layout.didOverflowHeight, "subtitle is cut off")
+        // The bar grew to fit: the node is as tall as its text, not clipped to 64dp.
+        assertEquals(layout.size.height.toFloat(), subtitle.fetchSemanticsNode().size.height.toFloat())
     }
 
     @Test

@@ -2,6 +2,8 @@
 <resources>
     <!-- Sample content until the Now screen gets real data (T07). -->
     <string name="now_sample_place">Home</string>
+    <!-- Under the place name: %1$s is the stop, %2$s the walk, like "4 min walk". -->
+    <string name="now_subtitle">%1$s · %2$s</string>
     <plurals name="now_walk_minutes">
         <item quantity="one">%d min walk</item>
         <item quantity="other">%d min walk</item>

@@ -1,23 +1,34 @@
 package ge.hackerman.gza.core.designsystem.component
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.dp
 import ge.hackerman.gza.core.designsystem.theme.GzaTheme
 
-/** A transparent top bar with the screen title in the display face. Applies status bar insets. */
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * A transparent top bar with the screen title in the display face. Applies the top and side
+ * safe-drawing insets. Not Material's TopAppBar: that one is a fixed 64dp tall, so a
+ * subtitle that wraps at large font sizes was clipped. This one grows with its text.
+ */
 @Composable
 fun GzaTopAppBar(
     title: String,
@@ -25,32 +36,37 @@ fun GzaTopAppBar(
     subtitle: String? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
-    TopAppBar(
-        title = {
-            Column {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+            .heightIn(min = MinHeight)
+            .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp)
+            .semantics { isTraversalGroup = true },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.semantics { heading() }
+            )
+            if (subtitle != null) {
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.semantics { heading() }
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
             }
-        },
-        modifier = modifier,
-        actions = actions,
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-    )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, content = actions)
+    }
 }
+
+/** Material's small top app bar height, so screens without a subtitle look the same as before. */
+private val MinHeight = 64.dp
 
 @PreviewLightDark
 @Composable

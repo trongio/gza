@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="now_sample_place">სახლი</string>
+    <string name="now_subtitle">%1$s · %2$s</string>
     <plurals name="now_walk_minutes">
         <item quantity="one">%d წთ ფეხით</item>
         <item quantity="other">%d წთ ფეხით</item>

@@ -32,6 +32,15 @@ class NowScreenScreenshotTest(
         NowScreen(onDepartureClick = {})
     }
 
+    @Test
+    // The width of the user's phone (Galaxy S22 Ultra at default display size), where the
+    // subtitle has to wrap at 1.5x.
+    @Config(qualifiers = "w384dp-h823dp-xxhdpi")
+    fun nowScreenLargeFont() =
+        composeRule.captureThemed("now_screen_font_scale_150", darkTheme, fontScale = 1.5f, fullScreen = true) {
+            NowScreen(onDepartureClick = {})
+        }
+
     companion object {
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")

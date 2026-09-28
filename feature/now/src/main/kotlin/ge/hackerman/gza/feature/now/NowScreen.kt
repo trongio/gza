@@ -45,8 +45,11 @@ fun NowScreen(onDepartureClick: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().testTag(NowTestTags.SCREEN)) {
         GzaTopAppBar(
             title = stringResource(R.string.now_sample_place),
-            subtitle = stringResource(DesignR.string.sample_stop_ana_politkovskaia) + " · " +
+            subtitle = stringResource(
+                R.string.now_subtitle,
+                stringResource(DesignR.string.sample_stop_ana_politkovskaia),
                 pluralStringResource(R.plurals.now_walk_minutes, WALK_MINUTES, WALK_MINUTES)
+            )
         )
         LazyColumn(contentPadding = PaddingValues(bottom = 16.dp)) {
             item {
