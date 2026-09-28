@@ -24,3 +24,7 @@ dependencyResolutionManagement {
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 rootProject.name = "gza"
+
+include(":core:model")
+include(":core:predict")
+include(":core:ttc")
