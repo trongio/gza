@@ -1,0 +1,8 @@
+{
+  "request": "/v2/geocode?query=zzqxqzzqxq&locale=en&bbox=44.6,41.6,45.0,41.85",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T17:01:42Z",
+  "recordedAtTbilisi": "2026-09-28T21:01:42+04:00",
+  "derived": false
+}

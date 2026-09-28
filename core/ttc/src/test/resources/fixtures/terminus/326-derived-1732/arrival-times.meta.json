@@ -1,0 +1,12 @@
+{
+  "request": "/v2/stops/1:970/arrival-times?locale=en&ignoreScheduledArrivalTimes=false",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T13:32:00Z",
+  "recordedAtTbilisi": "2026-09-28T17:32:00+04:00",
+  "derived": true,
+  "derivedFrom": [
+    "terminus/551-20260928T2043/arrival-times.json"
+  ],
+  "reason": "The documented 326 layover (TTC_API.md board caveat: board 0 with a bus parked at 1:970) cannot be recorded on demand. Real 20:43 board with the 326 row's realtimeArrivalMinutes set to 0."
+}

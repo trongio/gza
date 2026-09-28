@@ -1,0 +1,8 @@
+{
+  "request": "/v3/routes/1:minibusR25521/schedule?patternSuffix=1:03&locale=en",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T17:01:36Z",
+  "recordedAtTbilisi": "2026-09-28T21:01:36+04:00",
+  "derived": false
+}

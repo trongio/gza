@@ -1,0 +1,8 @@
+{
+  "request": "/v2/plan?fromPlace=41.722055,44.703114&toPlace=41.6934,44.8015&departMode=leaveNow&modes=WALK,SUBWAY,BUS,GONDOLA&optimize=quick&locale=en",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T16:43:33Z",
+  "recordedAtTbilisi": "2026-09-28T20:43:33+04:00",
+  "derived": false
+}

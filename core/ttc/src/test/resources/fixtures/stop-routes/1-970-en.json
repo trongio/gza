@@ -1,0 +1,23 @@
+[
+  {
+    "id": "1:R29981",
+    "shortName": "301",
+    "longName": "Saint Barbare Ubani - Politkovskaya St",
+    "color": "00B38B",
+    "mode": "BUS"
+  },
+  {
+    "id": "1:R97493",
+    "shortName": "326",
+    "longName": "Baratashvili St - Politkovskaya St",
+    "color": "00B38B",
+    "mode": "BUS"
+  },
+  {
+    "id": "1:minibusR24579",
+    "shortName": "551",
+    "longName": "თბილისი მოლი - ანა პოლიტკოვსკაიას ქ.",
+    "color": "0033B4",
+    "mode": "BUS"
+  }
+]

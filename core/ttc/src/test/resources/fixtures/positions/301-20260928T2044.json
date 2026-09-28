@@ -1,0 +1,111 @@
+{
+  "1:01": [
+    {
+      "vehicleId": "1:3863",
+      "lat": 41.6573753,
+      "lon": 44.9119873,
+      "heading": null,
+      "nextStopId": null
+    },
+    {
+      "vehicleId": "1:3854",
+      "lat": 41.6581917,
+      "lon": 44.9083252,
+      "heading": null,
+      "nextStopId": null
+    },
+    {
+      "vehicleId": "1:3858",
+      "lat": 41.6966324,
+      "lon": 44.8043518,
+      "heading": 264.014892578125,
+      "nextStopId": "1:822"
+    },
+    {
+      "vehicleId": "1:3861",
+      "lat": 41.6718178,
+      "lon": 44.8687935,
+      "heading": 288.14703369140625,
+      "nextStopId": "1:1032"
+    },
+    {
+      "vehicleId": "1:3859",
+      "lat": 41.6760788,
+      "lon": 44.8274345,
+      "heading": 298.3347473144531,
+      "nextStopId": "1:1386"
+    },
+    {
+      "vehicleId": "1:3856",
+      "lat": 41.7032776,
+      "lon": 44.7977066,
+      "heading": 288.91558837890625,
+      "nextStopId": "1:1212"
+    },
+    {
+      "vehicleId": "1:3868",
+      "lat": 41.7201805,
+      "lon": 44.7183571,
+      "heading": 261.41009521484375,
+      "nextStopId": "1:967"
+    },
+    {
+      "vehicleId": "1:3855",
+      "lat": 41.7087555,
+      "lon": 44.7809677,
+      "heading": 289.185791015625,
+      "nextStopId": "1:3953"
+    }
+  ],
+  "0:01": [
+    {
+      "vehicleId": "1:3865",
+      "lat": 41.7088013,
+      "lon": 44.7804146,
+      "heading": 108.88338470458984,
+      "nextStopId": "1:806"
+    },
+    {
+      "vehicleId": "1:3867",
+      "lat": 41.6966629,
+      "lon": 44.8047104,
+      "heading": 264.0400695800781,
+      "nextStopId": "1:3931"
+    },
+    {
+      "vehicleId": "1:3860",
+      "lat": 41.6732597,
+      "lon": 44.8613739,
+      "heading": 107.69478607177734,
+      "nextStopId": "1:1948"
+    },
+    {
+      "vehicleId": "1:3864",
+      "lat": 41.6617661,
+      "lon": 44.8962173,
+      "heading": 123.67738342285156,
+      "nextStopId": "1:3484"
+    },
+    {
+      "vehicleId": "1:3870",
+      "lat": 41.7220535,
+      "lon": 44.7031136,
+      "heading": null,
+      "nextStopId": null
+    },
+    {
+      "vehicleId": "1:3871",
+      "lat": 41.7221107,
+      "lon": 44.7031097,
+      "heading": null,
+      "nextStopId": null
+    },
+    {
+      "vehicleId": "1:3873",
+      "lat": 41.7201271,
+      "lon": 44.7151718,
+      "heading": 98.93801879882812,
+      "nextStopId": "1:981"
+    }
+  ]
+}

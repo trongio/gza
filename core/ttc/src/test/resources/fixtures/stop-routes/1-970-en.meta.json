@@ -1,0 +1,8 @@
+{
+  "request": "/v2/stops/1:970/routes?locale=en",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T17:01:06Z",
+  "recordedAtTbilisi": "2026-09-28T21:01:06+04:00",
+  "derived": false
+}

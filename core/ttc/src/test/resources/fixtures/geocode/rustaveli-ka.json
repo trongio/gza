@@ -1,0 +1,241 @@
+{
+  "features": [
+    {
+      "geometry": {
+        "coordinates": [
+          44.7896467,
+          41.703497
+        ],
+        "type": "Point"
+      },
+      "type": "Feature",
+      "properties": {
+        "osm_id": 289358478,
+        "country": "საქართველო",
+        "city": "თბილისი",
+        "countrycode": "GE",
+        "postcode": "0102",
+        "locality": "ვერე",
+        "type": "house",
+        "osm_type": "N",
+        "osm_key": "railway",
+        "street": "მიხეილ ზანდუკელის ქუჩა",
+        "district": "მთაწმინდის რაიონი",
+        "osm_value": "station",
+        "name": "რუსთაველი"
+      }
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          44.7907089,
+          41.7034667
+        ],
+        "type": "Point"
+      },
+      "type": "Feature",
+      "properties": {
+        "osm_id": 86696588,
+        "extent": [
+          44.7904721,
+          41.7036492,
+          44.791842,
+          41.7029117
+        ],
+        "country": "საქართველო",
+        "city": "თბილისი",
+        "countrycode": "GE",
+        "postcode": "0102",
+        "locality": "მთაწმინდა",
+        "type": "street",
+        "osm_type": "W",
+        "osm_key": "highway",
+        "district": "მთაწმინდის რაიონი",
+        "osm_value": "primary",
+        "name": "შოთა რუსთაველის გამზირი"
+      }
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          44.795279,
+          41.7010104
+        ],
+        "type": "Point"
+      },
+      "type": "Feature",
+      "properties": {
+        "osm_id": 86696581,
+        "extent": [
+          44.7927844,
+          41.7027273,
+          44.7980524,
+          41.6986169
+        ],
+        "country": "საქართველო",
+        "city": "თბილისი",
+        "countrycode": "GE",
+        "postcode": "0801",
+        "locality": "მთაწმინდა",
+        "type": "street",
+        "osm_type": "W",
+        "osm_key": "highway",
+        "district": "მთაწმინდის რაიონი",
+        "osm_value": "primary",
+        "name": "შოთა რუსთაველის გამზირი"
+      }
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          44.7989924,
+          41.6974507
+        ],
+        "type": "Point"
+      },
+      "type": "Feature",
+      "properties": {
+        "osm_id": 163073214,
+        "extent": [
+          44.7981349,
+          41.6986848,
+          44.7996902,
+          41.6964572
+        ],
+        "country": "საქართველო",
+        "city": "თბილისი",
+        "countrycode": "GE",
+        "postcode": "0136",
+        "locality": "მთაწმინდა",
+        "type": "street",
+        "osm_type": "W",
+        "osm_key": "highway",
+        "district": "მთაწმინდის რაიონი",
+        "osm_value": "primary",
+        "name": "შოთა რუსთაველის გამზირი"
+      }
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          44.7922222,
+          41.7030045
+        ],
+        "type": "Point"
+      },
+      "type": "Feature",
+      "properties": {
+        "osm_id": 28396427,
+        "extent": [
+          44.7918909,
+          41.7032109,
+          44.792506,
+          41.7029783
+        ],
+        "country": "საქართველო",
+        "city": "თბილისი",
+        "countrycode": "GE",
+        "postcode": "0102",
+        "locality": "მთაწმინდა",
+        "type": "street",
+        "osm_type": "W",
+        "osm_key": "highway",
+        "district": "მთაწმინდის რაიონი",
+        "osm_value": "primary_link",
+        "name": "შოთა რუსთაველის გამზირი"
+      }
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          44.95448018257501,
+          41.67005465
+        ],
+        "type": "Point"
+      },
+      "type": "Feature",
+      "properties": {
+        "osm_id": 967676,
+        "extent": [
+          44.9375876,
+          41.6836836,
+          44.9717461,
+          41.6564757
+        ],
+        "country": "საქართველო",
+        "city": "თბილისი",
+        "countrycode": "GE",
+        "postcode": "0198",
+        "locality": "აეროპორტი",
+        "type": "house",
+        "osm_type": "R",
+        "osm_key": "aeroway",
+        "street": "ევროპის ქუჩა",
+        "district": "სამგორის რაიონი",
+        "osm_value": "aerodrome",
+        "name": "თბილისის შოთა რუსთაველის სახელობის საერთაშორისო აეროპორტი"
+      }
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          44.6892355,
+          41.6803478
+        ],
+        "type": "Point"
+      },
+      "type": "Feature",
+      "properties": {
+        "osm_id": 541108502,
+        "extent": [
+          44.6835449,
+          41.6832637,
+          44.6928938,
+          41.6801923
+        ],
+        "country": "საქართველო",
+        "city": "თბილისი",
+        "countrycode": "GE",
+        "postcode": "0168",
+        "locality": "წყნეთი",
+        "type": "street",
+        "osm_type": "W",
+        "osm_key": "highway",
+        "district": "ვაკის რაიონი",
+        "osm_value": "secondary",
+        "name": "რუსთაველის ქუჩა"
+      }
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          44.9204617,
+          41.6253913
+        ],
+        "type": "Point"
+      },
+      "type": "Feature",
+      "properties": {
+        "osm_id": 59529341,
+        "extent": [
+          44.917865,
+          41.6288066,
+          44.9205368,
+          41.6214214
+        ],
+        "country": "საქართველო",
+        "city": "თბილისი",
+        "countrycode": "GE",
+        "postcode": "0121",
+        "locality": "ფონიჭალა",
+        "type": "street",
+        "osm_type": "W",
+        "osm_key": "highway",
+        "district": "კრწანისის რაიონი",
+        "osm_value": "residential",
+        "name": "შოთა რუსთაველის ქუჩა"
+      }
+    }
+  ],
+  "type": "FeatureCollection"
+}

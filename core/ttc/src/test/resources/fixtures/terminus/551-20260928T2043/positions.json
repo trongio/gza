@@ -1,0 +1,97 @@
+{
+  "1:01": [
+    {
+      "vehicleId": "1:774",
+      "lat": 41.8192177,
+      "lon": 44.771328,
+      "heading": null,
+      "nextStopId": null
+    },
+    {
+      "vehicleId": "1:984",
+      "lat": 41.7385254,
+      "lon": 44.7810783,
+      "heading": 157.4877471923828,
+      "nextStopId": "1:4592"
+    },
+    {
+      "vehicleId": "1:983",
+      "lat": 41.7200165,
+      "lon": 44.7776718,
+      "heading": 255.67410278320312,
+      "nextStopId": "1:926"
+    },
+    {
+      "vehicleId": "1:762",
+      "lat": 41.7246552,
+      "lon": 44.7392464,
+      "heading": 226.78123474121094,
+      "nextStopId": "1:3103"
+    },
+    {
+      "vehicleId": "1:986",
+      "lat": 41.8197098,
+      "lon": 44.7710686,
+      "heading": 174.1687774658203,
+      "nextStopId": "1:3123"
+    },
+    {
+      "vehicleId": "1:985",
+      "lat": 41.8152847,
+      "lon": 44.7720757,
+      "heading": null,
+      "nextStopId": null
+    }
+  ],
+  "0:01": [
+    {
+      "vehicleId": "1:980",
+      "lat": 41.7246552,
+      "lon": 44.7710991,
+      "heading": 140.1780242919922,
+      "nextStopId": "1:932"
+    },
+    {
+      "vehicleId": "1:979",
+      "lat": 41.7456131,
+      "lon": 44.7780571,
+      "heading": 349.05218505859375,
+      "nextStopId": "1:4597"
+    },
+    {
+      "vehicleId": "1:220",
+      "lat": 41.8116379,
+      "lon": 44.7721214,
+      "heading": 1.7858872413635254,
+      "nextStopId": null
+    },
+    {
+      "vehicleId": "1:987",
+      "lat": 41.80793,
+      "lon": 44.7718697,
+      "heading": 3.5633318424224854,
+      "nextStopId": "1:3120"
+    },
+    {
+      "vehicleId": "1:217",
+      "lat": 41.7852554,
+      "lon": 44.7700081,
+      "heading": 6.618168354034424,
+      "nextStopId": "1:2573"
+    },
+    {
+      "vehicleId": "1:988",
+      "lat": 41.7663803,
+      "lon": 44.769207,
+      "heading": 14.670971870422363,
+      "nextStopId": "1:1177"
+    },
+    {
+      "vehicleId": "1:981",
+      "lat": 41.7220535,
+      "lon": 44.7031136,
+      "heading": null,
+      "nextStopId": null
+    }
+  ]
+}

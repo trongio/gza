@@ -1,0 +1,12 @@
+{
+  "request": "/v2/plan?fromPlace=41.722055,44.703114&toPlace=41.6934,44.8015&departMode=leaveNow&modes=WALK,SUBWAY,BUS,GONDOLA&optimize=quick&locale=en",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T16:43:33Z",
+  "recordedAtTbilisi": "2026-09-28T20:43:33+04:00",
+  "derived": true,
+  "derivedFrom": [
+    "plan/leave-now-970-to-freedom-square-20260928T2043.json"
+  ],
+  "reason": "PLAN.md 1.2 value 3676 s on a roughly on-time bus. Real 20:43 plan with the first BUS leg of the first itinerary set to arrivalDelay 3676 (was 4607)."
+}

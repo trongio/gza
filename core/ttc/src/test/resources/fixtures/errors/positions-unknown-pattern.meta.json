@@ -1,0 +1,8 @@
+{
+  "request": "/v3/routes/1:R97493/positions?patternSuffixes=9:99",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T17:02:04Z",
+  "recordedAtTbilisi": "2026-09-28T21:02:04+04:00",
+  "derived": false
+}

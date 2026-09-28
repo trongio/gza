@@ -1,0 +1,13 @@
+{
+  "from": {
+    "lat": 41.722055,
+    "lon": 44.703114,
+    "name": "Origin"
+  },
+  "to": {
+    "lat": 41.722055,
+    "lon": 44.703114,
+    "name": "Destination"
+  },
+  "itineraries": []
+}

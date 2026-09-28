@@ -1,0 +1,8 @@
+{
+  "request": "/v3/routes/1:minibusR25521/stops-of-patterns?patternSuffixes=0:03&locale=en",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T17:01:34Z",
+  "recordedAtTbilisi": "2026-09-28T21:01:34+04:00",
+  "derived": false
+}

@@ -1,0 +1,8 @@
+{
+  "request": "/v2/geocode/reverse?lat=41.722055&lon=44.703114&locale=en",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T17:01:43Z",
+  "recordedAtTbilisi": "2026-09-28T21:01:43+04:00",
+  "derived": false
+}

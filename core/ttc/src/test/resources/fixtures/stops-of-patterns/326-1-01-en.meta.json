@@ -1,0 +1,8 @@
+{
+  "request": "/v3/routes/1:R97493/stops-of-patterns?patternSuffixes=1:01&locale=en",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T17:01:22Z",
+  "recordedAtTbilisi": "2026-09-28T21:01:22+04:00",
+  "derived": false
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "shortName": "551",
+    "color": "0033B4",
+    "headsign": "Tbilisi Mall",
+    "patternSuffix": "0:01",
+    "vehicleMode": "BUS",
+    "realtime": true,
+    "realtimeArrivalMinutes": 1,
+    "scheduledArrivalMinutes": -83
+  },
+  {
+    "shortName": "301",
+    "color": "00B38B",
+    "headsign": "Saint Barbare District",
+    "patternSuffix": "0:01",
+    "vehicleMode": "BUS",
+    "realtime": true,
+    "realtimeArrivalMinutes": 1,
+    "scheduledArrivalMinutes": 48
+  },
+  {
+    "shortName": "326",
+    "color": "00B38B",
+    "headsign": "Baratashvili St",
+    "patternSuffix": "0:01",
+    "vehicleMode": "BUS",
+    "realtime": true,
+    "realtimeArrivalMinutes": 4,
+    "scheduledArrivalMinutes": -46
+  }
+]

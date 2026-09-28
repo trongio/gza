@@ -1,0 +1,8 @@
+{
+  "request": "/v2/geocode?query=%E1%83%A0%E1%83%A3%E1%83%A1%E1%83%97%E1%83%90%E1%83%95%E1%83%94%E1%83%9A%E1%83%98&locale=ka&bbox=44.6,41.6,45.0,41.85",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T17:01:41Z",
+  "recordedAtTbilisi": "2026-09-28T21:01:41+04:00",
+  "derived": false
+}

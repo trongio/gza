@@ -1,0 +1,9 @@
+{
+  "request": "/v2/stops/1:3569/arrival-times?locale=en&ignoreScheduledArrivalTimes=false",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T16:44:00Z",
+  "recordedAtTbilisi": "2026-09-28T20:44:00+04:00",
+  "derived": false,
+  "note": "Recorded by the T03 planner between 20:44 and 20:45; the exact second was not kept."
+}

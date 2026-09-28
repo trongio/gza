@@ -1,0 +1,12 @@
+{
+  "request": "/v3/routes/1:R97493/positions?patternSuffixes=0:01,1:01",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T13:32:00Z",
+  "recordedAtTbilisi": "2026-09-28T17:32:00+04:00",
+  "derived": true,
+  "derivedFrom": [
+    "positions/326-20260928T2043.json"
+  ],
+  "reason": "Real 20:43 positions of 326 with 0:01 vehicle 1:3329 replaced by 1:3046 parked at 1:970 (heading and nextStopId null), as TTC_API.md recorded it; 1:3046 removed from 1:01 so it appears once."
+}

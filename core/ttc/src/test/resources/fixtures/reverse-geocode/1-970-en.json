@@ -1,0 +1,30 @@
+{
+  "features": [
+    {
+      "geometry": {
+        "coordinates": [
+          44.7032188,
+          41.7219641
+        ],
+        "type": "Point"
+      },
+      "type": "Feature",
+      "properties": {
+        "osm_id": 769174152,
+        "country": "Georgia",
+        "city": "Tbilisi",
+        "countrycode": "GE",
+        "postcode": "0168",
+        "locality": "Vazha-Pshavela Blocks",
+        "type": "house",
+        "osm_type": "N",
+        "osm_key": "highway",
+        "street": "Anna Politkovskaya St",
+        "district": "Vake District",
+        "osm_value": "bus_stop",
+        "name": "Politkovskaia Street #16"
+      }
+    }
+  ],
+  "type": "FeatureCollection"
+}
