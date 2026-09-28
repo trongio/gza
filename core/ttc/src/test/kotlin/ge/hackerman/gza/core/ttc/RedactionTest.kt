@@ -1,6 +1,8 @@
 package ge.hackerman.gza.core.ttc
 
+import ge.hackerman.gza.core.ttc.config.CachedGatewayConfig
 import ge.hackerman.gza.core.ttc.config.ConfigSource
+import ge.hackerman.gza.core.ttc.config.FirebaseInstallation
 import ge.hackerman.gza.core.ttc.config.GatewayConfig
 import ge.hackerman.gza.core.ttc.config.GatewayConfigUnavailableException
 import ge.hackerman.gza.core.ttc.firebase.FirebaseWebCredentials
@@ -40,6 +42,22 @@ class RedactionTest {
         assertContains(text, "apiKey=<redacted>")
         assertContains(text, "appId=<redacted>")
         assertContains(text, "test-project")
+    }
+
+    @Test
+    fun `cached config hides the key`() {
+        val text = CachedGatewayConfig("https://transit.ttc.com.ge/pis-gateway", GATEWAY_KEY, Instant.EPOCH).toString()
+        assertNoSecrets(text)
+        assertContains(text, "apiKey=<redacted>")
+    }
+
+    @Test
+    fun `firebase installation hides both tokens`() {
+        val text = FirebaseInstallation("fid-public", REFRESH_TOKEN, AUTH_TOKEN, Instant.EPOCH).toString()
+        assertNoSecrets(text)
+        assertContains(text, "refreshToken=<redacted>")
+        assertContains(text, "authToken=<redacted>")
+        assertContains(text, "fid-public")
     }
 
     @Test
