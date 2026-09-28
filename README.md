@@ -31,7 +31,13 @@ export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ANDROID_HOME=~/Android/Sdk
 ./gradlew connectedDebugAndroidTest   # instrumented tests, needs a device
 ~/.maestro/bin/maestro test maestro/  # end-to-end flows (emulator only: they clear app data)
 ./tools/check-no-secrets.sh   # fails if a key from ttc.properties is in the tree or history
+./tools/record-fixtures.sh   # re-record gateway fixtures (key stripped); 'terminus' waits for a parked bus
 ```
+
+Gateway fixtures live in `core/ttc/src/test/resources/fixtures/`, each with a
+`.meta.json` sidecar (request, status, recording time). Live ones (boards, positions,
+plans) are timestamped and never overwritten, so odd real responses accumulate;
+hand-edited ones are named `derived-*` and their sidecar says what they came from and why.
 
 The build works without `ttc.properties` (it warns and bakes in an empty fallback key);
 CI writes a dummy one.

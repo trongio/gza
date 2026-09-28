@@ -43,8 +43,12 @@ the next timetable departure was 20:47. `326` read `-30` scheduled.
   `vehicleMode`. Join them to routes by `shortName` (and `patternSuffix`) through
   `/v2/stops/{id}/routes`.
 - `ignoreScheduledArrivalTimes=true` returned the same rows at `1:970`.
-- A stop with no service (metro stop `1:metro_1_1`) returns `[]`. `locale=ka` translates
-  `headsign`.
+- A stop with no service returns `[]` (cable car stop `1:gondola_5` at 21:02 on
+  2026-09-28). Metro stop `1:metro_1_1` returned `[]` once and a row with
+  `realtime: false` on another call the same evening, so metro rows exist but are
+  timetable only. `locale=ka` translates `headsign`.
+- Again at 21:02 the same day: `301: 0` at `1:970` with **two** 301 buses parked there
+  (heading and next stop null), captured in `fixtures/terminus/301-20260928T2102/`.
 - `realtime` was `true` on every row seen so far; treat `realtimeArrivalMinutes` as
   nullable anyway.
 - Stops: 29 of 2,753 have `code: null` (all metro and cable car stops).
