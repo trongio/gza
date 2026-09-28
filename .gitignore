@@ -17,3 +17,6 @@ keystore.properties
 
 # TTC gateway config pulled by tools/fetch-ttc-config.sh
 ttc.properties
+
+# Kotlin 2.x session files
+.kotlin/
