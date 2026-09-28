@@ -2,4 +2,5 @@
 <resources>
     <string name="map_preview_description">რუკის მაგალითი, მარშრუტ 326-ის სანიმუშო ავტობუსებით</string>
     <string name="map_sheet_title">გასვლები: %1$s</string>
+    <string name="map_sheet_label">გასვლების პანელი</string>
 </resources>

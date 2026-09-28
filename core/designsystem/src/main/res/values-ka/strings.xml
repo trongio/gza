@@ -33,5 +33,6 @@
     <string name="departure_a11y_no_leave_by">%1$s, მიმართულება: %2$s. გადის %3$s-ზე. %4$s</string>
     <string name="departure_a11y_with_detail">%1$s. %2$s</string>
     <string name="departure_show_on_map">რუკაზე ნახვა</string>
-    <string name="sheet_drag_handle">გადაათრიეთ გასაშლელად ან ჩასაკეცად</string>
+    <string name="sheet_state_expanded">გაშლილი</string>
+    <string name="sheet_state_collapsed">ჩაკეცილი</string>
 </resources>

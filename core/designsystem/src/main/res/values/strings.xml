@@ -40,5 +40,7 @@
     <!-- The row sentence above (%1$s) followed by the optional detail line, like "4 min walk" (%2$s). -->
     <string name="departure_a11y_with_detail">%1$s. %2$s</string>
     <string name="departure_show_on_map">Show on map</string>
-    <string name="sheet_drag_handle">Drag to expand or collapse</string>
+    <!-- TalkBack state of a bottom sheet handle, read after the sheet name. -->
+    <string name="sheet_state_expanded">Expanded</string>
+    <string name="sheet_state_collapsed">Collapsed</string>
 </resources>

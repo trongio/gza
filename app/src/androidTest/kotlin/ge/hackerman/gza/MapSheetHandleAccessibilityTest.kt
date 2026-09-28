@@ -5,10 +5,12 @@ import android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import ge.hackerman.gza.core.designsystem.R as DesignR
 import ge.hackerman.gza.feature.map.MapTestTags
+import ge.hackerman.gza.feature.map.R as MapR
 import ge.hackerman.gza.navigation.TopLevelDestination
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -30,10 +32,11 @@ class MapSheetHandleAccessibilityTest {
     private val uiAutomation get() = InstrumentationRegistry.getInstrumentation().uiAutomation
 
     @Test
-    fun handleIsOneFocusableNodeWithItsLabelAndExpandAction() {
+    fun handleIsOneFocusableNodeWithItsLabelStateAndExpandAction() {
         composeRule.onNodeWithTag(TopLevelDestination.MAP.testTag).performClick()
         composeRule.waitForIdle()
-        val label = composeRule.activity.getString(DesignR.string.sheet_drag_handle)
+        val label = composeRule.activity.getString(MapR.string.map_sheet_label)
+        val collapsed = composeRule.activity.getString(DesignR.string.sheet_state_collapsed)
 
         val handle = findHandle()
         val subtree = handle.subtree()
@@ -49,6 +52,11 @@ class MapSheetHandleAccessibilityTest {
         )
         val spoken = subtree.mapNotNull { it.contentDescription?.toString() }
         assertTrue("The handle is announced as '$label':\n$dump", spoken.any { it == label })
+        assertEquals(
+            "The focused node says the sheet is collapsed:\n$dump",
+            collapsed,
+            AccessibilityNodeInfoCompat.wrap(stop).stateDescription?.toString()
+        )
     }
 
     private fun findHandle(): AccessibilityNodeInfo {
@@ -67,7 +75,9 @@ class MapSheetHandleAccessibilityTest {
     private fun AccessibilityNodeInfo.describe(): String =
         "class=$className id=$viewIdResourceName desc=$contentDescription text=$text " +
             "clickable=$isClickable focusable=$isFocusable srFocusable=$isScreenReaderFocusable " +
-            "important=$isImportantForAccessibility actions=${actionList.map { it.label ?: it.id }}"
+            "important=$isImportantForAccessibility " +
+            "state=${AccessibilityNodeInfoCompat.wrap(this).stateDescription} " +
+            "actions=${actionList.map { it.label ?: it.id }}"
 
     private companion object {
         const val RETRIES = 20

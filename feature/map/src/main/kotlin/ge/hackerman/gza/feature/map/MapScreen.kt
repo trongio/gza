@@ -39,7 +39,8 @@ fun MapScreen(modifier: Modifier = Modifier) {
         // Handle, title and the first departure: the waiting bus is visible without dragging.
         sheetPeekHeight = 232.dp,
         dragHandleModifier = Modifier.testTag(MapTestTags.SHEET_HANDLE),
-        sheetContent = { SheetContent() }
+        sheetContent = { SheetContent() },
+        sheetLabel = stringResource(R.string.map_sheet_label)
     ) {
         MapPreviewCanvas(
             stopColor = MaterialTheme.colorScheme.primary,

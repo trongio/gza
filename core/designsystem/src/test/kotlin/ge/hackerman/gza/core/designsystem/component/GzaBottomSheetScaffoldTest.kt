@@ -9,7 +9,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.hasClickAction
@@ -50,7 +52,8 @@ class GzaBottomSheetScaffoldTest {
                         GzaSheetHeader("Departures")
                         Text("Row one")
                         Text("Row two")
-                    }
+                    },
+                    sheetLabel = HANDLE
                 ) { Box(Modifier.fillMaxSize()) }
             }
         }
@@ -102,11 +105,29 @@ class GzaBottomSheetScaffoldTest {
         assertEquals(SheetValue.PartiallyExpanded, state.bottomSheetState.currentValue)
     }
 
+    @Test
+    fun handleSaysWhetherTheSheetIsExpanded() {
+        handle().assert(hasStateDescription("Collapsed"))
+
+        handle().performSemanticsAction(SemanticsActions.Expand)
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.waitForIdle()
+        handle().assert(hasStateDescription("Expanded"))
+
+        handle().performSemanticsAction(SemanticsActions.Collapse)
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.waitForIdle()
+        handle().assert(hasStateDescription("Collapsed"))
+    }
+
+    private fun hasStateDescription(value: String) =
+        SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, value)
+
     private fun hasAnyAction() = SemanticsMatcher("has a click or long click action") {
         SemanticsActions.OnClick in it.config || SemanticsActions.OnLongClick in it.config
     }
 
     private companion object {
-        const val HANDLE = "Drag to expand or collapse"
+        const val HANDLE = "Departures sheet"
     }
 }

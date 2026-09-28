@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.expand
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -45,13 +46,16 @@ import kotlinx.coroutines.launch
  * a click-to-toggle box, so TalkBack stops on it twice and gets no expand or collapse
  * action. The slot is left empty and [GzaSheetDragHandle] leads the sheet content instead:
  * one node that toggles on a double tap and offers expand or collapse. Dragging still works
- * because Material makes the whole sheet draggable. Callers opt in to
- * ExperimentalMaterial3Api because [scaffoldState] is Material's experimental state type.
+ * because Material makes the whole sheet draggable. [sheetLabel] names the sheet on the
+ * handle ("Departures sheet"), because TalkBack users act on it, not drag it; the handle
+ * adds whether it is expanded or collapsed. Callers opt in to ExperimentalMaterial3Api
+ * because [scaffoldState] is Material's experimental state type.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GzaBottomSheetScaffold(
     sheetContent: @Composable ColumnScope.() -> Unit,
+    sheetLabel: String,
     modifier: Modifier = Modifier,
     scaffoldState: BottomSheetScaffoldState = rememberBottomSheetScaffoldState(),
     sheetPeekHeight: Dp = 168.dp,
@@ -60,7 +64,7 @@ fun GzaBottomSheetScaffold(
 ) {
     BottomSheetScaffold(
         sheetContent = {
-            GzaSheetDragHandle(scaffoldState.bottomSheetState, dragHandleModifier)
+            GzaSheetDragHandle(scaffoldState.bottomSheetState, sheetLabel, dragHandleModifier)
             sheetContent()
         },
         modifier = modifier,
@@ -77,10 +81,10 @@ fun GzaBottomSheetScaffold(
 /** A full-width 48dp target around a small pill, so the handle is easy to grab. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun GzaSheetDragHandle(sheetState: SheetState, modifier: Modifier = Modifier) {
-    val description = stringResource(R.string.sheet_drag_handle)
+private fun GzaSheetDragHandle(sheetState: SheetState, label: String, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     val expanded = sheetState.currentValue == SheetValue.Expanded
+    val state = stringResource(if (expanded) R.string.sheet_state_expanded else R.string.sheet_state_collapsed)
     val toggle = {
         scope.launch { if (expanded) sheetState.partialExpand() else sheetState.expand() }
         Unit
@@ -91,7 +95,8 @@ private fun GzaSheetDragHandle(sheetState: SheetState, modifier: Modifier = Modi
             .height(48.dp)
             .clickable(role = Role.Button, onClick = toggle)
             .semantics {
-                contentDescription = description
+                contentDescription = label
+                stateDescription = state
                 if (expanded) {
                     collapse {
                         toggle()
@@ -133,7 +138,10 @@ fun GzaSheetHeader(title: String, modifier: Modifier = Modifier, subtitle: Strin
 @Composable
 private fun GzaBottomSheetScaffoldPreview() {
     GzaTheme {
-        GzaBottomSheetScaffold(sheetContent = { GzaSheetHeader("Departures", subtitle = "Freedom Square") }) {
+        GzaBottomSheetScaffold(
+            sheetContent = { GzaSheetHeader("Departures", subtitle = "Freedom Square") },
+            sheetLabel = "Departures sheet"
+        ) {
             Box(Modifier.fillMaxSize().background(GzaTheme.colors.mapLand))
         }
     }

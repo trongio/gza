@@ -64,7 +64,8 @@ class ChromeScreenshotTest(
                     GzaSheetHeader("Departures from Freedom Square", subtitle = "2 routes")
                     DepartureRow("326", TransitMode.Bus, "Baratashvili St", "17:13", DepartureStatus.Waiting("17:13"))
                     DepartureRow("551", TransitMode.Minibus, "Tbilisi Mall", "17:24", DepartureStatus.Live(3))
-                }
+                },
+                sheetLabel = "Departures sheet"
             ) { Box(Modifier.fillMaxSize().background(GzaTheme.colors.mapLand)) }
         }
     }

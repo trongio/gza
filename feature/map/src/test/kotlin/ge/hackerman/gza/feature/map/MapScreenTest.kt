@@ -2,6 +2,7 @@ package ge.hackerman.gza.feature.map
 
 import androidx.compose.material3.Surface
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
@@ -59,6 +60,13 @@ class MapScreenTest {
     }
 
     @Test
+    fun sheetHandleNamesTheSheetAndSaysItIsCollapsed() {
+        composeRule.onNodeWithTag(MapTestTags.SHEET_HANDLE)
+            .assertContentDescriptionEquals("Departures sheet")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed"))
+    }
+
+    @Test
     fun sheetContentScrollsToTheLastItem() {
         composeRule.onNodeWithTag(MapTestTags.SHEET_CONTENT).assert(hasScrollAction())
         composeRule.onNodeWithContentDescription(HANDLE).performClick()
@@ -87,6 +95,6 @@ class MapScreenTest {
     }
 
     private companion object {
-        const val HANDLE = "Drag to expand or collapse"
+        const val HANDLE = "Departures sheet"
     }
 }
