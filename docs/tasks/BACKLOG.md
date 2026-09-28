@@ -93,7 +93,7 @@ Acceptance:
 - [ ] Tests for Sunday to Monday rollover, 23:59 to 00:10 departures, empty service day, missing schedule.
 - [ ] Ports and passes the test cases from the ttc-leave-by prototype.
 
-## [~] T06 App shell and design system
+## [x] T06 App shell and design system (PR #3)
 Depends: T01
 - `:core:designsystem`: color tokens (light/dark), typography (a display face, a body
   face, a mono face for times), route badge, departure row, chips (waiting, live,
@@ -102,8 +102,14 @@ Depends: T01
 - Strings in en and ka.
 
 Acceptance:
-- [ ] Roborazzi screenshots of each component in light and dark.
-- [ ] Every interactive element has a content description and a 48dp target.
+- [x] Roborazzi screenshots of each component in light and dark.
+- [x] Every interactive element has a content description and a 48dp target.
+
+Follow-ups:
+- Georgian Settings tab label "პარამეტრები" truncates to "პარამეტ..." at default font size (and Plan/Settings at 1.5x); needs a shorter ka label chosen by the user, or a different label layout.
+- Georgian wording check by the user: "გამოდით" vs "გადით" for "Leave in N min".
+- Search and Plan placeholder state lives in the navigation `composable {}` blocks; T07/T08/T14 must move it into `XRoute` + ViewModel.
+- `docs/tasks/plans/T06.md` sections 3 and 5 still describe the old `sheet_drag_handle` string and Material's drag handle slot; the scaffold now takes `sheetLabel` and exposes Expanded/Collapsed state.
 
 ## [ ] T07 Now screen
 Depends: T04, T05, T06
