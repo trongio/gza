@@ -1,7 +1,5 @@
 package ge.hackerman.gza.core.ttc.gateway
 
-import ge.hackerman.gza.core.ttc.gateway.dto.RouteDetailDto
-import ge.hackerman.gza.core.ttc.gateway.dto.StopDto
 import kotlinx.serialization.json.JsonElement
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -12,9 +10,9 @@ import retrofit2.http.QueryMap
  * The gateway as Retrofit sees it. Paths have no leading slash so the interceptor can put
  * them under the configured base (`.../pis-gateway`).
  *
- * List and map responses, and objects holding a list, come back as [JsonElement] and are
- * decoded by the client element by element (see `LenientDecoding.kt`): decoded here in one
- * go, one mistyped element would fail the whole response.
+ * Every response comes back as a [JsonElement] and the client decodes it: off OkHttp's
+ * threads on its own dispatcher, and lists element by element (see `LenientDecoding.kt`),
+ * since decoded here in one go, one mistyped element would fail the whole response.
  */
 @Suppress("TooManyFunctions") // Mirrors the gateway, one function per endpoint.
 internal interface TtcGatewayService {
@@ -22,7 +20,7 @@ internal interface TtcGatewayService {
     suspend fun stops(@Query("locale") locale: String): JsonElement
 
     @GET("api/v2/stops/{stopId}")
-    suspend fun stop(@Path("stopId") stopId: String, @Query("locale") locale: String): StopDto
+    suspend fun stop(@Path("stopId") stopId: String, @Query("locale") locale: String): JsonElement
 
     @GET("api/v2/stops/{stopId}/routes")
     suspend fun stopRoutes(@Path("stopId") stopId: String, @Query("locale") locale: String): JsonElement
@@ -38,7 +36,7 @@ internal interface TtcGatewayService {
     suspend fun routes(@Query("modes") modes: String, @Query("locale") locale: String): JsonElement
 
     @GET("api/v3/routes/{routeId}")
-    suspend fun route(@Path("routeId") routeId: String, @Query("locale") locale: String): RouteDetailDto
+    suspend fun route(@Path("routeId") routeId: String, @Query("locale") locale: String): JsonElement
 
     @GET("api/v3/routes/{routeId}/schedule")
     suspend fun schedule(

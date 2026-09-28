@@ -6,6 +6,7 @@ import java.time.ZoneOffset
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlinx.coroutines.Dispatchers
 import okhttp3.OkHttpClient
 import org.junit.jupiter.api.Test
 
@@ -18,7 +19,7 @@ class GatewayApiModuleTest {
             it.proceed(it.request())
         }.build()
         val clock = Clock.fixed(Instant.parse("2026-09-28T16:43:32Z"), ZoneOffset.UTC)
-        assertNotNull(GatewayApiModule.provideTtcGatewayClient(http, clock))
+        assertNotNull(GatewayApiModule.provideTtcGatewayClient(http, clock, Dispatchers.Unconfined))
         assertEquals(0, calls.get())
     }
 }

@@ -20,8 +20,9 @@ import ge.hackerman.gza.core.model.TripPlan
 import ge.hackerman.gza.core.model.TripRequest
 
 /**
- * Typed access to every TTC gateway endpoint Gza uses. Main-safe: the network and JSON
- * parsing run on OkHttp's threads. Every failure is a [TtcGatewayException]; list endpoints
+ * Typed access to every TTC gateway endpoint Gza uses. Main-safe: the network runs on
+ * OkHttp's threads and decoding and mapping on the dispatcher given to
+ * [TtcGatewayClientFactory.create]. Every failure is a [TtcGatewayException]; list endpoints
  * return whatever items survive lenient mapping, which may be none.
  */
 @Suppress("TooManyFunctions") // Mirrors the gateway, one function per endpoint.

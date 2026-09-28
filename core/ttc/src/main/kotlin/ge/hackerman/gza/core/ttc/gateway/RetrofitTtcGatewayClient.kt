@@ -22,10 +22,12 @@ import ge.hackerman.gza.core.ttc.config.GatewayConfigUnavailableException
 import ge.hackerman.gza.core.ttc.gateway.dto.BoardArrivalDto
 import ge.hackerman.gza.core.ttc.gateway.dto.PatternStopDto
 import ge.hackerman.gza.core.ttc.gateway.dto.ProblemDto
+import ge.hackerman.gza.core.ttc.gateway.dto.RouteDetailDto
 import ge.hackerman.gza.core.ttc.gateway.dto.RouteDto
 import ge.hackerman.gza.core.ttc.gateway.dto.ServicePeriodDto
 import ge.hackerman.gza.core.ttc.gateway.dto.StopDto
 import ge.hackerman.gza.core.ttc.gateway.dto.decodeEachElement
+import ge.hackerman.gza.core.ttc.gateway.dto.decodeObject
 import ge.hackerman.gza.core.ttc.gateway.dto.toFeatureCollectionDto
 import ge.hackerman.gza.core.ttc.gateway.dto.toPlanResponseDto
 import ge.hackerman.gza.core.ttc.gateway.dto.toPolylineDtos
@@ -44,76 +46,89 @@ import ge.hackerman.gza.core.ttc.gateway.mapper.toTripPlan
 import java.io.IOException
 import java.time.Clock
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonElement
 import okhttp3.ResponseBody
 import retrofit2.HttpException
 
 /**
- * Calls enqueue on OkHttp's dispatcher, so the network, the auth interceptor and JSON
- * parsing never run on the caller's thread; only the cheap mapping does. [clock] stamps
- * boards and positions, whose minutes and GPS fixes are relative to when they arrived.
+ * Main-safe: Retrofit calls enqueue on OkHttp's dispatcher, so the network, the auth
+ * interceptor and JSON tokenizing run on OkHttp's threads; decoding into DTOs and mapping
+ * (thousands of stops, a whole schedule) run on [parseDispatcher]. [clock] stamps boards and
+ * positions, whose minutes and GPS fixes are relative to when they arrived.
  */
 @Suppress("TooManyFunctions") // One function per endpoint, plus the error mapping.
-internal class RetrofitTtcGatewayClient(private val service: TtcGatewayService, private val clock: Clock) :
-    TtcGatewayClient {
-    override suspend fun stops(language: Language): List<Stop> = call {
-        service.stops(language.code).decodeEachElement<StopDto>().toStops()
+internal class RetrofitTtcGatewayClient(
+    private val service: TtcGatewayService,
+    private val clock: Clock,
+    private val parseDispatcher: CoroutineDispatcher
+) : TtcGatewayClient {
+    override suspend fun stops(language: Language): List<Stop> =
+        call({ service.stops(language.code) }) { it.decodeEachElement<StopDto>().toStops() }
+
+    override suspend fun stop(id: StopId, language: Language): Stop = call({ service.stop(id.value, language.code) }) {
+        it.decodeObject<StopDto>().toStopOrNull() ?: throw TtcGatewayException.Malformed(null)
     }
 
-    override suspend fun stop(id: StopId, language: Language): Stop = call {
-        service.stop(id.value, language.code).toStopOrNull() ?: throw TtcGatewayException.Malformed(null)
-    }
+    override suspend fun stopRoutes(id: StopId, language: Language): List<Route> =
+        call({ service.stopRoutes(id.value, language.code) }) { it.decodeEachElement<RouteDto>().toRoutes() }
 
-    override suspend fun stopRoutes(id: StopId, language: Language): List<Route> = call {
-        service.stopRoutes(id.value, language.code).decodeEachElement<RouteDto>().toRoutes()
-    }
+    override suspend fun arrivalBoard(id: StopId, language: Language): StopBoard =
+        call({ service.arrivalTimes(id.value, language.code) }) {
+            it.decodeEachElement<BoardArrivalDto>().toStopBoard(id, clock.instant())
+        }
 
-    override suspend fun arrivalBoard(id: StopId, language: Language): StopBoard = call {
-        val rows = service.arrivalTimes(id.value, language.code).decodeEachElement<BoardArrivalDto>()
-        rows.toStopBoard(id, clock.instant())
-    }
+    override suspend fun routes(language: Language): List<Route> =
+        call({ service.routes(QueryFormat.ROUTE_MODES, language.code) }) { it.decodeEachElement<RouteDto>().toRoutes() }
 
-    override suspend fun routes(language: Language): List<Route> = call {
-        service.routes(QueryFormat.ROUTE_MODES, language.code).decodeEachElement<RouteDto>().toRoutes()
-    }
+    override suspend fun route(id: RouteId, language: Language): RouteDetail =
+        call({ service.route(id.value, language.code) }) {
+            it.decodeObject<RouteDetailDto>().toRouteDetailOrNull() ?: throw TtcGatewayException.Malformed(null)
+        }
 
-    override suspend fun route(id: RouteId, language: Language): RouteDetail = call {
-        service.route(id.value, language.code).toRouteDetailOrNull() ?: throw TtcGatewayException.Malformed(null)
-    }
+    override suspend fun schedule(id: RouteId, pattern: PatternSuffix, language: Language): RouteSchedule =
+        call({ service.schedule(id.value, pattern.value, language.code) }) {
+            it.decodeEachElement<ServicePeriodDto>().toRouteSchedule(id, pattern)
+        }
 
-    override suspend fun schedule(id: RouteId, pattern: PatternSuffix, language: Language): RouteSchedule = call {
-        service.schedule(id.value, pattern.value, language.code).decodeEachElement<ServicePeriodDto>()
-            .toRouteSchedule(id, pattern)
-    }
-
-    override suspend fun patternStops(id: RouteId, pattern: PatternSuffix, language: Language): PatternStops = call {
-        service.stopsOfPatterns(id.value, pattern.value, language.code).decodeEachElement<PatternStopDto>()
-            .toPatternStops(id, pattern)
-    }
+    override suspend fun patternStops(id: RouteId, pattern: PatternSuffix, language: Language): PatternStops =
+        call({ service.stopsOfPatterns(id.value, pattern.value, language.code) }) {
+            it.decodeEachElement<PatternStopDto>().toPatternStops(id, pattern)
+        }
 
     override suspend fun polylines(id: RouteId, patterns: List<PatternSuffix>): List<RoutePolyline> {
         require(patterns.isNotEmpty()) { "at least one pattern" }
-        return call { service.polylines(id.value, QueryFormat.patterns(patterns)).toPolylineDtos().toRoutePolylines() }
+        return call({ service.polylines(id.value, QueryFormat.patterns(patterns)) }) {
+            it.toPolylineDtos().toRoutePolylines()
+        }
     }
 
     override suspend fun positions(id: RouteId, patterns: List<PatternSuffix>): RoutePositions {
         require(patterns.isNotEmpty()) { "at least one pattern" }
-        return call {
-            val vehicles = service.positions(id.value, QueryFormat.patterns(patterns)).toPositionDtos()
-            vehicles.toRoutePositions(id, clock.instant())
+        return call({ service.positions(id.value, QueryFormat.patterns(patterns)) }) {
+            it.toPositionDtos().toRoutePositions(id, clock.instant())
         }
     }
 
-    override suspend fun plan(request: TripRequest, language: Language): TripPlan = call {
-        service.plan(QueryFormat.planQuery(request, language)).toPlanResponseDto().toTripPlan(request)
-    }
+    override suspend fun plan(request: TripRequest, language: Language): TripPlan =
+        call({ service.plan(QueryFormat.planQuery(request, language)) }) {
+            it.toPlanResponseDto().toTripPlan(request)
+        }
 
-    override suspend fun geocode(query: String, language: Language, bounds: BoundingBox): List<GeocodeResult> = call {
-        service.geocode(query, language.code, QueryFormat.bbox(bounds)).toFeatureCollectionDto().toGeocodeResults()
-    }
+    override suspend fun geocode(query: String, language: Language, bounds: BoundingBox): List<GeocodeResult> =
+        call({ service.geocode(query, language.code, QueryFormat.bbox(bounds)) }) {
+            it.toFeatureCollectionDto().toGeocodeResults()
+        }
 
-    override suspend fun reverseGeocode(at: LatLon, language: Language): List<GeocodeResult> = call {
+    override suspend fun reverseGeocode(at: LatLon, language: Language): List<GeocodeResult> = call({
         service.reverseGeocode(QueryFormat.coordinate(at.lat), QueryFormat.coordinate(at.lon), language.code)
-            .toFeatureCollectionDto().toGeocodeResults()
+    }) { it.toFeatureCollectionDto().toGeocodeResults() }
+
+    /** Fetches on OkHttp's threads, then decodes and maps on [parseDispatcher]. */
+    private suspend inline fun <T> call(fetch: () -> JsonElement, crossinline parse: (JsonElement) -> T): T = guarded {
+        val body = fetch()
+        withContext(parseDispatcher) { parse(body) }
     }
 
     /**
@@ -123,7 +138,7 @@ internal class RetrofitTtcGatewayClient(private val service: TtcGatewayService, 
     // HttpException is deliberately not kept as a cause: it holds the whole response, whose
     // request carries the key header. Only the code and the problem survive.
     @Suppress("SwallowedException")
-    private inline fun <T> call(block: () -> T): T = try {
+    private inline fun <T> guarded(block: () -> T): T = try {
         block()
     } catch (e: CancellationException) {
         throw e

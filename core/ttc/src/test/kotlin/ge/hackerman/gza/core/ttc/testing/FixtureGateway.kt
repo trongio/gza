@@ -7,6 +7,8 @@ import ge.hackerman.gza.core.ttc.http.TtcHttpClients
 import java.io.IOException
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
@@ -51,11 +53,12 @@ class FixtureGateway : AutoCloseable {
     fun client(
         clockAt: Instant = MutableClock.START,
         rotatedKey: String? = null,
-        failure: IOException? = null
+        failure: IOException? = null,
+        parseDispatcher: CoroutineDispatcher = Dispatchers.Default
     ): TtcGatewayClient {
         val provider = StaticGatewayConfigProvider(baseUrl, FirebaseFixtures.GATEWAY_KEY, rotatedKey, failure)
         val http = TtcHttpClients.gatewayClient(OkHttpClient(), GatewayAuthInterceptor(provider), null)
-        return TtcGatewayClientFactory.create(http, MutableClock(clockAt), validateEagerly = true)
+        return TtcGatewayClientFactory.create(http, MutableClock(clockAt), parseDispatcher, validateEagerly = true)
     }
 
     fun single(): RecordedRequest = requests.single()
