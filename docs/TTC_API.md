@@ -27,13 +27,27 @@ response.
 |---|---|
 | `GET /v2/stops?locale=` | All stops (2,753): `{id, code, name, lat, lon, vehicleMode}` |
 | `GET /v2/stops/{stopId}?locale=` | One stop |
-| `GET /v2/stops/{stopId}/routes?locale=` | Routes serving it: `{id, shortName, longName}` |
+| `GET /v2/stops/{stopId}/routes?locale=` | Routes serving it: `{id, shortName, longName, color, mode}` |
 | `GET /v2/stops/{stopId}/arrival-times?locale=&ignoreScheduledArrivalTimes=false` | Board: `[{shortName, color, headsign, patternSuffix, vehicleMode, realtime, realtimeArrivalMinutes, scheduledArrivalMinutes}]`, one entry per route |
 
 **Board caveat:** at a terminus, `realtimeArrivalMinutes` counts a bus *arriving* there,
 and reads `0` while a bus rests for its next departure. Observed at stop `1:970`, 17:11:
 route 326 reported `0` with a bus parked and the next timetable departure at 17:49.
 `scheduledArrivalMinutes` can be large negatives (`-90`, `-100`) for trips that never ran.
+
+Rechecked live on 2026-09-28 at 20:43 (T03 fixtures): the board at `1:970` read `551: 0`
+(`scheduledArrivalMinutes: -76`) while minibus `1:981` sat on pattern `0:01` at exactly
+the stop's coordinates (`41.7220535, 44.7031136`) with `heading` and `nextStopId` null;
+the next timetable departure was 20:47. `326` read `-30` scheduled.
+- Board rows have **no route id**: only `shortName`, `color`, `headsign`, `patternSuffix`,
+  `vehicleMode`. Join them to routes by `shortName` (and `patternSuffix`) through
+  `/v2/stops/{id}/routes`.
+- `ignoreScheduledArrivalTimes=true` returned the same rows at `1:970`.
+- A stop with no service (metro stop `1:metro_1_1`) returns `[]`. `locale=ka` translates
+  `headsign`.
+- `realtime` was `true` on every row seen so far; treat `realtimeArrivalMinutes` as
+  nullable anyway.
+- Stops: 29 of 2,753 have `code: null` (all metro and cable car stops).
 
 ## Routes (v3)
 
@@ -56,6 +70,12 @@ route 326 reported `0` with a bus parked and the next timetable departure at 17:
 - Periods vary per route: `MONDAY-FRIDAY` + `SATURDAY-SUNDAY`, or separate Saturday and Sunday.
 - `serviceDates` covers only the **current week**, so match by weekday once past it.
 - At the first stop, `arrivalTimes` are the departure times.
+- Times past midnight go beyond 24: `24:05`, `24:08` (route 326). They belong to the
+  service day they are listed under.
+- Route 551 has three periods: `MONDAY-FRIDAY`, `SATURDAY-SATURDAY`, `SUNDAY-SUNDAY`, each
+  with only this week's dates (`2026-10-03`, `2026-10-04`).
+- `patternSuffix` is required (missing: `400` problem JSON); an unknown one (`9:99`) gives
+  `500` `text/plain` `An unexpected error has occurred`.
 
 ### Positions
 ```json
@@ -65,6 +85,31 @@ route 326 reported `0` with a bus parked and the next timetable departure at 17:
 - Buses resting at a terminus report the stop's own coordinates with `heading` and
   `nextStopId` both `null`. Several can be parked at once (seen: 3 on route 551 at `1:970`).
 - A bus at the last stop of one pattern usually reappears on the reverse pattern.
+- `heading` and `nextStopId` are independent: route 551 vehicle `1:220` had a heading but
+  `nextStopId: null` mid-route. Vehicles at the far terminus of `1:01` also report both null.
+- `heading` is a float in degrees (`331.5845031738281`).
+- `patternSuffixes` is required (missing: `400`); an unknown suffix returns `{}`.
+
+### Route detail
+`GET /v3/routes/{routeId}` (checked 2026-09-28 for 301, 326, 551, 472, metro 1):
+`{id, shortName, color, mode, patterns[], defaultPatternSuffix}`. `longName` is absent
+(null). `forEntireCurrentWeek=true` returned the identical body for 326.
+- Patterns are not always `0:01`/`1:01`: route 472 (`1:minibusR25521`) has `0:03` and
+  `1:03`, default `1:03`. Always read the suffixes from the route detail.
+- Minibus `headsign` stays Georgian with `locale=en` (472: `ლობჟანიძის ქ.`).
+- Unknown route id: `500` `text/plain`.
+
+### Stops of patterns
+**Not ordered per pattern when you ask for several.** With `patternSuffixes=0:01,1:01`
+the response is one merged, de-duplicated list `[{stop:{id,code,name,lat,lon,vehicleMode},
+patternSuffixes:["0:01","1:01"]}]` (82 entries for 326); filtering it by suffix does
+**not** give the travel order. With a single suffix (`patternSuffixes=0:01`) the list is
+in travel order (46 stops, `1:970` first, `1:824` last) and matches the schedule's
+`position` order. Request one pattern per call.
+
+### Polylines
+`{"0:01":{"color":"00B38B","encodedValue":"..."}}`: Google encoded polyline, precision 5
+(1e5). Decoded endpoints of 326 sit on the termini (`41.72205, 44.70311` for `1:970`).
 
 ## Planner (v2)
 
@@ -77,7 +122,19 @@ route 326 reported `0` with a bus parked and the next timetable departure at 17:
   `mode, from, to, startTime, endTime, realTime, arrivalDelay, distance, duration,
   route{shortName,longName,color}, intermediateStops[], legPolyline, steps[]`.
 - **`arrivalDelay` is unreliable:** seen `3676` and `3030` seconds on legs that were
-  roughly on time. Treat it as a hint.
+  roughly on time. Treat it as a hint. Again on 2026-09-28 20:43: `4607`, `4609` and
+  **negative** `-3631`, `-1039`, `-254` seconds; WALK legs report `0`.
+- Times look like `2026-09-28T16:43:46.000+00:00` (offset, not `Z`).
+- `from`/`to` of an itinerary and of every leg are only `{lat, lon, name}`: **no stop id**.
+  `intermediateStops[]` are full stop objects `{id, code, name, lat, lon, vehicleMode}`.
+- Leg `route` is `{id, shortName, longName, color, mode}` with `id` and `mode` **null**;
+  `route` itself is null on WALK legs.
+- `legPolyline` is `{color, encodedValue}` (color null, precision 5, like `/polylines`).
+- `steps[]` (WALK legs only): `{relativeDirection, distance, streetName, lat, lon}`.
+- `duration`, `walkTime` are seconds; `distance`, `walkDistance` metres (decimals).
+- No route found (same from and to, or outside Tbilisi): `200` with `itineraries: []`.
+- `departAt` without `date`/`time`: `400` **`text/plain`** (`'date' and 'time' must be
+  nonempty if depart mode isn't LEAVE_NOW`), not problem JSON.
 
 ## Geocoding (v2)
 
@@ -85,6 +142,31 @@ route 326 reported `0` with a bus parked and the next timetable departure at 17:
 |---|---|
 | `GET /v2/geocode?query=&locale=&bbox=` | `bbox` is required (the web app passes its Tbilisi profile bbox) |
 | `GET /v2/geocode/reverse?lat=&lon=&locale=` | GeoJSON `features[]` with Photon-style `properties` (street, city, postcode, osm ids) |
+
+Checked 2026-09-28:
+- Both return a GeoJSON `FeatureCollection` `{type, features[]}`. Each feature is
+  `{type:"Feature", geometry:{type:"Point", coordinates:[lon, lat]}, properties:{...}}`:
+  **longitude first**.
+- `properties` seen: `name, street, housenumber, locality, district, city, postcode,
+  country, countrycode, osm_id, osm_type, osm_key, osm_value, type, extent`. All optional.
+  `extent` is Photon order `[minLon, maxLat, maxLon, minLat]`.
+- `bbox` order is `minLon,minLat,maxLon,maxLat`: `44.6,41.6,45.0,41.85` gives results,
+  the lat/lon swapped box gives none. Missing `bbox`: `400` problem JSON.
+- No match (or reverse far outside Georgia): `200` `{"features":[],"type":"FeatureCollection"}`.
+- `locale=ka` with a Georgian query works (`რუსთაველი`).
+
+## Errors and encoding (checked 2026-09-28)
+
+- Unknown stop id, route id or pattern suffix: **`500`** `text/plain;charset=UTF-8` body
+  `An unexpected error has occurred`, not 404. A 500 can therefore mean "no such id".
+- Missing required query parameter: `400` `application/problem+json`
+  `{type, title, status, detail, instance}`. The planner's date check is the exception
+  (`400` `text/plain`).
+- Percent-encoded ids and lists are accepted: `1%3A970`, `patternSuffixes=0%3A01%2C1%3A01`
+  and repeated `patternSuffixes=0:01&patternSuffixes=1:01` all give the same response as
+  the raw form, so Retrofit's default query encoding is fine.
+- Every success response is `application/json`. Sizes: all stops ~325 KB, all routes
+  ~42 KB, a busy route's schedule for one pattern 30 to 80 KB.
 
 ## Remote Config (runtime key)
 

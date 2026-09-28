@@ -54,7 +54,7 @@ Follow-ups:
 - Decide whether Settings shows where the gateway config came from (remote, cache, fallback).
 - Firebase web credentials are baked in at build time; consider reading them from TTC's web page at runtime.
 
-## [ ] T03 Gateway client and fixtures
+## [~] T03 Gateway client and fixtures
 Depends: T02
 - Retrofit service + DTOs for every endpoint in `docs/TTC_API.md`: stops, stop routes,
   arrival-times, routes, route detail, schedule, stops-of-patterns, polylines,
