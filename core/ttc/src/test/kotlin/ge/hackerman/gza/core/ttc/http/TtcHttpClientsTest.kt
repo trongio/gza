@@ -3,6 +3,7 @@ package ge.hackerman.gza.core.ttc.http
 import ge.hackerman.gza.core.ttc.config.GatewayConfig
 import ge.hackerman.gza.core.ttc.config.GatewayConfigProvider
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -44,6 +45,13 @@ class TtcHttpClientsTest {
         assertEquals(20_000, client.readTimeoutMillis)
         assertEquals(20_000, client.writeTimeoutMillis)
         assertEquals(60_000, client.callTimeoutMillis)
+    }
+
+    @Test
+    fun `gateway client never follows redirects so the key cannot leave the gateway host`() {
+        val client = TtcHttpClients.gatewayClient(base, auth, null)
+        assertFalse(client.followRedirects)
+        assertFalse(client.followSslRedirects)
     }
 
     @Test

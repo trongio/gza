@@ -33,6 +33,10 @@ object TtcHttpClients {
     /**
      * Logging goes after auth, so it sees the final URL and the `x-api-key` header (which
      * it redacts) and logs the retry too.
+     *
+     * Redirects are not followed: OkHttp strips only `Authorization` on a cross-host
+     * redirect, so a followed 3xx would carry `x-api-key` to wherever `Location` points.
+     * The gateway is a JSON API that never needs one; the caller gets the 3xx as is.
      */
     fun gatewayClient(base: OkHttpClient, auth: GatewayAuthInterceptor, logging: Interceptor?): OkHttpClient =
         base.newBuilder()
@@ -40,6 +44,8 @@ object TtcHttpClients {
             .readTimeout(GATEWAY_READ_TIMEOUT)
             .writeTimeout(GATEWAY_WRITE_TIMEOUT)
             .callTimeout(GATEWAY_CALL_TIMEOUT)
+            .followRedirects(false)
+            .followSslRedirects(false)
             .addInterceptor(auth)
             .apply { logging?.let(::addInterceptor) }
             .build()

@@ -40,7 +40,6 @@ import okhttp3.Response
 import okio.BufferedSink
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 /**
@@ -96,9 +95,9 @@ class GatewayAuthInterceptorEdgeCaseTest {
         policy = GatewayConfigPolicy(requireHttpsBaseUrl = false)
     )
 
-    private fun client(provider: DefaultGatewayConfigProvider = provider()) = OkHttpClient.Builder()
-        .addInterceptor(GatewayAuthInterceptor(provider))
-        .build()
+    // The production gateway client, so its redirect policy is part of what is tested.
+    private fun client(provider: DefaultGatewayConfigProvider = provider()) =
+        TtcHttpClients.gatewayClient(OkHttpClient(), GatewayAuthInterceptor(provider), logging = null)
 
     private fun OkHttpClient.call(request: Request = get()): Int = newCall(request).execute().use { it.code }
 
@@ -198,23 +197,24 @@ class GatewayAuthInterceptorEdgeCaseTest {
         }
     }
 
+    // The gateway client follows no redirects at all (see TtcHttpClients.gatewayClient), so
+    // even a same host 3xx reaches the caller as is and the key is sent exactly once.
     @Test
-    fun `same host redirect keeps the key`() {
+    fun `same host redirect is returned to the caller without following it`() {
         gateway.redirectTo =
             { if (it.url.encodedPath.endsWith("/old")) gatewayServer.url("/pis-gateway/api/new") else null }
-        assertEquals(200, client().call(get("https://ttc-gateway.invalid/api/old")))
-        assertEquals(listOf<String?>(REMOTE_KEY, REMOTE_KEY), gateway.keys())
+        assertEquals(302, client().call(get("https://ttc-gateway.invalid/api/old")))
+        assertEquals(listOf<String?>(REMOTE_KEY), gateway.keys())
     }
 
-    // OkHttp strips only Authorization on a cross host redirect, so x-api-key follows the
-    // redirect. Enable once the gateway client stops the key from leaving the gateway host.
-    @Disabled("Known bug from T02 testing: x-api-key is forwarded on cross host redirects")
+    // OkHttp strips only Authorization on a cross host redirect, so a followed redirect
+    // would carry x-api-key to the other host.
     @Test
     fun `key is not forwarded when the gateway redirects to another host`() {
         gateway.redirectTo = { otherServer.url("/elsewhere") }
-        client().call()
-        val leaked = other.requests.single()
-        assertNull(leaked.headers[TtcGateway.API_KEY_HEADER], "gateway key followed a cross host redirect")
+        assertEquals(302, client().call())
+        assertTrue(other.requests.isEmpty(), "gateway client followed a cross host redirect")
+        assertEquals(0, otherServer.requestCount)
     }
 
     // Missing or blank keys (the gateway answers 400 when the header is absent)
