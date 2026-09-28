@@ -25,6 +25,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 rootProject.name = "gza"
 
+include(":core:designsystem")
 include(":core:model")
 include(":core:predict")
 include(":core:ttc")
