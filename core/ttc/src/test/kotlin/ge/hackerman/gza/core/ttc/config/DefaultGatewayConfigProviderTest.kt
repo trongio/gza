@@ -1,0 +1,344 @@
+package ge.hackerman.gza.core.ttc.config
+
+import ge.hackerman.gza.core.ttc.TtcFallbackConfig
+import ge.hackerman.gza.core.ttc.firebase.RemoteGatewayConfig
+import ge.hackerman.gza.core.ttc.testing.FakeRemoteGatewayConfigSource
+import ge.hackerman.gza.core.ttc.testing.FirebaseFixtures.PRODUCTION_BASE_URL
+import ge.hackerman.gza.core.ttc.testing.MutableClock
+import java.io.IOException
+import java.time.Duration
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Test
+
+class DefaultGatewayConfigProviderTest {
+    private val cache = InMemoryTtcConfigCache()
+    private val remote = FakeRemoteGatewayConfigSource().apply { serve(REMOTE_KEY) }
+    private val clock = MutableClock()
+    private val policy = GatewayConfigPolicy()
+    private var fallback = TtcFallbackConfig(
+        gatewayBaseUrl = FALLBACK_BASE_URL,
+        gatewayKey = FALLBACK_KEY,
+        firebaseApiKey = "sentinel-firebase-key",
+        firebaseProjectId = "test-project",
+        firebaseAppId = "1:0:web:sentinel"
+    )
+
+    private fun provider() = DefaultGatewayConfigProvider(cache, remote, fallback, clock, policy)
+
+    private suspend fun seedCache(key: String = CACHED_KEY, age: Duration = Duration.ZERO) {
+        cache.writeConfig(CachedGatewayConfig(PRODUCTION_BASE_URL, key, clock.now - age))
+    }
+
+    // Loading
+
+    @Test
+    fun `cold start fetches once and writes the cache`() = runTest {
+        val provider = provider()
+        val config = provider.current()
+        assertEquals(REMOTE_KEY, config.apiKey)
+        assertEquals(ConfigSource.REMOTE, config.source)
+        assertEquals(PRODUCTION_BASE_URL, config.baseUrl.toString())
+        assertEquals(clock.now, config.fetchedAt)
+        assertEquals(1, remote.fetches.get())
+        assertEquals(CachedGatewayConfig(PRODUCTION_BASE_URL, REMOTE_KEY, clock.now), cache.readConfig())
+        assertSame(config, provider.current())
+        assertEquals(1, remote.fetches.get())
+    }
+
+    @Test
+    fun `fresh cache means no fetch`() = runTest {
+        seedCache(age = Duration.ofHours(1))
+        val config = provider().current()
+        assertEquals(CACHED_KEY, config.apiKey)
+        assertEquals(ConfigSource.CACHE, config.source)
+        assertEquals(0, remote.fetches.get())
+    }
+
+    @Test
+    fun `cache just inside the ttl is fresh`() = runTest {
+        seedCache(age = policy.ttl - Duration.ofSeconds(1))
+        assertEquals(ConfigSource.CACHE, provider().current().source)
+        assertEquals(0, remote.fetches.get())
+    }
+
+    @Test
+    fun `cache at the ttl is refetched`() = runTest {
+        seedCache(age = policy.ttl)
+        assertEquals(REMOTE_KEY, provider().current().apiKey)
+        assertEquals(1, remote.fetches.get())
+    }
+
+    @Test
+    fun `active config expires after the ttl`() = runTest {
+        val provider = provider()
+        provider.current()
+        clock.advanceBy(policy.ttl)
+        assertNull(provider.peek())
+        remote.serve("rotated-key")
+        assertEquals("rotated-key", provider.current().apiKey)
+        assertEquals(2, remote.fetches.get())
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `concurrent cold start calls cause one fetch`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        remote.behavior = {
+            gate.await()
+            RemoteGatewayConfig(PRODUCTION_BASE_URL, REMOTE_KEY)
+        }
+        val provider = provider()
+        val calls = List(20) { async { provider.current() } }
+        runCurrent()
+        assertEquals(1, remote.fetches.get())
+        gate.complete(Unit)
+        val configs = calls.awaitAll()
+        assertEquals(1, remote.fetches.get())
+        assertTrue(configs.all { it.apiKey == REMOTE_KEY })
+        assertEquals(1, configs.map { it.generation }.distinct().size)
+    }
+
+    @Test
+    fun `unusable cached key is ignored`() = runTest {
+        seedCache(key = "bad key")
+        assertEquals(REMOTE_KEY, provider().current().apiKey)
+    }
+
+    // Failures
+
+    @Test
+    fun `remote failure with a stale cache uses it and keeps the cache`() = runTest {
+        seedCache(age = Duration.ofDays(2))
+        val before = cache.readConfig()
+        remote.fail()
+        val config = provider().current()
+        assertEquals(CACHED_KEY, config.apiKey)
+        assertEquals(ConfigSource.STALE_CACHE, config.source)
+        assertEquals(before, cache.readConfig())
+    }
+
+    @Test
+    fun `remote failure without cache uses the fallback`() = runTest {
+        remote.fail()
+        val config = provider().current()
+        assertEquals(FALLBACK_KEY, config.apiKey)
+        assertEquals(ConfigSource.FALLBACK, config.source)
+        assertEquals(FALLBACK_BASE_URL, config.baseUrl.toString())
+        assertNull(config.fetchedAt)
+        assertNull(cache.readConfig())
+    }
+
+    @Test
+    fun `remote returning an unusable key counts as a failure`() = runTest {
+        remote.serve("key with spaces")
+        assertEquals(ConfigSource.FALLBACK, provider().current().source)
+        assertNull(cache.readConfig())
+    }
+
+    @Test
+    fun `no key anywhere throws an io exception`() = runTest {
+        remote.fail()
+        listOf("", "   ", "bad\nkey").forEach { key ->
+            fallback = fallback.copy(gatewayKey = key)
+            val error = assertFailsWith<GatewayConfigUnavailableException> { provider().current() }
+            assertIs<IOException>(error)
+        }
+    }
+
+    @Test
+    fun `backoff doubles from one minute and resets on success`() = runTest {
+        remote.fail()
+        val provider = provider()
+        provider.current()
+        assertEquals(1, remote.fetches.get())
+
+        clock.advanceBy(Duration.ofSeconds(59))
+        assertEquals(ConfigSource.FALLBACK, provider.current().source)
+        assertEquals(1, remote.fetches.get())
+
+        clock.advanceBy(Duration.ofSeconds(1))
+        provider.current()
+        assertEquals(2, remote.fetches.get())
+
+        clock.advanceBy(Duration.ofMinutes(2) - Duration.ofSeconds(1))
+        provider.current()
+        assertEquals(2, remote.fetches.get())
+        clock.advanceBy(Duration.ofSeconds(1))
+        provider.current()
+        assertEquals(3, remote.fetches.get())
+
+        remote.serve(REMOTE_KEY)
+        clock.advanceBy(Duration.ofMinutes(4))
+        assertEquals(ConfigSource.REMOTE, provider.current().source)
+        assertEquals(4, remote.fetches.get())
+
+        // Reset: the next failure waits one minute again, not eight.
+        clock.advanceBy(policy.ttl)
+        remote.fail()
+        provider.current()
+        assertEquals(5, remote.fetches.get())
+        clock.advanceBy(Duration.ofMinutes(1))
+        provider.current()
+        assertEquals(6, remote.fetches.get())
+    }
+
+    @Test
+    fun `backoff is capped at one hour`() = runTest {
+        remote.fail()
+        val provider = provider()
+        provider.current()
+        // Waits: 1, 2, 4, 8, 16, 32 minutes, then 60 (capped) instead of 64.
+        listOf(1L, 2, 4, 8, 16, 32).forEach {
+            clock.advanceBy(Duration.ofMinutes(it))
+            provider.current()
+        }
+        assertEquals(7, remote.fetches.get())
+        clock.advanceBy(Duration.ofMinutes(59))
+        provider.current()
+        assertEquals(7, remote.fetches.get())
+        clock.advanceBy(Duration.ofMinutes(1))
+        provider.current()
+        assertEquals(8, remote.fetches.get())
+    }
+
+    @Test
+    fun `invalid remote base url uses the fallback base with the remote key`() = runTest {
+        listOf("not a url", "http://transit.ttc.com.ge/pis-gateway", null).forEach { base ->
+            remote.serve(REMOTE_KEY, baseUrl = base)
+            val config = provider().current()
+            assertEquals(REMOTE_KEY, config.apiKey)
+            assertEquals(FALLBACK_BASE_URL, config.baseUrl.toString())
+        }
+    }
+
+    @Test
+    fun `http base url is accepted when https is not required`() = runTest {
+        remote.serve(REMOTE_KEY, baseUrl = "http://127.0.0.1:1234/pis-gateway")
+        val provider = DefaultGatewayConfigProvider(
+            cache,
+            remote,
+            fallback,
+            clock,
+            policy.copy(requireHttpsBaseUrl = false)
+        )
+        assertEquals("http://127.0.0.1:1234/pis-gateway", provider.current().baseUrl.toString())
+    }
+
+    // Refresh after rejection
+
+    @Test
+    fun `rejection with a rotated key returns it with a higher generation`() = runTest {
+        val provider = provider()
+        val first = provider.current()
+        remote.serve("rotated-key")
+        val refreshed = assertNotNull(provider.refreshAfterRejection(first))
+        assertEquals("rotated-key", refreshed.apiKey)
+        assertTrue(refreshed.generation > first.generation)
+        assertEquals("rotated-key", cache.readConfig()?.apiKey)
+        assertSame(refreshed, provider.peek())
+    }
+
+    @Test
+    fun `rejection with the same key after refetch returns null`() = runTest {
+        val provider = provider()
+        val first = provider.current()
+        assertNull(provider.refreshAfterRejection(first))
+        assertEquals(2, remote.fetches.get())
+    }
+
+    @Test
+    fun `second rejection within the cooldown returns null without fetching`() = runTest {
+        val provider = provider()
+        val first = provider.current()
+        assertNull(provider.refreshAfterRejection(first))
+        val active = assertNotNull(provider.peek())
+        remote.serve("rotated-key")
+        clock.advanceBy(Duration.ofSeconds(59))
+        assertNull(provider.refreshAfterRejection(active))
+        assertEquals(2, remote.fetches.get())
+
+        clock.advanceBy(Duration.ofSeconds(1))
+        assertEquals("rotated-key", provider.refreshAfterRejection(active)?.apiKey)
+        assertEquals(3, remote.fetches.get())
+    }
+
+    @Test
+    fun `stale rejection reuses the already refreshed config without fetching`() = runTest {
+        val provider = provider()
+        val first = provider.current()
+        remote.serve("rotated-key")
+        val refreshed = assertNotNull(provider.refreshAfterRejection(first))
+        assertSame(refreshed, provider.refreshAfterRejection(first))
+        assertEquals(2, remote.fetches.get())
+    }
+
+    @Test
+    fun `rejection ignores the failure backoff`() = runTest {
+        remote.fail()
+        val provider = provider()
+        val fallbackConfig = provider.current()
+        remote.serve(REMOTE_KEY)
+        assertEquals(REMOTE_KEY, provider.refreshAfterRejection(fallbackConfig)?.apiKey)
+        assertEquals(2, remote.fetches.get())
+    }
+
+    @Test
+    fun `remote down during refresh returns the fallback when it differs`() = runTest {
+        val provider = provider()
+        val first = provider.current()
+        remote.fail()
+        val refreshed = assertNotNull(provider.refreshAfterRejection(first))
+        assertEquals(FALLBACK_KEY, refreshed.apiKey)
+        assertEquals(ConfigSource.FALLBACK, refreshed.source)
+    }
+
+    @Test
+    fun `remote down during refresh of the fallback itself returns null`() = runTest {
+        remote.fail()
+        val provider = provider()
+        val fallbackConfig = provider.current()
+        clock.advanceBy(Duration.ofMinutes(5))
+        assertNull(provider.refreshAfterRejection(fallbackConfig))
+    }
+
+    // peek
+
+    @Test
+    fun `peek is null before anything is loaded and after the ttl`() = runTest {
+        val provider = provider()
+        assertNull(provider.peek())
+        provider.current()
+        assertNotNull(provider.peek())
+        clock.advanceBy(policy.ttl)
+        assertNull(provider.peek())
+    }
+
+    @Test
+    fun `peek on a fallback is null once the backoff allows a new attempt`() = runTest {
+        remote.fail()
+        val provider = provider()
+        provider.current()
+        assertNotNull(provider.peek())
+        clock.advanceBy(Duration.ofMinutes(1))
+        assertNull(provider.peek())
+    }
+
+    private companion object {
+        const val REMOTE_KEY = "sentinel-remote-key"
+        const val CACHED_KEY = "sentinel-cached-key"
+        const val FALLBACK_KEY = "sentinel-fallback-key"
+        const val FALLBACK_BASE_URL = "https://fallback.example.com/pis-gateway"
+    }
+}
