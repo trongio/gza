@@ -5,4 +5,17 @@
     <string name="route_badge_minibus">Minibus %1$s</string>
     <string name="route_badge_metro">Metro line %1$s</string>
     <string name="route_badge_cable_car">Cable car %1$s</string>
+    <!-- Departure status chips. The waiting chip is the headline: a parked bus at the
+         terminus is waiting, not arriving. %1$s is a time like 17:13. -->
+    <string name="status_waiting">Waiting at terminus, leaves %1$s</string>
+    <string name="status_live">Live</string>
+    <plurals name="status_live_stops_away">
+        <item quantity="one">Live, %d stop away</item>
+        <item quantity="other">Live, %d stops away</item>
+    </plurals>
+    <plurals name="status_late_minutes">
+        <item quantity="one">Running %d min late</item>
+        <item quantity="other">Running %d min late</item>
+    </plurals>
+    <string name="status_timetable_only">Timetable only</string>
 </resources>
