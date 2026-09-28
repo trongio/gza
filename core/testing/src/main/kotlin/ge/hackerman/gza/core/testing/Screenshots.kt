@@ -1,10 +1,10 @@
 package ge.hackerman.gza.core.testing
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
@@ -27,7 +27,7 @@ val GzaRoborazziOptions = RoborazziOptions(
 const val SCREENSHOT_TAG = "screenshot"
 
 /**
- * Renders [content] in GzaTheme on the theme background and saves
+ * Renders [content] in GzaTheme on a background Surface and saves
  * `src/test/screenshots/<name>_<light|dark>.png`. Components are captured at their own
  * size to keep goldens small; screens pass [fullScreen] to capture the whole window.
  */
@@ -42,11 +42,15 @@ fun ComposeContentTestRule.captureThemed(
         val density = LocalDensity.current
         CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
             GzaTheme(darkTheme = darkTheme) {
-                val base = Modifier.testTag(SCREENSHOT_TAG).background(MaterialTheme.colorScheme.background)
-                if (fullScreen) {
-                    Box(base.fillMaxSize()) { content() }
-                } else {
-                    Box(base.padding(16.dp)) { content() }
+                // A Surface, like real screens, so components that inherit LocalContentColor
+                // get onBackground instead of black.
+                Surface(
+                    modifier = Modifier.testTag(SCREENSHOT_TAG).then(
+                        if (fullScreen) Modifier.fillMaxSize() else Modifier
+                    ),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    if (fullScreen) content() else Box(Modifier.padding(16.dp)) { content() }
                 }
             }
         }

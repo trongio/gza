@@ -18,4 +18,18 @@
         <item quantity="other">Running %d min late</item>
     </plurals>
     <string name="status_timetable_only">Timetable only</string>
+    <!-- Leave-by countdown. The hero shows "Leave in" above a big number and its unit. -->
+    <string name="countdown_leave_in">Leave in</string>
+    <string name="countdown_unit_minutes">min</string>
+    <string name="countdown_unit_hours">h</string>
+    <string name="countdown_now">Leave now</string>
+    <plurals name="countdown_a11y_minutes">
+        <item quantity="one">Leave in %d minute</item>
+        <item quantity="other">Leave in %d minutes</item>
+    </plurals>
+    <plurals name="countdown_a11y_seconds">
+        <item quantity="one">Leave in %d second</item>
+        <item quantity="other">Leave in %d seconds</item>
+    </plurals>
+    <string name="countdown_a11y_hours">Leave in %1$d h %2$d min</string>
 </resources>

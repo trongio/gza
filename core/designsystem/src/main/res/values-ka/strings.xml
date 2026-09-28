@@ -15,4 +15,17 @@
         <item quantity="other">აგვიანებს %d წუთით</item>
     </plurals>
     <string name="status_timetable_only">მხოლოდ განრიგით</string>
+    <string name="countdown_leave_in">გამოდით</string>
+    <string name="countdown_unit_minutes">წუთში</string>
+    <string name="countdown_unit_hours">საათში</string>
+    <string name="countdown_now">გამოდით ახლავე</string>
+    <plurals name="countdown_a11y_minutes">
+        <item quantity="one">გამოდით %d წუთში</item>
+        <item quantity="other">გამოდით %d წუთში</item>
+    </plurals>
+    <plurals name="countdown_a11y_seconds">
+        <item quantity="one">გამოდით %d წამში</item>
+        <item quantity="other">გამოდით %d წამში</item>
+    </plurals>
+    <string name="countdown_a11y_hours">გამოდით %1$d სთ %2$d წთ-ში</string>
 </resources>
