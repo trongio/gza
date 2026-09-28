@@ -13,7 +13,10 @@ import androidx.compose.runtime.ReadOnlyComposable
  */
 @Composable
 fun GzaTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalGzaColors provides if (darkTheme) DarkGzaColors else LightGzaColors) {
+    CompositionLocalProvider(
+        LocalGzaColors provides if (darkTheme) DarkGzaColors else LightGzaColors,
+        LocalGzaTypography provides ExtendedTypography
+    ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColors else LightColors,
             typography = GzaTypography,
@@ -23,10 +26,17 @@ fun GzaTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable ()
     }
 }
 
-/** Gza's own tokens next to [MaterialTheme]'s: `GzaTheme.colors.waitingContainer`. */
+/** Gza's own tokens next to [MaterialTheme]'s: `GzaTheme.colors.waitingContainer`, `GzaTheme.typography.timeLarge`. */
 object GzaTheme {
     val colors: GzaColors
         @Composable
         @ReadOnlyComposable
         get() = LocalGzaColors.current
+
+    val typography: GzaExtendedTypography
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGzaTypography.current
 }
+
+private val ExtendedTypography = GzaExtendedTypography()
