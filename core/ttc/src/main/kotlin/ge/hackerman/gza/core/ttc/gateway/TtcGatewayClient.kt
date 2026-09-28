@@ -25,10 +25,15 @@ import ge.hackerman.gza.core.model.TripRequest
  * [TtcGatewayClientFactory.create]. Every failure is a [TtcGatewayException].
  *
  * Lists are lenient item by item: a mistyped or incomplete item is dropped and the rest are
- * returned. An empty result means the gateway really sent nothing (or only nulls). When it
- * sent items and not one of them decodes, the response is [TtcGatewayException.Malformed],
- * never an empty list, so a caller can safely treat empty as empty. The same holds for the
- * vehicles of any one pattern in [positions].
+ * returned. An empty result means the gateway really sent nothing (`[]`, `null` or only
+ * nulls). When it sent items and not one of them is usable, whether because none decodes or
+ * because each decodes without what the item needs (every field renamed, say), the response
+ * is [TtcGatewayException.Malformed], never an empty list, so a caller can safely treat empty
+ * as empty. The same holds for the vehicles of any one pattern in [positions] and for the
+ * entries of [polylines]. Nested lists follow the rule by dropping their parent: a period of
+ * [schedule] whose dates or stops, or an itinerary of [plan] whose steps or intermediate
+ * stops, were sent but are all unusable is dropped, and if that leaves none the response is
+ * malformed. A [route] whose patterns were sent but are all unusable is malformed.
  */
 @Suppress("TooManyFunctions") // Mirrors the gateway, one function per endpoint.
 interface TtcGatewayClient {

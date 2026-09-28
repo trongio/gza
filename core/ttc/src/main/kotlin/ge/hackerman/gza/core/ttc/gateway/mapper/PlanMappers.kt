@@ -20,6 +20,8 @@ import ge.hackerman.gza.core.ttc.gateway.dto.PlaceDto
 import ge.hackerman.gza.core.ttc.gateway.dto.PlanResponseDto
 import ge.hackerman.gza.core.ttc.gateway.dto.PolylineDto
 import ge.hackerman.gza.core.ttc.gateway.dto.StepDto
+import ge.hackerman.gza.core.ttc.gateway.dto.mapEachOrMalformed
+import ge.hackerman.gza.core.ttc.gateway.dto.mapEachOrNull
 import java.time.Duration
 import java.time.Instant
 
@@ -27,7 +29,7 @@ import java.time.Instant
 internal fun PlanResponseDto.toTripPlan(request: TripRequest): TripPlan = TripPlan(
     from = from?.toPlaceOrNull() ?: Place(null, request.from),
     to = to?.toPlaceOrNull() ?: Place(null, request.to),
-    itineraries = itineraries.orEmpty().mapNotNull { it?.toItineraryOrNull() }
+    itineraries = itineraries.mapEachOrMalformed { it.toItineraryOrNull() }
 )
 
 /**
@@ -53,11 +55,18 @@ internal fun ItineraryDto.toItineraryOrNull(): Itinerary? {
     }
 }
 
-/** Null without both places and both times, or when the leg ends before it starts. */
+/**
+ * Null without both places and both times, when the leg ends before it starts, or when steps
+ * or intermediate stops were sent and none of them is usable.
+ */
 internal fun LegDto.toLegOrNull(): Leg? {
     val times = orderedOrNull(startTime.toInstantOrNull(), endTime.toInstantOrNull())
     val places = bothOrNull(from?.toPlaceOrNull(), to?.toPlaceOrNull())
-    return if (times == null || places == null) {
+    val lists = bothOrNull(
+        steps.mapEachOrNull { _, step -> step.toWalkStepOrNull() },
+        intermediateStops.mapEachOrNull { _, stop -> stop.toStopOrNull() }
+    )
+    return if (times == null || places == null || lists == null) {
         null
     } else if (mode?.trim().equals(WALK, ignoreCase = true)) {
         WalkLeg(
@@ -68,7 +77,7 @@ internal fun LegDto.toLegOrNull(): Leg? {
             distanceMeters = distance?.takeIf { it.isFinite() },
             duration = duration?.let(Duration::ofSeconds),
             polyline = legPolyline.toEncodedOrNull(),
-            steps = steps.orEmpty().mapNotNull { it?.toWalkStep() }
+            steps = lists.first
         )
     } else {
         val legRoute = route?.toLegRoute()
@@ -85,7 +94,7 @@ internal fun LegDto.toLegOrNull(): Leg? {
             realtime = realTime ?: false,
             // Raw, never clamped: 3676 or -3631 on an on-time bus is exactly what T10 must distrust.
             arrivalDelayHint = arrivalDelay?.let(Duration::ofSeconds),
-            intermediateStops = intermediateStops.toStops()
+            intermediateStops = lists.second
         )
     }
 }
@@ -106,12 +115,15 @@ private fun LegRouteDto.toLegRoute(): LegRoute = LegRoute(
     color = RouteColor.ofHexOrNull(color)
 )
 
-private fun StepDto.toWalkStep(): WalkStep = WalkStep(
+/** Null when the step says nothing at all: a direction, a street, a distance or a place. */
+private fun StepDto.toWalkStepOrNull(): WalkStep? = WalkStep(
     relativeDirection = relativeDirection?.takeIf { it.isNotBlank() },
     streetName = streetName?.takeIf { it.isNotBlank() },
     distanceMeters = distance?.takeIf { it.isFinite() },
     location = LatLon.ofOrNull(lat, lon)
-)
+).takeUnless {
+    it.relativeDirection == null && it.streetName == null && it.distanceMeters == null && it.location == null
+}
 
 private fun PolylineDto?.toEncodedOrNull(): EncodedPolyline? =
     this?.encodedValue?.takeIf { it.isNotBlank() }?.let(::EncodedPolyline)

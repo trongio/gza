@@ -9,6 +9,8 @@ import ge.hackerman.gza.core.model.ServicePeriod
 import ge.hackerman.gza.core.model.StopId
 import ge.hackerman.gza.core.ttc.gateway.dto.ScheduledStopDto
 import ge.hackerman.gza.core.ttc.gateway.dto.ServicePeriodDto
+import ge.hackerman.gza.core.ttc.gateway.dto.mapEachOrMalformed
+import ge.hackerman.gza.core.ttc.gateway.dto.mapEachOrNull
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
@@ -16,20 +18,18 @@ import java.util.Locale
 
 /** Parsed faithfully; choosing the period for a day is `:core:predict`'s job. */
 internal fun List<ServicePeriodDto?>?.toRouteSchedule(routeId: RouteId, pattern: PatternSuffix): RouteSchedule =
-    RouteSchedule(routeId, pattern, orEmpty().mapNotNull { it?.toServicePeriodOrNull() })
+    RouteSchedule(routeId, pattern, mapEachOrMalformed { it.toServicePeriodOrNull() })
 
+/** Null without both days, or when dates or stops were sent and none of them is usable. */
 internal fun ServicePeriodDto.toServicePeriodOrNull(): ServicePeriod? {
     val from = dayOfWeekOrNull(fromDay)
     val to = dayOfWeekOrNull(toDay)
-    return if (from == null || to == null) {
+    val dates = serviceDates.mapEachOrNull { _, date -> localDateOrNull(date) }
+    val mappedStops = stops.mapEachOrNull { index, stop -> stop.toScheduledStopOrNull(index) }
+    return if (from == null || to == null || dates == null) {
         null
     } else {
-        ServicePeriod(
-            fromDay = from,
-            toDay = to,
-            serviceDates = serviceDates.orEmpty().mapNotNullTo(LinkedHashSet()) { localDateOrNull(it) },
-            stops = stops.orEmpty().mapIndexedNotNull { index, stop -> stop?.toScheduledStopOrNull(index) }
-        )
+        mappedStops?.let { ServicePeriod(fromDay = from, toDay = to, serviceDates = LinkedHashSet(dates), stops = it) }
     }
 }
 
@@ -48,10 +48,8 @@ private fun dayOfWeekOrNull(raw: String?): DayOfWeek? {
     return DayOfWeek.entries.firstOrNull { it.name == name }
 }
 
-private fun localDateOrNull(raw: String?): LocalDate? = raw?.let {
-    try {
-        LocalDate.parse(it.trim())
-    } catch (_: DateTimeParseException) {
-        null
-    }
+private fun localDateOrNull(raw: String): LocalDate? = try {
+    LocalDate.parse(raw.trim())
+} catch (_: DateTimeParseException) {
+    null
 }

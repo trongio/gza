@@ -8,11 +8,14 @@ import ge.hackerman.gza.core.model.StopId
 import ge.hackerman.gza.core.model.VehicleId
 import ge.hackerman.gza.core.model.VehiclePosition
 import ge.hackerman.gza.core.ttc.gateway.dto.VehiclePositionDto
+import ge.hackerman.gza.core.ttc.gateway.dto.mapEachOrMalformed
 import java.time.Instant
 
 /**
  * A null heading and next stop are the layover signal, so both are kept as sent; an invalid
- * next stop id becomes null. A group under an invalid pattern key is dropped.
+ * next stop id becomes null. A group under an invalid pattern key is dropped. A pattern whose
+ * vehicles were sent but none is usable makes the response malformed, as when none decode:
+ * no buses where the gateway sent some would pass for an empty road.
  */
 internal fun Map<String, List<VehiclePositionDto?>?>?.toRoutePositions(
     routeId: RouteId,
@@ -22,7 +25,7 @@ internal fun Map<String, List<VehiclePositionDto?>?>?.toRoutePositions(
     fetchedAt = fetchedAt,
     vehicles = orEmpty().flatMap { (key, vehicles) ->
         val pattern = PatternSuffix.ofOrNull(key)
-        if (pattern == null) emptyList() else vehicles.orEmpty().mapNotNull { it?.toVehiclePositionOrNull(pattern) }
+        if (pattern == null) emptyList() else vehicles.mapEachOrMalformed { it.toVehiclePositionOrNull(pattern) }
     }
 )
 

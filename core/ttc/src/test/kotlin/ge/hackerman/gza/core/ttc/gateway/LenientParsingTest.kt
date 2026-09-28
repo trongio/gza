@@ -37,6 +37,7 @@ import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
@@ -48,7 +49,8 @@ import org.junit.jupiter.api.TestFactory
 /**
  * Generated from the real fixtures: every mutation must decode with [TtcJson] and map without
  * throwing. A new null, a missing field, an unknown field or a new enum value may drop an
- * item, never a response.
+ * item, never a response, unless that item was the only one: then nothing usable is left of
+ * what was sent, and the all-misfit rule rightly calls the response malformed.
  */
 class LenientParsingTest {
     private class Root(
@@ -56,6 +58,8 @@ class LenientParsingTest {
         val fixture: String,
         /** For single-object roots: paths whose loss may legitimately make the result null. */
         val identityPaths: Set<String> = emptySet(),
+        /** The only item of a response list: breaking it may make the response malformed. */
+        val soleItems: Set<String> = emptySet(),
         val decodeAndMap: (String) -> Any?
     )
 
@@ -100,7 +104,7 @@ class LenientParsingTest {
         Root("geocode", "geocode/rustaveli-en.json") {
             parse(it).toFeatureCollectionDto().toGeocodeResults()
         },
-        Root("reverse geocode", "reverse-geocode/1-970-en.json") {
+        Root("reverse geocode", "reverse-geocode/1-970-en.json", soleItems = setOf(".features[0]")) {
             parse(it).toFeatureCollectionDto().toGeocodeResults()
         }
     )
@@ -147,7 +151,13 @@ class LenientParsingTest {
         }
 
     private fun check(root: Root, path: JsonPath, mutated: JsonElement) {
-        val result = root.decodeAndMap(mutated.toString())
+        val result = try {
+            root.decodeAndMap(mutated.toString())
+        } catch (_: SerializationException) {
+            val rendered = path.render()
+            assertTrue(root.soleItems.any { rendered.startsWith(it) }, "only ${root.soleItems} may fail ${root.name}")
+            return
+        }
         if (result == null) {
             assertTrue(path.render() in root.identityPaths, "only ${root.identityPaths} may null ${root.name}")
         }

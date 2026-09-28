@@ -5,9 +5,10 @@ import ge.hackerman.gza.core.model.GeocodeResult
 import ge.hackerman.gza.core.model.LatLon
 import ge.hackerman.gza.core.ttc.gateway.dto.FeatureCollectionDto
 import ge.hackerman.gza.core.ttc.gateway.dto.FeatureDto
+import ge.hackerman.gza.core.ttc.gateway.dto.mapEachOrMalformed
 
 internal fun FeatureCollectionDto.toGeocodeResults(): List<GeocodeResult> =
-    features.orEmpty().mapNotNull { it?.toGeocodeResultOrNull() }
+    features.mapEachOrMalformed { it.toGeocodeResultOrNull() }
 
 /** GeoJSON order is `[lon, lat]`. Only points are places; anything else is dropped. */
 internal fun FeatureDto.toGeocodeResultOrNull(): GeocodeResult? {
