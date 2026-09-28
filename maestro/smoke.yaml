@@ -1,0 +1,11 @@
+# Emulator only: clearState wipes app data, never run flows against the user's phone.
+appId: ge.hackerman.gza
+name: Smoke - app launches and shows the placeholder
+---
+- launchApp:
+    clearState: true
+# By id, not text, so the flow passes under both en and ka.
+- assertVisible:
+    id: "placeholder_title"
+- assertVisible:
+    id: "placeholder_subtitle"
