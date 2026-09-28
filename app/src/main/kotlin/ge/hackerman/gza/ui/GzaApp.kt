@@ -1,8 +1,11 @@
 package ge.hackerman.gza.ui
 
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,8 +19,10 @@ import ge.hackerman.gza.navigation.GzaNavHost
 import ge.hackerman.gza.navigation.TopLevelDestination
 
 /**
- * The app shell: the five destinations over a bottom bar. Screens handle their own top
- * insets (the top bar does; the map draws behind the status bar on purpose).
+ * The app shell: the five destinations over a bottom bar. The side insets (a display cutout
+ * or the navigation bar in landscape) are applied here, once for every screen, and consumed
+ * so nothing inside pads twice. Screens handle their own top insets (the top bar does; the
+ * map draws behind the status bar on purpose).
  */
 @Composable
 fun GzaApp(modifier: Modifier = Modifier, appState: GzaAppState = rememberGzaAppState()) {
@@ -25,7 +30,7 @@ fun GzaApp(modifier: Modifier = Modifier, appState: GzaAppState = rememberGzaApp
     Scaffold(
         // Lets Maestro and UiAutomator find test tags as resource ids.
         modifier = modifier.semantics { testTagsAsResourceId = true },
-        contentWindowInsets = WindowInsets(0),
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
         bottomBar = {
             GzaNavigationBar {
                 TopLevelDestination.entries.forEach { destination ->
