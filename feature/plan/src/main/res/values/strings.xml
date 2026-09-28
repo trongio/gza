@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plan_title">Plan a trip</string>
+    <string name="plan_from">From</string>
+    <string name="plan_to">To</string>
+    <string name="plan_mode_leave_now">Leave now</string>
+    <string name="plan_mode_depart_at">Depart at</string>
+    <string name="plan_mode_arrive_by">Arrive by</string>
+    <!-- %1$s is a time like 8:12. -->
+    <string name="plan_leave_home">Leave home at %1$s</string>
+    <string name="plan_arrive">Arrive %1$s</string>
+    <plurals name="plan_walk_minutes">
+        <item quantity="one">%d min walk</item>
+        <item quantity="other">%d min walk</item>
+    </plurals>
+    <string name="plan_safe_transfer">Safe transfer</string>
+</resources>
