@@ -4,7 +4,7 @@
     <string name="route_badge_minibus">მიკროავტობუსი %1$s</string>
     <string name="route_badge_metro">მეტროს ხაზი %1$s</string>
     <string name="route_badge_cable_car">საბაგირო %1$s</string>
-    <string name="status_waiting">ელოდება ბოლო გაჩერებაზე, გადის %1$s-ზე</string>
+    <string name="status_waiting">ელოდება ბოლო გაჩერებაზე, გადის\u00A0%1$s-ზე</string>
     <string name="status_live">რეალურ დროში</string>
     <plurals name="status_live_stops_away">
         <item quantity="one">რეალურ დროში, %d გაჩერებაში</item>

@@ -44,7 +44,9 @@ class StatusChipTest {
     @Test
     fun timetableOnly() = assertChipText(DepartureStatus.TimetableOnly, "Timetable only")
 
+    // A no-break space keeps the time on the line with its verb, "გადის 17:13-ზე".
     @Test
     @Config(qualifiers = "+ka")
-    fun georgianWaiting() = assertChipText(DepartureStatus.Waiting("17:13"), "ელოდება ბოლო გაჩერებაზე, გადის 17:13-ზე")
+    fun georgianWaiting() =
+        assertChipText(DepartureStatus.Waiting("17:13"), "ელოდება ბოლო გაჩერებაზე, გადის\u00A017:13-ზე")
 }
