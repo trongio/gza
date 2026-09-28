@@ -125,10 +125,51 @@ Rules:
   "Transfer: 472 leaves in 5 min from across the road."
 - Automatic re-plan if a transfer becomes impossible.
 
-### 2.7 Map
-- MapLibre with an OpenStreetMap tile source (not TTC's Mapbox token).
-- Live buses on a route with heading arrows; stop pins; itinerary polylines.
-- Tap a bus to see its predicted arrival at each upcoming stop.
+### 2.7 Stop, route and map as one connected view
+The official app splits stops, schedules and the live map into separate sections that
+don't link to each other. In Gza they are one flow, and every departure row is a door
+into the map.
+
+**Stop view to map in one tap.**
+- Tap any departure row: the map opens on **that exact bus**, with the route line, your
+  stop pinned, and the bus's path to it highlighted.
+- A bottom sheet (Material 3 `BottomSheetScaffold`) keeps the departure list visible
+  over the map. Drag it up for the list, down for the map. Nothing is lost going back
+  and forth.
+- A shared-element transition carries the route badge from the row onto the bus marker,
+  so it's obvious which bus you are looking at.
+
+**"Buses coming to my stop" view (route-to-stop).**
+- Pick a stop and a route: the map shows **every bus on that route heading toward your
+  stop**, each labelled with its predicted arrival ("4 min", "11 min", "waiting at
+  terminus, leaves 17:13").
+- Only the stretch of route *before* your stop is drawn strongly; the part after it is
+  dimmed, because buses there have already passed.
+- Buses resting at the terminus get a distinct parked marker with the time they leave.
+- A strip along the bottom lays the route out as a straight line of stops (like a metro
+  diagram) with the buses as dots moving along it. It's easier to read than the map
+  when you only want to know "how many stops away".
+- "All routes" mode: every bus from every route that serves this stop, coloured by
+  route, to answer "which bus gets here first".
+
+**Following a bus.**
+- Tap a bus marker: the camera follows it, and its sheet shows the stops ahead with a
+  predicted time at each one, your stop highlighted.
+- Markers move smoothly between GPS fixes (interpolated along the polyline, not
+  straight lines across buildings), with heading arrows.
+- "Notify me when it's 2 stops away" from the bus sheet.
+
+**Map to stop, too.**
+- Tap any stop pin: its merged departures slide up, same component as the Now screen.
+- Long-press anywhere on the map: "Plan a trip from here / to here".
+- Your location dot, with walking time to each nearby stop shown on its pin.
+
+**Map tech.**
+- MapLibre with an OpenStreetMap tile source (not TTC's Mapbox token), with a light and
+  dark style matching the app theme.
+- Route polylines and stop order come from the cache, so the map draws instantly and
+  only the bus positions need the network.
+- Positions are polled only for the routes on screen, every 10 s while the map is visible.
 
 ### 2.8 Glanceable surfaces
 - Home screen widget (Glance): the next leave-by for a chosen place, refreshed by
@@ -212,7 +253,7 @@ key can rotate.
 | 2. Prediction v1 | Polyline projection, GPS ETA for mid-route stops, outlier filter, confidence chips, prediction log | Logged median error below 2 min on the user's own routes over a week |
 | 3. Planner | `/plan` integration, re-ranking, transfer risk, arrive-by, address + offline stop search | "Arrive by" gives a leave-home time and a backup |
 | 4. Commutes + widget | Recurring trips, WorkManager notifications, Glance widget, QS tile, shortcuts | Morning notification fires with a correct time 5 weekdays in a row |
-| 5. Live trip + map | Foreground trip service, re-planning, MapLibre with live buses | End-to-end trip with one transfer, guided by notifications |
+| 5. Live trip + map | Foreground trip service, re-planning; connected stop-to-map flow (2.7): tap a row to open that bus, buses-coming-to-my-stop view, line diagram, follow a bus | End-to-end trip with one transfer, guided by notifications |
 | 6. Learning | Segment speeds from observations, per-route turnaround model, accuracy dashboard | Prediction error measurably drops versus v1 |
 | 7. Polish + release | ka/en/ru strings, accessibility pass, Play listing marked unofficial, privacy policy | On Play as an internal test, then production |
 
