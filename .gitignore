@@ -1,0 +1,19 @@
+*.iml
+.gradle/
+local.properties
+.idea/
+.DS_Store
+build/
+captures/
+.externalNativeBuild
+.cxx
+*.apk
+*.keystore
+!debug.keystore
+
+# Play signing: never commit these
+keystore.properties
+*.jks
+
+# TTC gateway config pulled by tools/fetch-ttc-config.sh
+ttc.properties
