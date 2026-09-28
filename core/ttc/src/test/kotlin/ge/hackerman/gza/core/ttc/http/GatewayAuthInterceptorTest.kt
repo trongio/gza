@@ -11,6 +11,7 @@ import ge.hackerman.gza.core.ttc.firebase.FirebaseRemoteConfigClient
 import ge.hackerman.gza.core.ttc.testing.FakeFirebase
 import ge.hackerman.gza.core.ttc.testing.FirebaseFixtures
 import ge.hackerman.gza.core.ttc.testing.MutableClock
+import ge.hackerman.gza.core.ttc.testing.RefreshScope
 import java.time.Duration
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
@@ -43,6 +44,7 @@ class GatewayAuthInterceptorTest {
     private val gateway = FakeGateway()
     private val cache = InMemoryTtcConfigCache()
     private val clock = MutableClock()
+    private val refreshScope = RefreshScope()
     private var fallbackKey = FALLBACK_KEY
 
     private val gatewayBase get() = gatewayServer.url("/pis-gateway").toString()
@@ -59,6 +61,7 @@ class GatewayAuthInterceptorTest {
 
     @AfterEach
     fun tearDown() {
+        refreshScope.close()
         firebaseServer.close()
         gatewayServer.close()
     }
@@ -75,6 +78,7 @@ class GatewayAuthInterceptorTest {
         ),
         fallback = TtcFallbackConfig(gatewayBase, fallbackKey, "sentinel-firebase-key", "test-project", "1:0:web:x"),
         clock = clock,
+        refreshScope = refreshScope,
         policy = GatewayConfigPolicy(requireHttpsBaseUrl = false)
     )
 
@@ -124,6 +128,8 @@ class GatewayAuthInterceptorTest {
         assertEquals(1, firebase.fetches.get())
     }
 
+    // Stale while revalidate: the request that finds the key expired still goes out with
+    // it at once, and the refetch runs behind it.
     @Test
     fun `cache older than the ttl is refetched`() {
         val client = client()
@@ -131,8 +137,11 @@ class GatewayAuthInterceptorTest {
         clock.advanceBy(Duration.ofHours(12))
         firebase.serveKey(NEW_KEY, baseUrl = gatewayBase)
         assertEquals(200, client.call())
+        refreshScope.awaitRefreshes()
         assertEquals(2, firebase.fetches.get())
-        assertEquals(listOf(REMOTE_KEY, NEW_KEY), gatewayKeys())
+        assertEquals(200, client.call())
+        assertEquals(2, firebase.fetches.get())
+        assertEquals(listOf(REMOTE_KEY, REMOTE_KEY, NEW_KEY), gatewayKeys())
     }
 
     // Rotation

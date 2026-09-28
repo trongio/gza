@@ -10,6 +10,7 @@ import ge.hackerman.gza.core.ttc.firebase.FirebaseRemoteConfigClient
 import ge.hackerman.gza.core.ttc.testing.FakeFirebase
 import ge.hackerman.gza.core.ttc.testing.FirebaseFixtures
 import ge.hackerman.gza.core.ttc.testing.MutableClock
+import ge.hackerman.gza.core.ttc.testing.RefreshScope
 import java.io.IOException
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
@@ -56,6 +57,7 @@ class GatewayAuthInterceptorEdgeCaseTest {
     private val other = RecordingGateway()
     private val cache = InMemoryTtcConfigCache()
     private val clock = MutableClock()
+    private val refreshScope = RefreshScope()
     private var fallbackKey = FALLBACK_KEY
 
     private val gatewayBase get() = gatewayServer.url("/pis-gateway").toString()
@@ -75,6 +77,7 @@ class GatewayAuthInterceptorEdgeCaseTest {
 
     @AfterEach
     fun tearDown() {
+        refreshScope.close()
         firebaseServer.close()
         gatewayServer.close()
         otherServer.close()
@@ -92,6 +95,7 @@ class GatewayAuthInterceptorEdgeCaseTest {
         ),
         fallback = TtcFallbackConfig(gatewayBase, fallbackKey, "sentinel-firebase-key", "test-project", "1:0:web:x"),
         clock = clock,
+        refreshScope = refreshScope,
         policy = GatewayConfigPolicy(requireHttpsBaseUrl = false)
     )
 
@@ -268,9 +272,70 @@ class GatewayAuthInterceptorEdgeCaseTest {
         assertEquals(1, firebase.fetches.get())
         firebase.serveKey(REMOTE_KEY, baseUrl = gatewayBase)
         clock.advanceBy(Duration.ofSeconds(31))
+        // The request that ends the backoff still uses the fallback; the refetch runs behind it.
         assertEquals(200, client.call())
+        refreshScope.awaitRefreshes()
         assertEquals(2, firebase.fetches.get())
-        assertEquals(listOf(FALLBACK_KEY, FALLBACK_KEY, REMOTE_KEY), gateway.keys())
+        assertEquals(200, client.call())
+        assertEquals(listOf(FALLBACK_KEY, FALLBACK_KEY, FALLBACK_KEY, REMOTE_KEY), gateway.keys())
+    }
+
+    @Test
+    fun `expired cache with slow firebase serves parallel requests at once with one fetch`() {
+        seedCache(OLD_KEY)
+        gateway.validKeys += OLD_KEY
+        clock.advanceBy(Duration.ofHours(13))
+        val releaseFetch = CountDownLatch(1)
+        firebase.onFetch = {
+            releaseFetch.await(10, TimeUnit.SECONDS)
+            FirebaseFixtures.json(200, FirebaseFixtures.fetchOk(NEW_KEY, gatewayBase))
+        }
+        val parallel = 10
+        val client = client()
+        val pool = Executors.newFixedThreadPool(parallel)
+        try {
+            // Firebase is held until every request is done: a request that waited on the
+            // refresh would time out here instead of returning.
+            val codes = List(parallel) { pool.submit<Int> { client.call() } }.map { it.get(5, TimeUnit.SECONDS) }
+            assertEquals(List(parallel) { 200 }, codes)
+            assertEquals(List<String?>(parallel) { OLD_KEY }, gateway.keys())
+        } finally {
+            releaseFetch.countDown()
+            pool.shutdownNow()
+        }
+        refreshScope.awaitRefreshes()
+        assertEquals(1, firebase.fetches.get())
+        assertEquals(200, client.call())
+        assertEquals(NEW_KEY, gateway.keys().last())
+        assertEquals(1, firebase.fetches.get())
+    }
+
+    @Test
+    fun `a 401 during a background refresh waits for it and retries with its key`() {
+        seedCache(OLD_KEY)
+        clock.advanceBy(Duration.ofHours(13))
+        val fetchStarted = CountDownLatch(1)
+        val releaseFetch = CountDownLatch(1)
+        firebase.onFetch = {
+            fetchStarted.countDown()
+            releaseFetch.await(10, TimeUnit.SECONDS)
+            FirebaseFixtures.json(200, FirebaseFixtures.fetchOk(NEW_KEY, gatewayBase))
+        }
+        val client = client()
+        val pool = Executors.newSingleThreadExecutor()
+        try {
+            // OLD_KEY is dead: the request goes out with it, gets 401, then must wait for the
+            // running refresh rather than retry with a key known to be bad.
+            val result = pool.submit<Int> { client.call() }
+            assertTrue(fetchStarted.await(5, TimeUnit.SECONDS), "background refresh never started")
+            releaseFetch.countDown()
+            assertEquals(200, result.get(10, TimeUnit.SECONDS))
+        } finally {
+            releaseFetch.countDown()
+            pool.shutdownNow()
+        }
+        assertEquals(listOf(OLD_KEY, NEW_KEY), gateway.keys())
+        assertEquals(1, firebase.fetches.get())
     }
 
     @Test

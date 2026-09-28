@@ -18,10 +18,12 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class DefaultGatewayConfigProviderTest {
     private val cache = InMemoryTtcConfigCache()
     private val remote = FakeRemoteGatewayConfigSource().apply { serve(REMOTE_KEY) }
@@ -35,7 +37,9 @@ class DefaultGatewayConfigProviderTest {
         firebaseAppId = "1:0:web:sentinel"
     )
 
-    private fun provider() = DefaultGatewayConfigProvider(cache, remote, fallback, clock, policy)
+    // Background refreshes run on the test scheduler: runCurrent() lets them finish.
+    private fun TestScope.provider() =
+        DefaultGatewayConfigProvider(cache, remote, fallback, clock, backgroundScope, policy)
 
     private suspend fun seedCache(key: String = CACHED_KEY, age: Duration = Duration.ZERO) {
         cache.writeConfig(CachedGatewayConfig(PRODUCTION_BASE_URL, key, clock.now - age))
@@ -74,10 +78,16 @@ class DefaultGatewayConfigProviderTest {
     }
 
     @Test
-    fun `cache at the ttl is refetched`() = runTest {
+    fun `cache at the ttl is served stale and refetched in the background`() = runTest {
         seedCache(age = policy.ttl)
-        assertEquals(REMOTE_KEY, provider().current().apiKey)
+        val provider = provider()
+        val stale = provider.current()
+        assertEquals(CACHED_KEY, stale.apiKey)
+        assertEquals(ConfigSource.STALE_CACHE, stale.source)
+        runCurrent()
         assertEquals(1, remote.fetches.get())
+        assertEquals(REMOTE_KEY, provider.peek()?.apiKey)
+        assertEquals(ConfigSource.REMOTE, provider.current().source)
     }
 
     @Test
@@ -87,11 +97,70 @@ class DefaultGatewayConfigProviderTest {
         clock.advanceBy(policy.ttl)
         assertNull(provider.peek())
         remote.serve("rotated-key")
+        assertEquals(REMOTE_KEY, provider.current().apiKey)
+        runCurrent()
         assertEquals("rotated-key", provider.current().apiKey)
         assertEquals(2, remote.fetches.get())
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `expired config is served at once while one refresh runs`() = runTest {
+        seedCache(age = Duration.ofDays(1))
+        val gate = CompletableDeferred<Unit>()
+        remote.behavior = {
+            gate.await()
+            RemoteGatewayConfig(PRODUCTION_BASE_URL, REMOTE_KEY)
+        }
+        val provider = provider()
+        // Every call returns while the fetch is still blocked on the gate.
+        val configs = List(20) { provider.current() }
+        runCurrent()
+        assertTrue(configs.all { it.apiKey == CACHED_KEY })
+        assertEquals(1, remote.fetches.get())
+        assertEquals(CACHED_KEY, provider.current().apiKey)
+        gate.complete(Unit)
+        runCurrent()
+        assertEquals(1, remote.fetches.get())
+        assertEquals(REMOTE_KEY, provider.current().apiKey)
+    }
+
+    @Test
+    fun `a rejection during a background refresh waits for it and uses its result`() = runTest {
+        seedCache(age = Duration.ofDays(1))
+        val gate = CompletableDeferred<Unit>()
+        remote.behavior = {
+            gate.await()
+            RemoteGatewayConfig(PRODUCTION_BASE_URL, REMOTE_KEY)
+        }
+        val provider = provider()
+        val stale = provider.current()
+        runCurrent()
+        val retry = async { provider.refreshAfterRejection(stale) }
+        runCurrent()
+        assertTrue(retry.isActive, "the 401 path must wait for the running refresh")
+        gate.complete(Unit)
+        assertEquals(REMOTE_KEY, retry.await()?.apiKey)
+        assertEquals(1, remote.fetches.get())
+    }
+
+    @Test
+    fun `failed background refresh keeps the stale config and backs off`() = runTest {
+        seedCache(age = Duration.ofDays(1))
+        remote.fail()
+        val provider = provider()
+        assertEquals(CACHED_KEY, provider.current().apiKey)
+        runCurrent()
+        assertEquals(1, remote.fetches.get())
+        assertEquals(ConfigSource.STALE_CACHE, provider.peek()?.source)
+        repeat(5) { provider.current() }
+        runCurrent()
+        assertEquals(1, remote.fetches.get())
+        clock.advanceBy(Duration.ofMinutes(1))
+        assertEquals(CACHED_KEY, provider.current().apiKey)
+        runCurrent()
+        assertEquals(2, remote.fetches.get())
+    }
+
     @Test
     fun `concurrent cold start calls cause one fetch`() = runTest {
         val gate = CompletableDeferred<Unit>()
@@ -123,9 +192,13 @@ class DefaultGatewayConfigProviderTest {
         seedCache(age = Duration.ofDays(2))
         val before = cache.readConfig()
         remote.fail()
-        val config = provider().current()
+        val provider = provider()
+        val config = provider.current()
+        runCurrent()
+        assertEquals(1, remote.fetches.get())
         assertEquals(CACHED_KEY, config.apiKey)
         assertEquals(ConfigSource.STALE_CACHE, config.source)
+        assertEquals(ConfigSource.STALE_CACHE, provider.current().source)
         assertEquals(before, cache.readConfig())
     }
 
@@ -162,35 +235,45 @@ class DefaultGatewayConfigProviderTest {
         remote.fail()
         val provider = provider()
         provider.current()
+        runCurrent()
         assertEquals(1, remote.fetches.get())
 
         clock.advanceBy(Duration.ofSeconds(59))
         assertEquals(ConfigSource.FALLBACK, provider.current().source)
+        runCurrent()
         assertEquals(1, remote.fetches.get())
 
         clock.advanceBy(Duration.ofSeconds(1))
         provider.current()
+        runCurrent()
         assertEquals(2, remote.fetches.get())
 
         clock.advanceBy(Duration.ofMinutes(2) - Duration.ofSeconds(1))
         provider.current()
+        runCurrent()
         assertEquals(2, remote.fetches.get())
         clock.advanceBy(Duration.ofSeconds(1))
         provider.current()
+        runCurrent()
         assertEquals(3, remote.fetches.get())
 
         remote.serve(REMOTE_KEY)
         clock.advanceBy(Duration.ofMinutes(4))
-        assertEquals(ConfigSource.REMOTE, provider.current().source)
+        // The call ending the backoff still gets the fallback; the refresh lands behind it.
+        assertEquals(ConfigSource.FALLBACK, provider.current().source)
+        runCurrent()
+        assertEquals(ConfigSource.REMOTE, provider.peek()?.source)
         assertEquals(4, remote.fetches.get())
 
         // Reset: the next failure waits one minute again, not eight.
         clock.advanceBy(policy.ttl)
         remote.fail()
         provider.current()
+        runCurrent()
         assertEquals(5, remote.fetches.get())
         clock.advanceBy(Duration.ofMinutes(1))
         provider.current()
+        runCurrent()
         assertEquals(6, remote.fetches.get())
     }
 
@@ -199,17 +282,21 @@ class DefaultGatewayConfigProviderTest {
         remote.fail()
         val provider = provider()
         provider.current()
+        runCurrent()
         // Waits: 1, 2, 4, 8, 16, 32 minutes, then 60 (capped) instead of 64.
         listOf(1L, 2, 4, 8, 16, 32).forEach {
             clock.advanceBy(Duration.ofMinutes(it))
             provider.current()
+            runCurrent()
         }
         assertEquals(7, remote.fetches.get())
         clock.advanceBy(Duration.ofMinutes(59))
         provider.current()
+        runCurrent()
         assertEquals(7, remote.fetches.get())
         clock.advanceBy(Duration.ofMinutes(1))
         provider.current()
+        runCurrent()
         assertEquals(8, remote.fetches.get())
     }
 
@@ -231,6 +318,7 @@ class DefaultGatewayConfigProviderTest {
             remote,
             fallback,
             clock,
+            backgroundScope,
             policy.copy(requireHttpsBaseUrl = false)
         )
         assertEquals("http://127.0.0.1:1234/pis-gateway", provider.current().baseUrl.toString())

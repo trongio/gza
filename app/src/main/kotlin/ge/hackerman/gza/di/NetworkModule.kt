@@ -22,6 +22,7 @@ import java.time.Clock
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 
@@ -82,8 +83,9 @@ object NetworkModule {
         cache: TtcConfigCache,
         remote: RemoteGatewayConfigSource,
         fallback: TtcFallbackConfig,
-        clock: Clock
-    ): GatewayConfigProvider = DefaultGatewayConfigProvider(cache, remote, fallback, clock)
+        clock: Clock,
+        @ApplicationScope refreshScope: CoroutineScope
+    ): GatewayConfigProvider = DefaultGatewayConfigProvider(cache, remote, fallback, clock, refreshScope)
 
     @Provides
     @Singleton

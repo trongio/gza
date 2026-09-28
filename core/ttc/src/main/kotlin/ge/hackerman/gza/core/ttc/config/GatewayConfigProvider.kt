@@ -6,8 +6,9 @@ interface GatewayConfigProvider {
     fun peek(): GatewayConfig?
 
     /**
-     * Cache, then Remote Config, then stale cache, then the build-time fallback.
-     * Throws [GatewayConfigUnavailableException] when none of them has a usable key.
+     * Cache, then Remote Config, then stale cache, then the build-time fallback. When a
+     * config exists but is due for a refresh, returns it without waiting and refreshes in
+     * the background. Throws [GatewayConfigUnavailableException] when none of them has a usable key.
      */
     suspend fun current(): GatewayConfig
 

@@ -3,8 +3,13 @@ package ge.hackerman.gza.core.ttc.config
 import ge.hackerman.gza.core.ttc.TtcFallbackConfig
 import ge.hackerman.gza.core.ttc.firebase.RemoteConfigException
 import ge.hackerman.gza.core.ttc.firebase.RemoteGatewayConfigSource
+import java.io.IOException
 import java.time.Clock
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -13,16 +18,23 @@ import kotlinx.coroutines.sync.withLock
  *
  * Must be a singleton: one [Mutex] serializes every load and refresh, so 50 parallel
  * requests on a cold start cause one fetch, and parallel 401s cause one refetch.
+ *
+ * Stale while revalidate: once any usable config exists (active, or an expired one in the
+ * cache), [current] returns it at once and refreshes on [refreshScope], one refresh at a
+ * time. Requests never wait on a Firebase round trip just because a TTL or backoff ran out;
+ * only a cold start with nothing usable, or a 401, waits.
  */
 class DefaultGatewayConfigProvider(
     private val cache: TtcConfigCache,
     private val remote: RemoteGatewayConfigSource,
     fallback: TtcFallbackConfig,
     private val clock: Clock,
+    private val refreshScope: CoroutineScope,
     policy: GatewayConfigPolicy = GatewayConfigPolicy()
 ) : GatewayConfigProvider {
     private val rules = GatewayConfigRules(policy, fallback)
     private val mutex = Mutex()
+    private val revalidating = AtomicBoolean(false)
 
     // The two fields peek() reads; everything else is only touched under the mutex.
     @Volatile private var active: GatewayConfig? = null
@@ -34,7 +46,30 @@ class DefaultGatewayConfigProvider(
 
     override fun peek(): GatewayConfig? = active?.takeIf { isFresh(it, clock.instant()) }
 
-    override suspend fun current(): GatewayConfig = peek() ?: mutex.withLock { peek() ?: load() }
+    override suspend fun current(): GatewayConfig {
+        val stale = active
+        return when {
+            stale == null -> mutex.withLock { active ?: load() }
+            isFresh(stale, clock.instant()) -> stale
+            else -> stale.also { revalidateInBackground() }
+        }
+    }
+
+    // ATOMIC start: the job runs its finally even if the scope is already cancelled, so
+    // the flag can never stay stuck and block every later refresh.
+    private fun revalidateInBackground() {
+        if (!revalidating.compareAndSet(false, true)) return
+        refreshScope.launch(start = CoroutineStart.ATOMIC) {
+            try {
+                mutex.withLock { if (peek() == null) load() }
+            } catch (expected: IOException) {
+                // A failed cache write or no key anywhere: the active config stays in use,
+                // and the next call after the backoff tries again.
+            } finally {
+                revalidating.set(false)
+            }
+        }
+    }
 
     override suspend fun refreshAfterRejection(rejected: GatewayConfig): GatewayConfig? = mutex.withLock {
         val now = clock.instant()
@@ -67,14 +102,16 @@ class DefaultGatewayConfigProvider(
 
     private suspend fun load(): GatewayConfig {
         val now = clock.instant()
-        val staleCandidate = if (active == null) rules.fromCache(cache.readConfig()) else null
+        val cached = if (active == null) rules.fromCache(cache.readConfig()) else null
         return when {
-            staleCandidate != null && rules.isWithinTtl(staleCandidate.fetchedAt, now) ->
-                activate(staleCandidate, ConfigSource.CACHE)
+            cached != null && rules.isWithinTtl(cached.fetchedAt, now) -> activate(cached, ConfigSource.CACHE)
 
-            now < nextRemoteAttemptAt -> staleOrFallbackOrThrow(staleCandidate)
+            // Cold start over an expired cache: serve it now, refresh behind it.
+            cached != null -> activate(cached, ConfigSource.STALE_CACHE).also { revalidateInBackground() }
 
-            else -> fetchRemote(now) ?: staleOrFallbackOrThrow(staleCandidate)
+            now < nextRemoteAttemptAt -> staleOrFallbackOrThrow()
+
+            else -> fetchRemote(now) ?: staleOrFallbackOrThrow()
         }
     }
 
@@ -101,13 +138,11 @@ class DefaultGatewayConfigProvider(
     // A key fetched from Remote Config is newer than the one baked at build time; if it has
     // since rotated, the 401 path fixes it. The fallback is never written to the cache, so
     // the next launch tries Remote Config again.
-    private fun staleOrFallbackOrThrow(staleCandidate: ConfigCandidate?): GatewayConfig {
+    private fun staleOrFallbackOrThrow(): GatewayConfig {
         val current = active
-        val stale = if (current != null && current.source != ConfigSource.FALLBACK) {
-            ConfigCandidate(current.baseUrl, current.apiKey, current.fetchedAt)
-        } else {
-            staleCandidate
-        }
+        val stale = current
+            ?.takeIf { it.source != ConfigSource.FALLBACK }
+            ?.let { ConfigCandidate(it.baseUrl, it.apiKey, it.fetchedAt) }
         val fallbackCandidate = rules.fallbackCandidate()
         return when {
             stale != null -> activate(stale, ConfigSource.STALE_CACHE)

@@ -11,6 +11,7 @@ import ge.hackerman.gza.core.ttc.testing.FakeFirebase
 import ge.hackerman.gza.core.ttc.testing.FakeRemoteGatewayConfigSource
 import ge.hackerman.gza.core.ttc.testing.FirebaseFixtures
 import ge.hackerman.gza.core.ttc.testing.MutableClock
+import ge.hackerman.gza.core.ttc.testing.RefreshScope
 import java.time.Duration
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.assertEquals
@@ -62,6 +63,7 @@ class TtcHttpLoggingTest {
             remote = remote,
             fallback = TtcFallbackConfig("", "", "", "", ""),
             clock = MutableClock(),
+            refreshScope = RefreshScope(),
             policy = GatewayConfigPolicy(requireHttpsBaseUrl = false)
         )
         val client = TtcHttpClients.gatewayClient(OkHttpClient(), GatewayAuthInterceptor(provider), logging)
