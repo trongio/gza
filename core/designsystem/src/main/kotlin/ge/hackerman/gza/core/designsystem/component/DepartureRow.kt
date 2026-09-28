@@ -50,7 +50,7 @@ fun DepartureRow(
     detail: String? = null,
     onClick: (() -> Unit)? = null
 ) {
-    val sentence = departureSentence(routeNumber, mode, destination, departsAt, status, leaveBy)
+    val sentence = departureSentence(routeNumber, mode, destination, departsAt, status, leaveBy, detail)
     val clickLabel = stringResource(R.string.departure_show_on_map)
     val interaction = if (onClick == null) {
         Modifier.clearAndSetSemantics { contentDescription = sentence }
@@ -129,15 +129,19 @@ private fun departureSentence(
     destination: String,
     departsAt: String,
     status: DepartureStatus,
-    leaveBy: String?
+    leaveBy: String?,
+    detail: String?
 ): String {
     val badge = routeBadgeDescription(mode, routeNumber)
     val statusText = status.description()
-    return if (leaveBy != null) {
+    val sentence = if (leaveBy != null) {
         stringResource(R.string.departure_a11y, badge, destination, departsAt, leaveBy, statusText)
     } else {
         stringResource(R.string.departure_a11y_no_leave_by, badge, destination, departsAt, statusText)
     }
+    // The row's semantics are cleared, so anything visible that is not in this sentence is
+    // never spoken: the detail line has to be carried over explicitly.
+    return if (detail != null) stringResource(R.string.departure_a11y_with_detail, sentence, detail) else sentence
 }
 
 @PreviewLightDark

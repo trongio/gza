@@ -37,6 +37,8 @@
     <!-- One sentence for TalkBack: badge name, destination, time, leave-by time, status. -->
     <string name="departure_a11y">%1$s to %2$s. Departs %3$s. Leave by %4$s. %5$s</string>
     <string name="departure_a11y_no_leave_by">%1$s to %2$s. Departs %3$s. %4$s</string>
+    <!-- The row sentence above (%1$s) followed by the optional detail line, like "4 min walk" (%2$s). -->
+    <string name="departure_a11y_with_detail">%1$s. %2$s</string>
     <string name="departure_show_on_map">Show on map</string>
     <string name="sheet_drag_handle">Drag to expand or collapse</string>
 </resources>

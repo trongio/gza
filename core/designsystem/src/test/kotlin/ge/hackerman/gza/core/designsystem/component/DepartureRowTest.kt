@@ -5,11 +5,13 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -39,6 +41,7 @@ class DepartureRowTest {
     private fun row(
         destination: String = "Baratashvili St",
         leaveBy: String? = "17:08",
+        detail: String? = null,
         fontScale: Float = 1f,
         onClick: (() -> Unit)? = null
     ) = composeRule.setContent {
@@ -53,6 +56,7 @@ class DepartureRowTest {
                         status = DepartureStatus.Waiting("17:13"),
                         modifier = Modifier.testTag(ROW),
                         leaveBy = leaveBy,
+                        detail = detail,
                         onClick = onClick
                     )
                 }
@@ -87,6 +91,13 @@ class DepartureRowTest {
         composeRule.onNodeWithTag(ROW).assertContentDescriptionEquals(
             "Bus 326 to Baratashvili St. Departs 17:13. Waiting at terminus, leaves 17:13"
         )
+    }
+
+    @Test
+    fun detailLineIsPartOfTheSpokenSentence() {
+        row(detail = "4 min walk", onClick = {})
+        composeRule.onNodeWithTag(ROW).assertContentDescriptionEquals("$waitingSentence. 4 min walk")
+        composeRule.onNodeWithTag(ROW).assert(hasContentDescription("4 min walk", substring = true))
     }
 
     @Test
