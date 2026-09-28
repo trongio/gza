@@ -36,6 +36,15 @@ export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ANDROID_HOME=~/Android/Sdk
 The build works without `ttc.properties` (it warns and bakes in an empty fallback key);
 CI writes a dummy one.
 
+At runtime the app fetches the gateway key and base URL from TTC's Firebase Remote Config
+(the same Installations and fetch calls as `tools/fetch-ttc-config.sh`), caches them, and
+refetches once when the gateway answers 401 or 403, so a key rotation needs no rebuild.
+`ttc.properties` only provides the build-time fallback for when Remote Config is
+unreachable. Gateway calls must go through the `@GatewayHttp` OkHttp client, with Retrofit
+built on `TtcGateway.PLACEHOLDER_BASE_URL`: its interceptor rewrites that placeholder host
+onto the real gateway and adds the key, and never sends the key to any other host (the
+client follows no redirects, so a 3xx cannot carry the key elsewhere).
+
 Not affiliated with Tbilisi Transport Company. All data belongs to its owners.
 
 ## How this repo is built

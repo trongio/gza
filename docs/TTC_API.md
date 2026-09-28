@@ -10,6 +10,10 @@ response.
 - Header: `x-api-key: <PIS_GATEWAY_KEY>`. The web app reads the key from Firebase Remote
   Config (project `tbilisi-transit-production`), so it can rotate. Run
   `tools/fetch-ttc-config.sh` to get the current one. **Never commit it.**
+- Auth failures (checked 2026-09-28 with curl): a wrong key gets `401` with the plain
+  text body `Unauthorized` (no content type, no `WWW-Authenticate`). A missing or empty
+  `x-api-key` header gets `400` `Bad Request`, not 401. An unknown path with a good key
+  gets `404`. No `403` has been seen, but Gza treats 401 and 403 alike.
 - **No CORS headers.** Browser pages on other origins can't call it; native apps can.
 - Errors come back as RFC 7807 JSON: `{"title":"Bad Request","status":400,"detail":"Required parameter 'departMode' is not present."}`
 - `locale`: `ka`, `en`, `ru`. Some fields ignore it (minibus `longName` stays Georgian).
@@ -81,6 +85,43 @@ route 326 reported `0` with a bus parked and the next timetable departure at 17:
 |---|---|
 | `GET /v2/geocode?query=&locale=&bbox=` | `bbox` is required (the web app passes its Tbilisi profile bbox) |
 | `GET /v2/geocode/reverse?lat=&lon=&locale=` | GeoJSON `features[]` with Photon-style `properties` (street, city, postcode, osm ids) |
+
+## Remote Config (runtime key)
+
+How the web app (and `tools/fetch-ttc-config.sh`, and Gza at runtime) gets the key.
+Checked live on 2026-09-28. The Firebase web API key, project id and app id come from the
+`firebaseCredentials` object embedded in the transit.ttc.com.ge page; Gza bakes them into
+`BuildConfig` from `ttc.properties`. Project `tbilisi-transit-production`.
+
+1. **Installations** `POST https://firebaseinstallations.googleapis.com/v1/projects/{projectId}/installations`
+   - Headers: `x-goog-api-key: <firebaseApiKey>`, `Content-Type: application/json`.
+   - Body: `{"fid":"<22 char id>","appId":"<appId>","authVersion":"FIS_v2","sdkVersion":"w:0.6.4"}`.
+   - `200`: `{"name":"projects/.../installations/<fid>","fid":"<fid>","refreshToken":"<112 chars>","authToken":{"token":"<~315 chars>","expiresIn":"604800s"}}`.
+     A well-formed fid (22 url-safe base64 chars, first char `c`..`f`) is echoed back; a
+     malformed one (`"bad"`) is replaced by a server-assigned fid, still `200`. Always use
+     the returned `fid`.
+   - Wrong API key: `400` `{"error":{"code":400,"status":"INVALID_ARGUMENT"}}`.
+2. **Auth token refresh** `POST .../installations/{fid}/authTokens:generate`
+   - Headers: `x-goog-api-key`, `Authorization: FIS_v2 <refreshToken>`.
+   - Body: `{"installation":{"sdkVersion":"w:0.6.4","appId":"<appId>"}}`.
+   - `200` `{"token":"...","expiresIn":"604800s"}` (7 days). Bad refresh token: `401` `UNAUTHENTICATED`.
+   - `DELETE .../installations/{fid}` with the same headers removes an installation (`200`).
+3. **Fetch** `POST https://firebaseremoteconfig.googleapis.com/v1/projects/{projectId}/namespaces/firebase:fetch`
+   - API key as `?key=<firebaseApiKey>` (what the script does) **or** as the
+     `x-goog-api-key` header: both return `200`. Prefer the header so the key never sits in a URL.
+   - Body: `{"appInstanceId":"<fid>","appInstanceIdToken":"<authToken>","appId":"<appId>","sdkVersion":"0.4.0","languageCode":"en-US"}`.
+   - `200`: `{"entries":{...},"state":"UPDATE","templateVersion":"33"}`. Entries are all
+     strings; 47 keys, among them `PIS_GATEWAY_BASE_URL` (`https://transit.ttc.com.ge/pis-gateway`,
+     no trailing slash, no `/api`), `PIS_GATEWAY_KEY` (36 chars, matched `ttc.properties`),
+     `OTS_GATEWAY_*`, `MAPBOX_*` and large HTML blobs (`*_HTML_CONTENT_*`, up to ~7 KB each).
+     The body therefore carries the key: never log it.
+   - **The installation token is not enforced today:** a bogus `appInstanceIdToken`, or none
+     at all, still returns `200` with the full entries. Do not rely on that staying true.
+   - Wrong API key: `400` `INVALID_ARGUMENT` "API key not valid". App id from another
+     project: `403` `PERMISSION_DENIED`. Errors use the Google envelope
+     `{"error":{"code":...,"status":"...","message":"..."}}`.
+   - Other documented `state` values (`NO_TEMPLATE`, `EMPTY_CONFIG`, `NO_CHANGE`) come without
+     `entries`; treat them as "no key".
 
 ## Out of scope
 
