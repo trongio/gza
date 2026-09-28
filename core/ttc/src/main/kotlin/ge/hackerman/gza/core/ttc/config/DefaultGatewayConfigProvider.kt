@@ -60,15 +60,23 @@ class DefaultGatewayConfigProvider(
     }
 
     // ATOMIC start: the job runs its finally even if the scope is already cancelled, so
-    // the flag can never stay stuck and block every later refresh.
+    // the flag can never stay stuck and block every later refresh. Nothing but cancellation
+    // may leave the job: the app scope has no one to report to, and on Android an uncaught
+    // exception there kills the process.
+    @Suppress("TooGenericExceptionCaught") // A background refresh must never crash the app.
     private fun revalidateInBackground() {
         if (!revalidating.compareAndSet(false, true)) return
         refreshScope.launch(start = CoroutineStart.ATOMIC) {
             try {
                 mutex.withLock { if (peek() == null) load() }
+            } catch (e: CancellationException) {
+                throw e
             } catch (expected: IOException) {
-                // A failed cache write or no key anywhere: the active config stays in use,
-                // and the next call after the backoff tries again.
+                // No key anywhere, already counted by fetchRemote: the active config stays
+                // in use, and the next call after the backoff tries again.
+            } catch (e: Exception) {
+                logFailure("Background config refresh", e)
+                mutex.withLock { recordRemoteFailure(clock.instant()) }
             } finally {
                 revalidating.set(false)
             }

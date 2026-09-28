@@ -6,7 +6,10 @@ import ge.hackerman.gza.core.ttc.firebase.RemoteGatewayConfig
 import ge.hackerman.gza.core.ttc.testing.FakeRemoteGatewayConfigSource
 import ge.hackerman.gza.core.ttc.testing.FirebaseFixtures.PRODUCTION_BASE_URL
 import ge.hackerman.gza.core.ttc.testing.MutableClock
+import java.time.Clock
 import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -30,7 +33,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 /**
@@ -91,12 +93,6 @@ class DefaultGatewayConfigProviderBackgroundRefreshTest {
         }
     }
 
-    @Disabled(
-        "Bug: DefaultGatewayConfigProvider.revalidateInBackground only catches IOException. " +
-            "A RuntimeException from the refresh (remote source, cache) escapes the launched job, " +
-            "and the @ApplicationScope scope has no CoroutineExceptionHandler, so it reaches the " +
-            "thread's uncaught exception handler: on Android that kills the process."
-    )
     @Test
     fun `a runtime exception in a background refresh never reaches the uncaught exception handler`() {
         val uncaught = CopyOnWriteArrayList<Throwable>()
@@ -112,6 +108,43 @@ class DefaultGatewayConfigProviderBackgroundRefreshTest {
             scope.awaitChildren()
             assertEquals(1, remote.fetches.get())
             assertTrue(uncaught.isEmpty(), "reached the uncaught handler: $uncaught")
+        } finally {
+            scope.cancel()
+            Thread.setDefaultUncaughtExceptionHandler(previous)
+        }
+    }
+
+    @Test
+    fun `an exception outside the fetch in a background refresh is contained and backs off`() {
+        val uncaught = CopyOnWriteArrayList<Throwable>()
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { _, e -> uncaught += e }
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        // Read 1 is the cold start load; read 2 is the refresh job's first, before any fetch.
+        val reads = AtomicInteger()
+        val flakyClock = object : Clock() {
+            override fun instant(): Instant {
+                if (reads.incrementAndGet() == 2) throw IllegalStateException("clock broke")
+                return clock.instant()
+            }
+
+            override fun getZone(): ZoneId = clock.zone
+
+            override fun withZone(zone: ZoneId): Clock = this
+        }
+        try {
+            seedStaleCache()
+            val provider = DefaultGatewayConfigProvider(cache, remote, fallback, flakyClock, scope)
+            assertEquals(CACHED_KEY, runBlocking { provider.current() }.apiKey)
+            scope.awaitChildren()
+            assertTrue(reads.get() >= 2)
+            assertTrue(uncaught.isEmpty(), "reached the uncaught handler: $uncaught")
+            // Counted as a failure: the stale config is served without a refresh storm.
+            repeat(3) {
+                assertEquals(CACHED_KEY, runBlocking { provider.current() }.apiKey)
+                scope.awaitChildren()
+            }
+            assertEquals(0, remote.fetches.get())
         } finally {
             scope.cancel()
             Thread.setDefaultUncaughtExceptionHandler(previous)
