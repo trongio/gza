@@ -2,6 +2,7 @@ package ge.hackerman.gza.core.designsystem.component
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
@@ -16,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ge.hackerman.gza.core.designsystem.icon.GzaIcons
 import ge.hackerman.gza.core.designsystem.theme.GzaTheme
@@ -63,7 +65,11 @@ fun RowScope.GzaNavigationBarItem(
 
 /**
  * Shrinks to fit rather than cutting the word: "პარამეტრები" (Settings) is wider than a
- * fifth of a phone at 12sp. Colour and style come from the item.
+ * fifth of a phone at 12sp. Below 11sp it would be too small to read, so at large font
+ * sizes the label ellipsizes instead; its semantics keep the full text, so TalkBack still
+ * says the whole name. One line, not two: a single long word would break mid-word before
+ * autosize ever shrank it. The side padding keeps the edge items off the screen edge.
+ * Colour and style come from the item.
  */
 @Composable
 private fun NavigationLabel(label: String) {
@@ -71,11 +77,14 @@ private fun NavigationLabel(label: String) {
     BasicText(
         text = label,
         style = style,
+        modifier = Modifier.padding(horizontal = LabelSidePadding),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        autoSize = TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = style.fontSize, stepSize = 0.5.sp)
+        autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = style.fontSize, stepSize = 0.5.sp)
     )
 }
+
+private val LabelSidePadding = 4.dp
 
 @PreviewLightDark
 @Composable
