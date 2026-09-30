@@ -6,6 +6,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import ge.hackerman.gza.BuildConfig
+import ge.hackerman.gza.core.data.coroutines.ApplicationScope
+import ge.hackerman.gza.core.data.coroutines.IoDispatcher
 import ge.hackerman.gza.core.ttc.TtcFallbackConfig
 import ge.hackerman.gza.core.ttc.config.DefaultGatewayConfigProvider
 import ge.hackerman.gza.core.ttc.config.GatewayConfigProvider

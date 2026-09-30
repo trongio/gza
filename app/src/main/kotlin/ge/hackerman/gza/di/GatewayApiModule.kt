@@ -4,6 +4,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import ge.hackerman.gza.core.data.coroutines.DefaultDispatcher
 import ge.hackerman.gza.core.ttc.gateway.TtcGatewayClient
 import ge.hackerman.gza.core.ttc.gateway.TtcGatewayClientFactory
 import java.time.Clock

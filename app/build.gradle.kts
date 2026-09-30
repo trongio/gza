@@ -22,6 +22,7 @@ android {
 }
 
 dependencies {
+    implementation(projects.core.data)
     implementation(projects.core.designsystem)
     implementation(projects.core.ttc)
     implementation(projects.core.model)
