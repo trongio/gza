@@ -17,7 +17,9 @@ import ge.hackerman.gza.feature.plan.PlanMode
 import ge.hackerman.gza.feature.plan.PlanTestTags
 import ge.hackerman.gza.feature.search.SearchTestTags
 import ge.hackerman.gza.feature.settings.SettingsTestTags
+import ge.hackerman.gza.navigation.TAB_TRANSITION_TOTAL_MILLIS
 import ge.hackerman.gza.navigation.TopLevelDestination
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -108,11 +110,27 @@ class GzaAppTest {
     }
 
     @Test
+    fun tabSwitchSettlesQuickly() {
+        // The user found the default 700 ms fade too slow; pin the switch to a short budget.
+        assertTrue(TAB_TRANSITION_TOTAL_MILLIS <= TAB_SWITCH_BUDGET_MILLIS)
+        composeRule.mainClock.autoAdvance = false
+        tab(TopLevelDestination.SEARCH).performClick()
+        composeRule.mainClock.advanceTimeBy(TAB_SWITCH_BUDGET_MILLIS.toLong())
+        composeRule.onNodeWithTag(NowTestTags.SCREEN).assertDoesNotExist()
+        composeRule.onNodeWithTag(SearchTestTags.SCREEN).assertIsDisplayed()
+        assertOnly(TopLevelDestination.SEARCH)
+    }
+
+    @Test
     @Config(qualifiers = "+ka")
     fun bottomBarSpeaksGeorgian() {
         val labels = listOf("ახლა", "ძიება", "რუკა", "დაგეგმვა", "პარამეტრები")
         TopLevelDestination.entries.zip(labels).forEach { (destination, label) ->
             tab(destination).assertTextEquals(label)
         }
+    }
+
+    private companion object {
+        const val TAB_SWITCH_BUDGET_MILLIS = 300
     }
 }
