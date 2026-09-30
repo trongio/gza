@@ -166,7 +166,10 @@ class DeparturePredictorPropertyTest {
 
     private fun liveRoutes(request: StopRequest, now: ZonedDateTime) = request.routes
         .mapNotNull { it.positions }
-        .filter { Duration.between(it.fetchedAt, now.toInstant()) <= PredictionRules.Default.maxPositionsAge }
+        .filter {
+            val age = Duration.between(it.fetchedAt, now.toInstant())
+            age <= PredictionRules.Default.maxPositionsAge && age >= PredictionRules.Default.maxClockSkew.negated()
+        }
         .map { it.routeId }
         .toSet()
 
@@ -181,9 +184,14 @@ class DeparturePredictorPropertyTest {
     }
 
     private fun randomPositions(route: RouteSnapshot, now: ZonedDateTime): RoutePositions? {
-        val fetchedAt = when (random.nextInt(5)) {
+        val fetchedAt = when (random.nextInt(6)) {
             0 -> return null
+
             1 -> now.minusMinutes(random.nextLong(2, 10))
+
+            // The phone clock behind the gateway: a little is skew, a lot is not trusted.
+            2 -> now.plusSeconds(random.nextLong(0, MAX_FUTURE_SECONDS))
+
             else -> now.minusSeconds(random.nextLong(0, 121))
         }
         val count = random.nextInt(0, 4)
@@ -236,5 +244,6 @@ class DeparturePredictorPropertyTest {
         const val MIN_ROWS_PER_STATE = 10
         const val FOLLOW_UP_MIN_SECONDS = 15L
         const val FOLLOW_UP_MAX_SECONDS = 900L
+        const val MAX_FUTURE_SECONDS = 300L
     }
 }

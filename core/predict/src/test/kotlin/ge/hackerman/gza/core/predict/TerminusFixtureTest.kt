@@ -283,7 +283,19 @@ class TerminusFixtureTest {
         val edge = fresh.copy(fetchedAt = fresh.fetchedAt.minus(Duration.ofMinutes(2)))
         assertEquals("1:3046", predictor.predict(derived326(edge)).departures.at("326", "17:49").waitingVehicle)
 
-        val ahead = fresh.copy(fetchedAt = fresh.fetchedAt.plus(Duration.ofMinutes(5)))
+        val ahead = fresh.copy(fetchedAt = fresh.fetchedAt.plus(Duration.ofMinutes(2)))
         assertEquals("1:3046", predictor.predict(derived326(ahead)).departures.at("326", "17:49").waitingVehicle)
+    }
+
+    @Test
+    fun `positions stamped too far in the future count as offline`() {
+        val fresh = positions("$derived/positions.json", "326")
+        val predictor = DeparturePredictor(tbilisiClock("2026-09-28T17:32:00"))
+        listOf(Duration.ofSeconds(121), Duration.ofMinutes(5), Duration.ofDays(1)).forEach { skew ->
+            val future = fresh.copy(fetchedAt = fresh.fetchedAt.plus(skew))
+            val result = predictor.predict(derived326(future))
+            assertEquals(DepartureState.TimetableOnly, result.departures.at("326", "17:49").state, "at +$skew")
+            assertEquals(LayoverMemory.Empty, result.memory, "at +$skew")
+        }
     }
 }

@@ -64,9 +64,11 @@ class DeparturePredictor(private val clock: Clock, private val rules: Prediction
         )
     }
 
-    // Negative ages (a clock skew between the phone and the gateway) count as fresh.
-    private fun RoutePositions.isFresh(now: ZonedDateTime): Boolean =
-        Duration.between(fetchedAt, now.toInstant()) <= rules.maxPositionsAge
+    // A small negative age is clock skew between the phone and the gateway, and counts as fresh.
+    private fun RoutePositions.isFresh(now: ZonedDateTime): Boolean {
+        val age = Duration.between(fetchedAt, now.toInstant())
+        return age <= rules.maxPositionsAge && age >= rules.maxClockSkew.negated()
+    }
 
     private fun RouteSnapshot.toDeparture(row: ScheduledDeparture, state: DepartureState) = PredictedDeparture(
         routeId = route.id,

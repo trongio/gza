@@ -24,7 +24,13 @@ data class PredictionRules(
     /** A row stays listed this long after its time, so it does not vanish the second it passes. */
     val pastGrace: Duration = Duration.ofMinutes(1),
     /** Positions older than this count as no live data. */
-    val maxPositionsAge: Duration = Duration.ofMinutes(2)
+    val maxPositionsAge: Duration = Duration.ofMinutes(2),
+    /**
+     * Positions stamped up to this far after now still count as fresh (the phone clock runs
+     * behind). Further ahead the stamp is not trusted: with no bound, one wrong clock would
+     * make a snapshot fresh for as long as it is kept.
+     */
+    val maxClockSkew: Duration = Duration.ofMinutes(2)
 ) {
     companion object {
         val Default = PredictionRules()
