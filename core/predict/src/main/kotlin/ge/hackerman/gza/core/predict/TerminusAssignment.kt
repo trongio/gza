@@ -32,11 +32,15 @@ internal class TerminusAssignment(
         if (positions != null && firstStopRows.isNotEmpty()) {
             val parked = positions.vehicles
                 .filter { it.isInLayoverAt(terminus, rules) }
+                // The feed can list one bus under two patterns: it is one bus and takes one
+                // row, counted for the pattern that starts here when one of them does.
+                .sortedBy { it.pattern !in firstStopRows }
+                .distinctBy { it.vehicleId }
                 .map { vehicle ->
                     val remembered = previous.vehicles[ParkedKey(routeId, vehicle.vehicleId)]
                     Parked(vehicle, remembered, firstSeen(remembered))
                 }
-            val byPattern = parked.groupBy { targetPattern(it.position, firstStopRows, rows) }
+            val byPattern = parked.groupBy { targetPattern(it, firstStopRows, rows) }
             firstStopRows.forEach { (pattern, indices) ->
                 val queue = byPattern[pattern].orEmpty().sortedWith(QUEUE_ORDER)
                 assignPattern(routeId, pattern, queue, indices, rows)
@@ -99,15 +103,16 @@ internal class TerminusAssignment(
 
     /**
      * The gateway relabels buses while they wait (TTC_API.md), so a parked bus labelled with a
-     * pattern that does not start here counts for the pattern that leaves here next.
+     * pattern that does not start here keeps the pattern it was counted for on earlier polls,
+     * and failing that counts for the pattern that leaves here next.
      */
     private fun targetPattern(
-        bus: VehiclePosition,
+        bus: Parked,
         firstStopRows: Map<PatternSuffix, List<Int>>,
         rows: List<ScheduledDeparture>
     ): PatternSuffix {
-        if (bus.pattern in firstStopRows) return bus.pattern
-        return firstStopRows.minBy { (_, indices) ->
+        val known = listOfNotNull(bus.position.pattern, bus.remembered?.pattern).firstOrNull { it in firstStopRows }
+        return known ?: firstStopRows.minBy { (_, indices) ->
             indices.map { rows[it].scheduled.toInstant() }.firstOrNull { !it.isBefore(now.toInstant()) } ?: Instant.MAX
         }.key
     }

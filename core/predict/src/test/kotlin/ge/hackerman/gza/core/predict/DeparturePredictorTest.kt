@@ -12,6 +12,7 @@ import ge.hackerman.gza.core.predict.testing.Synthetic.positions
 import ge.hackerman.gza.core.predict.testing.Synthetic.route
 import ge.hackerman.gza.core.predict.testing.Synthetic.schedule
 import ge.hackerman.gza.core.predict.testing.at
+import ge.hackerman.gza.core.predict.testing.memoryOf
 import ge.hackerman.gza.core.predict.testing.of
 import ge.hackerman.gza.core.predict.testing.tbilisi
 import ge.hackerman.gza.core.predict.testing.waitingVehicle
@@ -81,6 +82,38 @@ class DeparturePredictorTest {
         assertEquals("1:3046", result.departures.at("326", "17:40").waitingVehicle)
         assertEquals(PatternSuffix("0:02"), result.memory.of("1:3046").pattern)
         assertEquals(DepartureState.TimetableOnly, result.departures.at("326", "17:55").state)
+    }
+
+    @Test
+    fun `a relabelled bus keeps the pattern it was counted for when that one starts here`() {
+        val now = "${monday}T17:32:00"
+        val snapshot = RouteSnapshot(
+            r326,
+            listOf(
+                schedule(r326, "0:01", listOf("17:40")),
+                schedule(r326, "0:02", listOf("17:55")),
+                schedule(r326, "1:01", listOf("17:35"), position = 3)
+            ),
+            positions = positions(r326, live(now), parked("1:3046", pattern = "1:01"))
+        )
+        val counted = memoryOf(
+            r326.id,
+            "1:3046" to ParkedVehicle(PatternSuffix("0:02"), tbilisi("${monday}T17:20:00").toInstant(), null)
+        )
+        val result = predictAt(now, snapshot, memory = counted)
+        assertEquals("1:3046", result.departures.at("326", "17:55").waitingVehicle)
+        assertEquals(DepartureState.NoBusYet, result.departures.at("326", "17:40").state)
+        assertEquals(PatternSuffix("0:02"), result.memory.of("1:3046").pattern)
+
+        // A remembered pattern that does not start here either falls back to the next to leave.
+        val gone = memoryOf(
+            r326.id,
+            "1:3046" to ParkedVehicle(PatternSuffix("1:01"), tbilisi("${monday}T17:20:00").toInstant(), null)
+        )
+        assertEquals(
+            "1:3046",
+            predictAt(now, snapshot, memory = gone).departures.at("326", "17:40").waitingVehicle
+        )
     }
 
     @Test

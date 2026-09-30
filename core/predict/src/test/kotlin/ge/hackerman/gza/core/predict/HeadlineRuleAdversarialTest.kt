@@ -188,29 +188,26 @@ class HeadlineRuleAdversarialTest {
     }
 
     @Test
-    @Disabled("Bug: a vehicle id listed twice in positions is given two rows (T05 tester report)")
     fun `the same bus listed under both patterns takes one departure, not two`() {
         val schedules = listOf(
             Synthetic.schedule(r326, "0:01", listOf("17:49", "18:07")),
             Synthetic.schedule(r326, "1:01", listOf("17:30"), position = 3)
         )
         val now = "${monday}T17:32:00"
-        val result = predict(
-            now,
-            request(
-                RouteSnapshot(
-                    r326,
-                    schedules,
-                    positions = live(now, parked("1:3046", "0:01"), parked("1:3046", "1:01"))
-                )
+        val outbound = parked("1:3046", "0:01")
+        val inbound = parked("1:3046", "1:01")
+        listOf(listOf(outbound, inbound), listOf(inbound, outbound)).forEach { listed ->
+            val result =
+                predict(now, request(RouteSnapshot(r326, schedules, positions = live(now, *listed.toTypedArray()))))
+            assertNeverEarly(result)
+            assertEquals("1:3046", result.departures.at("326", "17:49").waitingVehicle)
+            assertEquals(
+                DepartureState.TimetableOnly,
+                result.departures.at("326", "18:07").state,
+                "a ghost second bus is waiting for 18:07"
             )
-        )
-        assertNeverEarly(result)
-        assertEquals(
-            DepartureState.TimetableOnly,
-            result.departures.at("326", "18:07").state,
-            "a ghost second bus is waiting for 18:07"
-        )
+            assertEquals(PatternSuffix("0:01"), result.memory.of("1:3046").pattern)
+        }
     }
 
     @Test
