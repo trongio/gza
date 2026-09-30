@@ -114,6 +114,19 @@ Checked live on 2026-09-28 (`/v3/routes`, `/v2/stops`, board of `1:970`):
 - Buses resting at a terminus report the stop's own coordinates with `heading` and
   `nextStopId` both `null`. Several can be parked at once (seen: 3 on route 551 at `1:970`).
 - A bus at the last stop of one pattern usually reappears on the reverse pattern.
+- Layover buses do not always sit on the stop (checked 2026-09-30 against the T03 fixtures,
+  comparing snapshots of the same vehicles): 301 vehicle `1:3854` waited 318 m from its
+  first stop `1:2919` at 20:44 with `heading` and `nextStopId` null, and by 21:01 was about
+  4 km down `1:01` (consistent with the 20:46 departure) while the bus parked on the stop
+  itself was 1.4 km out (the 21:00). 551 vehicle `1:774` waited 442 m from `1:20225` at
+  20:43 and by 21:01 was about 8 km down `1:01` (the 20:52). Every other null/null fix sat
+  0 to 6 m from a first stop. Every vehicle seen moving near a terminus had a heading
+  (551 `1:985` at 76 m, 326 `1:3299` at 189 m), so "both null" is the between-trips
+  signal and distance only says at which terminus.
+- The gateway relabels a bus while it waits: 551 `1:220` and `1:987` arrived at
+  `1:20225` on `0:01` (20:43, heading set) and were listed parked under `1:01` at 21:01.
+  A bus still arriving at a last stop keeps its heading (`1:979`, 22 m, `nextStopId` null).
+- Positions carry no speed and no timestamp per vehicle; "has it moved" needs two polls.
 - `heading` and `nextStopId` are independent: route 551 vehicle `1:220` had a heading but
   `nextStopId: null` mid-route. Vehicles at the far terminus of `1:01` also report both null.
 - `heading` is a float in degrees (`331.5845031738281`).

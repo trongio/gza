@@ -86,7 +86,7 @@ Acceptance:
 - [ ] Room DAO tests (in-memory) and repository tests with a fake gateway.
 - [ ] App works offline after one online launch (test: repository serves cached data when the gateway throws).
 
-## [ ] T05 Prediction engine v1: timetable + layover
+## [x] T05 Prediction engine v1: timetable + layover (PR #5)
 Depends: T03
 - `:core:predict` pure JVM with an injected `Clock`. Service period selection
   (serviceDates first, weekday fallback), times past midnight, departures for a stop
@@ -97,9 +97,15 @@ Depends: T03
 - Leave-by = predicted departure minus walk minutes minus buffer.
 
 Acceptance:
-- [ ] Tests from real fixtures at stop 1:970: parked 326 with the board saying 0 min is predicted as waiting until the timetable time.
-- [ ] Tests for Sunday to Monday rollover, 23:59 to 00:10 departures, empty service day, missing schedule.
-- [ ] Ports and passes the test cases from the ttc-leave-by prototype.
+- [x] Tests from real fixtures at stop 1:970: parked 326 with the board saying 0 min is predicted as waiting until the timetable time.
+- [x] Tests for Sunday to Monday rollover, 23:59 to 00:10 departures, empty service day, missing schedule.
+- [x] Ports and passes the test cases from the ttc-leave-by prototype.
+
+Follow-ups:
+- Warm-route late claim: when the route was polled moments ago, a parked bus with no memory past its time could claim the passed row as Late (rejected for cold start, see PLAN.md 2.0).
+- Bus stale only via missedLongAgo but seen on every poll resets firstSeen; keep firstSeen and clear waitingFor instead.
+- Cross-route listing only blocks a dropout hold for that poll; if one physical bus is listed on another route, the next missing poll can hold it again for up to 1 min. Consider marking the entry seenMoving in that case.
+- GPS jitter just outside the layover radius marks a parked bus seenMoving, so a dropout right after hides its row for one poll. Consider two moving sightings or radius hysteresis.
 
 ## [x] T06 App shell and design system (PR #3)
 Depends: T01
