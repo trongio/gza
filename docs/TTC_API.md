@@ -52,6 +52,13 @@ the next timetable departure was 20:47. `326` read `-30` scheduled.
 - `realtime` was `true` on every row seen so far; treat `realtimeArrivalMinutes` as
   nullable anyway.
 - Stops: 29 of 2,753 have `code: null` (all metro and cable car stops).
+- `locale=ka` vs `locale=en` (recorded 2026-09-30 18:07 Tbilisi, `stops/all-ka.json`,
+  `routes/all-ka.json`): both lists have exactly the same ids (2,753 stops, 280 routes), and
+  only the names differ. Every stop has a name in both; 227 stops have the same name in both
+  (numbers, metro and cable car names). `code`, coordinates, `vehicleMode`, `shortName`,
+  `color` and `mode` are identical. Of the routes, 164 `longName`s are the same in both
+  locales (minibuses are Georgian everywhere). The data layer stores EN and KA names side by
+  side and treats the EN list as the id list of record.
 
 ## Routes (v3)
 

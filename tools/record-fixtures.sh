@@ -2,10 +2,12 @@
 # Records real TTC gateway responses as test fixtures in core/ttc/src/test/resources/fixtures/,
 # with the key stripped. Linux only (GNU date).
 #
-#   tools/record-fixtures.sh [all|static|live|errors|terminus [minutes]]   (default: all)
+#   tools/record-fixtures.sh [all|static|ka|live|errors|terminus [minutes]]   (default: all)
 #
 #   static    stops, routes, route details, schedules, stops of patterns, polylines,
-#             geocoding. Overwrites: this data changes weekly at most.
+#             geocoding, and everything in ka. Overwrites: this data changes weekly at most.
+#   ka        the Georgian stops and routes lists and route details (301, 326, 472), which
+#             the data layer merges with the English ones by id. Overwrites, like static.
 #   live      boards, positions and plans, timestamped and never overwritten, so real odd
 #             responses accumulate.
 #   errors    the gateway's error shapes (500 for unknown ids, 400 problem JSON, 401).
@@ -171,6 +173,7 @@ joined_patterns_of() { patterns_of "$1" | paste -sd, -; }
 static() {
 	local name id p
 	record stops/all-en "/v2/stops?locale=en" 200
+	ka
 	record stop/1-970-en "/v2/stops/$stop970?locale=en" 200
 	record stop/1-970-ka "/v2/stops/$stop970?locale=ka" 200
 	record stop-routes/1-970-en "/v2/stops/$stop970/routes?locale=en" 200
@@ -195,6 +198,16 @@ static() {
 	record geocode/no-results "/v2/geocode?query=zzqxqzzqxq&locale=en&bbox=$bbox" 200 "$tmp/headers" '.features | length == 0'
 	record reverse-geocode/1-970-en "/v2/geocode/reverse?lat=$stop970_lat&lon=$stop970_lon&locale=en" 200
 	record reverse-geocode/nowhere "/v2/geocode/reverse?lat=0&lon=0&locale=en" 200 "$tmp/headers" '.features | length == 0'
+}
+
+ka() {
+	local name
+	record stops/all-ka "/v2/stops?locale=ka" 200
+	record routes/all-ka "/v3/routes?modes=BUS,SUBWAY,GONDOLA&locale=ka" 200
+	# 551-ka is recorded by static already.
+	for name in 301 326 472; do
+		record "route/$name-ka" "/v3/routes/${route_ids[$name]}?locale=ka" 200
+	done
 }
 
 live() {
@@ -288,11 +301,12 @@ all)
 	errors
 	;;
 static) static ;;
+ka) ka ;;
 live) live ;;
 errors) errors ;;
 terminus) terminus "${2:-30}" ;;
 *)
-	echo "usage: $0 [all|static|live|errors|terminus [minutes]]" >&2
+	echo "usage: $0 [all|static|ka|live|errors|terminus [minutes]]" >&2
 	exit 2
 	;;
 esac
