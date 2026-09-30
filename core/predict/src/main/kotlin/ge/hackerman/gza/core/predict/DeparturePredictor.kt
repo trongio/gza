@@ -29,6 +29,10 @@ class DeparturePredictor(private val clock: Clock, private val rules: Prediction
         val departures = mutableListOf<PredictedDeparture>()
         val memory = LinkedHashMap<ParkedKey, ParkedVehicle>()
         val liveRoutes = mutableSetOf<RouteId>()
+        // GPS wins: a bus listed on any live route is where the feed says, not held elsewhere.
+        val listedLive = request.routes
+            .mapNotNull { snapshot -> snapshot.positions?.takeIf { it.isFresh(now) } }
+            .flatMapTo(HashSet()) { positions -> positions.vehicles.map { it.vehicleId } }
 
         for (snapshot in request.routes) {
             if (snapshot.schedules.none { it.servesStop(stopId) }) {
@@ -37,7 +41,7 @@ class DeparturePredictor(private val clock: Clock, private val rules: Prediction
             }
             val rows = snapshot.schedules.flatMap { it.departuresAt(stopId, dates) }.sortedBy { it.scheduled }
             val positions = snapshot.positions?.takeIf { it.isFresh(now) }
-            val outcome = TerminusAssignment(rules, now, request.stop.location, request.memory)
+            val outcome = TerminusAssignment(rules, now, request.stop.location, request.memory, listedLive)
                 .assign(snapshot.route.id, rows, positions)
             if (positions != null) {
                 liveRoutes += snapshot.route.id

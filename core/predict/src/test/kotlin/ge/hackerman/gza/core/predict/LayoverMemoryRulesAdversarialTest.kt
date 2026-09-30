@@ -210,12 +210,15 @@ class LayoverMemoryRulesAdversarialTest {
 
         @Test
         fun `positions exactly 2 min old are live and 1 ns older are offline`() {
-            val memory = memoryOf(r326.id, "1:9" to entry("17:40:00", null, lastSeen = "17:44:00"))
+            // 1:9 is past its dropout, so only 1:1 can take the row.
+            val memory = memoryOf(r326.id, "1:9" to entry("17:40:00", null, lastSeen = "17:43:00"))
             val now = at("17:45:00")
             val bus = listOf(parked("1:1"))
 
             val live = poll(now, memory, bus, fetchedAt = now.minusMinutes(2).toInstant())
-            assertTrue(live.departures.any { it.state is DepartureState.Waiting })
+            assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("17:49:00")), live.rowOf("1:1")?.state)
+            assertEquals(now.toInstant(), live.memory.of("1:1").firstSeen)
+            assertFalse(live.memory.remembers(VehicleId("1:9")))
 
             val old = poll(now, memory, bus, fetchedAt = now.minusMinutes(2).minusNanos(1).toInstant())
             assertOffline(old, memory)
@@ -358,12 +361,13 @@ class LayoverMemoryRulesAdversarialTest {
             val on551 = snapshot(r551, now, listOf(parked("1:1")))
             val result = poll(now, memory, emptyList(), others = listOf(on551))
 
-            // 326 holds its own late bus through the dropout; 551 never saw it waiting, so no late there.
+            // 551 never saw it waiting, so no late there; and 1:1 is listed on live 551, so GPS
+            // wins and 326 does not hold it through the dropout either.
             assertTrue(
-                result.departures.none { it.routeId == r551.id && it.state is DepartureState.Late },
+                result.departures.none { it.state is DepartureState.Late },
                 "${result.departures}"
             )
-            assertTrue(result.rowAt(at("17:49:00"))?.state is DepartureState.Late, "${result.departures}")
+            assertTrue(result.departures.none { it.routeId == r326.id && it.state is DepartureState.Waiting })
             val row551 = result.departures.single { it.routeId == r551.id && it.state is DepartureState.Waiting }
             assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("18:07:00")), row551.state)
             assertEquals(

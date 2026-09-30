@@ -20,7 +20,9 @@ internal class TerminusAssignment(
     private val rules: PredictionRules,
     private val now: ZonedDateTime,
     private val terminus: LatLon,
-    private val previous: LayoverMemory
+    private val previous: LayoverMemory,
+    /** Every vehicle id listed on any live route of this request, parked or not. */
+    private val listedLive: Set<VehicleId>
 ) {
     private val nowInstant = now.toInstant()
     private val states = HashMap<Int, DepartureState>()
@@ -33,9 +35,10 @@ internal class TerminusAssignment(
             .filter { (key, entry) -> key.routeId == routeId && !entry.isStale() }
             .mapKeys { (key, _) -> key.vehicleId }
         val firstStopRows = rows.indices.filter { rows[it].atFirstStop }.groupBy { rows[it].pattern }
+        val listed = positions.vehicles.mapTo(HashSet()) { it.vehicleId }
+        val inLayover = positions.vehicles.filter { it.isInLayoverAt(terminus, rules) }
         if (firstStopRows.isNotEmpty()) {
-            val parked = positions.vehicles
-                .filter { it.isInLayoverAt(terminus, rules) }
+            val parked = inLayover
                 // The feed can list one bus under two patterns: it is one bus and takes one
                 // row, counted for the pattern that starts here when one of them does.
                 .sortedBy { it.pattern !in firstStopRows }
@@ -45,15 +48,14 @@ internal class TerminusAssignment(
                     val firstSeen = entry?.firstSeen?.coerceAtMost(nowInstant) ?: nowInstant
                     Parked(vehicle.vehicleId, vehicle.pattern, entry, firstSeen, lastSeen = nowInstant)
                 }
-            val listed = positions.vehicles.mapTo(HashSet()) { it.vehicleId }
-            val held = heldThroughDropout(remembered, listed)
+            val held = heldThroughDropout(remembered, listed + listedLive)
             val byPattern = (parked + held).groupBy { targetPattern(it, firstStopRows, rows) }
             firstStopRows.forEach { (pattern, indices) ->
                 val queue = byPattern[pattern].orEmpty().sortedWith(QUEUE_ORDER)
                 assignPattern(routeId, pattern, queue, indices, rows)
             }
         }
-        keepThroughDropout(routeId, remembered)
+        keepThroughDropout(routeId, remembered, seenMoving = listed - inLayover.mapTo(HashSet()) { it.vehicleId })
         return TerminusOutcome(states, memory)
     }
 
@@ -109,10 +111,14 @@ internal class TerminusAssignment(
      * The gateway sometimes leaves a parked bus out of one poll. A remembered bus missing from
      * the feed within [PredictionRules.memoryDropout] of when it was last seen is still parked:
      * it keeps its place in the queue, so its row does not flicker to "no bus" or vanish for
-     * one poll. A bus in the feed but not parked has left, and is not held.
+     * one poll. GPS wins over memory: a bus in the feed but not parked here has left, and
+     * neither it nor its entry is held again until it is seen parked here; an id listed on
+     * any live route of the request is somewhere the GPS can see, so it is not held either.
      */
     private fun heldThroughDropout(remembered: Map<VehicleId, ParkedVehicle>, listed: Set<VehicleId>): List<Parked> =
-        remembered.filter { (vehicleId, entry) -> vehicleId !in listed && entry.withinDropout(nowInstant, rules) }
+        remembered.filter { (vehicleId, entry) ->
+            vehicleId !in listed && !entry.seenMoving && entry.withinDropout(nowInstant, rules)
+        }
             .map { (vehicleId, entry) ->
                 Parked(vehicleId, null, entry, entry.firstSeen.coerceAtMost(nowInstant), entry.lastSeen)
             }
@@ -120,12 +126,19 @@ internal class TerminusAssignment(
     /**
      * Entries not given a row this poll (no first-stop rows, or the bus was seen moving) are
      * still kept through the dropout, so the bus is still late, and still holds its first
-     * sighting, when it comes back.
+     * sighting, when it comes back parked. An entry of a bus [seenMoving] on this route is
+     * marked, so a later poll that leaves the bus out does not hold its row again.
      */
-    private fun keepThroughDropout(routeId: RouteId, remembered: Map<VehicleId, ParkedVehicle>) {
+    private fun keepThroughDropout(
+        routeId: RouteId,
+        remembered: Map<VehicleId, ParkedVehicle>,
+        seenMoving: Set<VehicleId>
+    ) {
         remembered.forEach { (vehicleId, entry) ->
             val key = ParkedKey(routeId, vehicleId)
-            if (key !in memory && entry.withinDropout(nowInstant, rules)) memory[key] = entry
+            if (key !in memory && entry.withinDropout(nowInstant, rules)) {
+                memory[key] = if (vehicleId in seenMoving) entry.copy(seenMoving = true) else entry
+            }
         }
     }
 
@@ -184,5 +197,8 @@ internal class TerminusAssignment(
 
 private fun latest(a: ZonedDateTime, b: ZonedDateTime): ZonedDateTime = if (b.isAfter(a)) b else a
 
-private fun ParkedVehicle.withinDropout(now: Instant, rules: PredictionRules): Boolean =
-    Duration.between(lastSeen, now) <= rules.memoryDropout
+// A lastSeen after now (the clock moved back) says nothing about how long ago the bus was seen.
+private fun ParkedVehicle.withinDropout(now: Instant, rules: PredictionRules): Boolean {
+    val gap = Duration.between(lastSeen, now)
+    return !gap.isNegative && gap <= rules.memoryDropout
+}

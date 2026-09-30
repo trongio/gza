@@ -326,40 +326,59 @@ class HeldThroughDropoutAdversarialTest {
         }
     }
 
+    /**
+     * GPS wins over memory: an id listed on any live route of the request is where the feed
+     * says, so a hold on another route ends for that poll. Its entry there is kept, not marked
+     * moving, since the id on another route may be another bus. An offline route lists nothing.
+     */
     @Nested
     inner class ReusedIdOnAnotherRoute {
         private val held = memory(key(r326, "1:1") to entry("17:40:00", "17:49:00", lastSeen = "17:45:00"))
         private val now = at("17:45:15")
 
-        private fun withOn551(vehicle: VehiclePosition): StopPrediction =
-            predict(now, held, snapshot(r326, now, emptyList()), snapshot(r551, now, listOf(vehicle)))
+        private fun withOn551(vehicle: VehiclePosition, fetchedAt: Instant = now.toInstant()): StopPrediction = predict(
+            now,
+            held,
+            snapshot(r326, now, emptyList()),
+            snapshot(r551, now, listOf(vehicle), fetchedAt = fetchedAt)
+        )
 
-        @Test
-        fun `the id driving on another route does not end the hold here`() {
-            val result = withOn551(moving("1:1"))
-            result.assertHeadline(mapOf(key(r326, "1:1") to instant("17:40:00")), "moving on 551")
-            assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("17:49:00")), result.rowAt(at("17:49:00"))?.state)
-            assertTrue(result.rowsOf("1:1", r551.id).isEmpty())
-            assertEquals(DepartureState.NoBusYet, result.rowAt(at("17:49:00"), r551.id)?.state)
-            assertEquals(held, result.memory, "551 gets no entry for a moving bus")
+        private fun StopPrediction.assertHoldEndedOn326() {
+            assertTrue(rowsOf("1:1").isEmpty(), "$departures")
+            assertEquals(DepartureState.NoBusYet, rowAt(at("17:49:00"))?.state)
+            assertEquals(
+                held.vehicles.getValue(key(r326, "1:1")),
+                memory.vehicles.getValue(key(r326, "1:1")),
+                "326 keeps its entry through the dropout, unmarked"
+            )
         }
 
         @Test
-        fun `the id parked far away on another route does not end the hold here`() {
+        fun `the id driving on another live route ends the hold here for that poll`() {
+            val result = withOn551(moving("1:1"))
+            result.assertHoldEndedOn326()
+            assertTrue(result.rowsOf("1:1", r551.id).isEmpty())
+            assertEquals(DepartureState.NoBusYet, result.rowAt(at("17:49:00"), r551.id)?.state)
+            assertEquals(held, result.memory, "551 gets no entry for a moving bus")
+
+            // Gone from 551 too on the next poll: 326's unmarked entry holds again.
+            val next = predict(at("17:45:30"), result.memory, snapshot(r326, at("17:45:30"), emptyList()))
+            assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("17:49:00")), next.rowAt(at("17:49:00"))?.state)
+        }
+
+        @Test
+        fun `the id parked far away on another live route ends the hold here`() {
             val result = withOn551(parked("1:1", at = LatLon(HOME.lat + 0.0054, HOME.lon)))
-            assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("17:49:00")), result.rowAt(at("17:49:00"))?.state)
+            result.assertHoldEndedOn326()
             assertTrue(result.rowsOf("1:1", r551.id).isEmpty())
             assertEquals(held, result.memory)
         }
 
         @Test
-        fun `the id parked here on another route is a new sighting there and held here`() {
+        fun `the id parked here on another live route is a new sighting there and not held here`() {
             val result = withOn551(parked("1:1"))
-            result.assertHeadline(
-                mapOf(key(r326, "1:1") to instant("17:40:00"), key(r551, "1:1") to now.toInstant()),
-                "parked on both"
-            )
-            assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("17:49:00")), result.rowAt(at("17:49:00"))?.state)
+            result.assertHeadline(mapOf(key(r551, "1:1") to now.toInstant()), "parked on 551")
+            result.assertHoldEndedOn326()
             assertEquals(
                 DepartureState.Waiting(VehicleId("1:1"), at("17:49:00")),
                 result.rowAt(at("17:49:00"), r551.id)?.state
@@ -367,7 +386,19 @@ class HeldThroughDropoutAdversarialTest {
             val on551 = result.memory.vehicles.getValue(key(r551, "1:1"))
             assertEquals(now.toInstant(), on551.firstSeen)
             assertEquals(now.toInstant(), on551.lastSeen)
-            assertEquals(held.vehicles.getValue(key(r326, "1:1")), result.memory.vehicles.getValue(key(r326, "1:1")))
+        }
+
+        @Test
+        fun `the id on a stale 551 snapshot is not listed, so the hold here stands`() {
+            val result = withOn551(moving("1:1"), fetchedAt = instant("17:43:14"))
+            result.assertHeadline(mapOf(key(r326, "1:1") to instant("17:40:00")), "551 stale")
+            assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("17:49:00")), result.rowAt(at("17:49:00"))?.state)
+        }
+
+        @Test
+        fun `the id on an offline 551 is not listed, so the hold here stands`() {
+            val result = predict(now, held, snapshot(r326, now, emptyList()), snapshot(r551, now, null))
+            assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("17:49:00")), result.rowAt(at("17:49:00"))?.state)
         }
 
         @Test
@@ -380,6 +411,99 @@ class HeldThroughDropoutAdversarialTest {
                 DepartureState.Waiting(VehicleId("1:1"), at("17:49:00")),
                 result.rowAt(at("17:49:00"), r551.id)?.state
             )
+        }
+    }
+
+    /**
+     * GPS wins over memory: a bus seen in its route's feed but not parked here has left, and a
+     * later poll that leaves it out must not bring its row back, Waiting or Late.
+     */
+    @Nested
+    inner class SeenMovingThenMissing {
+        @Test
+        fun `a waiting bus that drives off and then drops out gets no row`() {
+            val parkedPoll = poll(at("17:50:00"), LayoverMemory.Empty, listOf(parked("1:1")))
+            assertEquals(
+                DepartureState.Waiting(VehicleId("1:1"), at("18:07:00")),
+                parkedPoll.rowAt(at("18:07:00"))?.state
+            )
+
+            val drivingOff = poll(at("17:50:15"), parkedPoll.memory, listOf(moving("1:1")))
+            assertTrue(drivingOff.rowsOf("1:1").isEmpty(), "${drivingOff.departures}")
+            assertTrue(drivingOff.memory.vehicles.getValue(key(r326, "1:1")).seenMoving)
+
+            val missing = poll(at("17:50:30"), drivingOff.memory, emptyList())
+            assertTrue(missing.rowsOf("1:1").isEmpty(), "${missing.departures}")
+            // 18:07 is over 12 min away, so a plain timetable row.
+            assertEquals(DepartureState.TimetableOnly, missing.rowAt(at("18:07:00"))?.state)
+        }
+
+        @Test
+        fun `a late bus that drives off and then drops out gets no row`() {
+            val start = memory(key(r326, "1:1") to entry("17:40:00", "17:49:00", lastSeen = "17:50:00"))
+            val late = poll(at("17:50:00"), start, listOf(parked("1:1")))
+            assertTrue(late.rowAt(at("17:49:00"))?.state is DepartureState.Late)
+
+            val drivingOff = poll(at("17:50:15"), late.memory, listOf(moving("1:1")))
+            assertTrue(drivingOff.rowsOf("1:1").isEmpty(), "${drivingOff.departures}")
+
+            listOf("17:50:30", "17:50:45", "17:51:00").fold(drivingOff.memory) { mem, time ->
+                val missing = poll(at(time), mem, emptyList())
+                assertTrue(missing.rowsOf("1:1").isEmpty(), "$time: ${missing.departures}")
+                assertTrue(missing.departures.none { it.state is DepartureState.Late }, time)
+                missing.memory
+            }
+        }
+
+        @Test
+        fun `a bus parked far away on its own route counts as moving`() {
+            val start = memory(key(r326, "1:1") to entry("17:40:00", "17:49:00", lastSeen = "17:45:00"))
+            val far = poll(at("17:45:15"), start, listOf(parked("1:1", at = LatLon(HOME.lat + 0.0054, HOME.lon))))
+            assertTrue(far.memory.vehicles.getValue(key(r326, "1:1")).seenMoving)
+            val missing = poll(at("17:45:30"), far.memory, emptyList())
+            assertTrue(missing.rowsOf("1:1").isEmpty(), "${missing.departures}")
+        }
+
+        @Test
+        fun `a bus seen moving that parks here again keeps its first sighting and is held again`() {
+            val start = memory(key(r326, "1:1") to entry("17:40:00", "17:49:00", lastSeen = "17:45:00"))
+            val moved = poll(at("17:45:15"), start, listOf(moving("1:1")))
+            val back = poll(at("17:45:30"), moved.memory, listOf(parked("1:1")))
+            val entry = back.memory.vehicles.getValue(key(r326, "1:1"))
+            assertFalse(entry.seenMoving)
+            assertEquals(instant("17:40:00"), entry.firstSeen)
+            val missing = poll(at("17:45:45"), back.memory, emptyList())
+            assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("17:49:00")), missing.rowAt(at("17:49:00"))?.state)
+        }
+    }
+
+    /** A clock moved back leaves lastSeen after now: that is no measure of a dropout. */
+    @Nested
+    inner class ClockMovedBack {
+        private val start = memory(key(r326, "1:1") to entry("17:40:00", "17:49:00", lastSeen = "17:45:00"))
+
+        @Test
+        fun `last seen exactly now is held`() {
+            val result = poll(at("17:45:00"), start, emptyList())
+            assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("17:49:00")), result.rowAt(at("17:49:00"))?.state)
+            assertEquals(start, result.memory)
+        }
+
+        @Test
+        fun `last seen 1 ns after now is neither held nor kept`() {
+            val result = poll(at("17:45:00").minusNanos(1), start, emptyList())
+            assertTrue(result.rowsOf("1:1").isEmpty(), "${result.departures}")
+            assertEquals(DepartureState.NoBusYet, result.rowAt(at("17:49:00"))?.state)
+            assertEquals(LayoverMemory.Empty, result.memory)
+        }
+
+        @Test
+        fun `a departed bus is not shown waiting after a jump back past its row`() {
+            // Late for 17:49, last seen 17:52; the clock jumps back to 17:48:30.
+            val late = memory(key(r326, "1:1") to entry("17:40:00", "17:49:00", lastSeen = "17:52:00"))
+            val result = poll(at("17:48:30"), late, emptyList())
+            assertTrue(result.rowsOf("1:1").isEmpty(), "${result.departures}")
+            assertEquals(LayoverMemory.Empty, result.memory)
         }
     }
 
