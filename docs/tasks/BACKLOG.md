@@ -91,6 +91,7 @@ Follow-ups:
 - A pattern stop whose stop a later catalog sync deleted is dropped on read (no coordinates to show).
 - Confirm with the user that saved stops may be backed up to Google (end-to-end encrypted only); if not, exclude everything in both backup rule files.
 - Only English and Georgian names are synced; Russian UI strings would need `name_ru` columns and a migration.
+- Non-forced refreshes back off after a failure (5 min doubling to 2 h) and return the last error meanwhile; T07/T08 retry buttons must call the forced `refreshRoute`, and stop routes have no forced refresh yet.
 
 ## [ ] T05 Prediction engine v1: timetable + layover
 Depends: T03
