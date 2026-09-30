@@ -46,6 +46,31 @@ internal class SyncStatusTracker @Inject constructor(private val clock: Clock) {
         val error = (outcome as? SyncOutcome.Failed)?.error
         state.update { it + (key to (it[key] ?: KeyStatus.NONE).copy(inFlight = false, lastError = error)) }
     }
+
+    /** A cancelled attempt: not running any more, and it says nothing new about the data. */
+    fun abandon(key: SyncKey) {
+        state.update { it + (key to (it[key] ?: KeyStatus.NONE).copy(inFlight = false)) }
+    }
+
+    /**
+     * Runs one attempt for [key] with its status kept up to date. Failures the data layer knows
+     * become [SyncOutcome.Failed]; cancellation and bugs propagate (see [toSyncError]).
+     */
+    @Suppress("TooGenericExceptionCaught") // toSyncError rethrows anything it does not know.
+    suspend fun track(key: SyncKey, attempt: suspend () -> SyncOutcome): SyncOutcome {
+        begin(key)
+        var outcome: SyncOutcome? = null
+        try {
+            outcome = try {
+                attempt()
+            } catch (e: Exception) {
+                SyncOutcome.Failed(e.toSyncError())
+            }
+            return outcome
+        } finally {
+            if (outcome != null) end(key, outcome) else abandon(key)
+        }
+    }
 }
 
 /**
