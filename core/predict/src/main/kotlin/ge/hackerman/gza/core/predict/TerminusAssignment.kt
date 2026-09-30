@@ -112,7 +112,7 @@ internal class TerminusAssignment(
      * one poll. A bus in the feed but not parked has left, and is not held.
      */
     private fun heldThroughDropout(remembered: Map<VehicleId, ParkedVehicle>, listed: Set<VehicleId>): List<Parked> =
-        remembered.filter { (vehicleId, entry) -> vehicleId !in listed && entry.withinDropout() }
+        remembered.filter { (vehicleId, entry) -> vehicleId !in listed && entry.withinDropout(nowInstant, rules) }
             .map { (vehicleId, entry) ->
                 Parked(vehicleId, null, entry, entry.firstSeen.coerceAtMost(nowInstant), entry.lastSeen)
             }
@@ -125,11 +125,9 @@ internal class TerminusAssignment(
     private fun keepThroughDropout(routeId: RouteId, remembered: Map<VehicleId, ParkedVehicle>) {
         remembered.forEach { (vehicleId, entry) ->
             val key = ParkedKey(routeId, vehicleId)
-            if (key !in memory && entry.withinDropout()) memory[key] = entry
+            if (key !in memory && entry.withinDropout(nowInstant, rules)) memory[key] = entry
         }
     }
-
-    private fun ParkedVehicle.withinDropout(): Boolean = Duration.between(lastSeen, nowInstant) <= rules.memoryDropout
 
     /**
      * An old entry (from before a long gap, or yesterday) says nothing about the bus parked
@@ -185,3 +183,6 @@ internal class TerminusAssignment(
 }
 
 private fun latest(a: ZonedDateTime, b: ZonedDateTime): ZonedDateTime = if (b.isAfter(a)) b else a
+
+private fun ParkedVehicle.withinDropout(now: Instant, rules: PredictionRules): Boolean =
+    Duration.between(lastSeen, now) <= rules.memoryDropout
