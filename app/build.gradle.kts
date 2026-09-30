@@ -41,6 +41,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.work)
+    implementation(libs.androidx.lifecycle.process)
 
     testImplementation(projects.core.testing)
     testImplementation(libs.androidx.navigation.testing)

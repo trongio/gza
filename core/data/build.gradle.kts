@@ -35,6 +35,8 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
+    // AppOpenSync is a lifecycle observer that :app registers on ProcessLifecycleOwner.
+    api(libs.androidx.lifecycle.process)
 
     testImplementation(libs.androidx.room3.testing)
     testImplementation(libs.kotlinx.coroutines.test)
