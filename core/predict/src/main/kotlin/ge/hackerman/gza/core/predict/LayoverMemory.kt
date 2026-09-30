@@ -29,5 +29,7 @@ data class ParkedVehicle(
     /** The first poll that saw it parked: the best guess at its arrival. */
     val firstSeen: Instant,
     /** The scheduled time of the row it was given, or null when it got none. */
-    val waitingFor: ZonedDateTime?
+    val waitingFor: ZonedDateTime?,
+    /** The last poll that saw it parked; an entry is kept through a short gap in the feed. */
+    val lastSeen: Instant = firstSeen
 )

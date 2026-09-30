@@ -23,6 +23,17 @@ data class PredictionRules(
     val lateStep: Duration = Duration.ofMinutes(1),
     /** A row stays listed this long after its time, so it does not vanish the second it passes. */
     val pastGrace: Duration = Duration.ofMinutes(1),
+    /**
+     * A remembered bus missing from a poll keeps its entry this long after it was last seen:
+     * the gateway sometimes leaves a parked bus out of one poll (4 polls at T07's 15 s).
+     */
+    val memoryDropout: Duration = Duration.ofMinutes(1),
+    /**
+     * An entry last seen longer ago than this is a new sighting when the bus shows up again,
+     * so an old first sighting never waives a turnaround. Above the longest observed layover
+     * (20 min), far below a day.
+     */
+    val memoryMaxAge: Duration = Duration.ofMinutes(MEMORY_MAX_AGE_MINUTES),
     /** Positions older than this count as no live data. */
     val maxPositionsAge: Duration = Duration.ofMinutes(2),
     /**
@@ -39,6 +50,8 @@ data class PredictionRules(
 
 // Prototype NOT_ARRIVED_WINDOW_MIN, proven on the phone; headways at 1:970 are 10 to 20 min.
 private const val NO_BUS_WINDOW_MINUTES = 12L
+
+private const val MEMORY_MAX_AGE_MINUTES = 30L
 
 // At or below the shortest daytime headway at 1:970 (551, 10 min).
 private const val LATE_LOOKBACK_MINUTES = 10L

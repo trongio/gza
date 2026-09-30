@@ -140,7 +140,16 @@ class DeparturePredictorPropertyTest {
     private fun assertMemory(result: StopPrediction, request: StopRequest, now: ZonedDateTime, context: String) {
         val live = liveRoutes(request, now)
         val kept = request.memory.vehicles.keys.filter { it.routeId !in live }
-        assertEquals(parkedKeys(request, now) + kept, result.memory.vehicles.keys, "memory keys, $context")
+        val parked = parkedKeys(request, now)
+        // A live route keeps an unseen, still current entry for a short dropout.
+        val dropouts = request.memory.vehicles
+            .filter { (key, entry) -> key.routeId in live && key !in parked && entry.survivesDropout(now) }
+            .keys
+        assertEquals(parked + kept + dropouts, result.memory.vehicles.keys, "memory keys, $context")
+        result.memory.vehicles.filterKeys { it in parked }.values.forEach {
+            assertEquals(now.toInstant(), it.lastSeen, "a parked bus is seen now, $context")
+            assertFalse(it.firstSeen.isAfter(now.toInstant()), "first seen in the future, $context")
+        }
     }
 
     private fun assertBoardIsOnlyAHint(
@@ -162,6 +171,14 @@ class DeparturePredictorPropertyTest {
             val buffer = random.nextInt(0, 4)
             assertEquals(row.predicted.minusMinutes((walk + buffer).toLong()), row.leaveBy(walk, buffer), context)
         }
+    }
+
+    private fun ParkedVehicle.survivesDropout(now: ZonedDateTime): Boolean {
+        val rules = PredictionRules.Default
+        val missedLongAgo = waitingFor?.let {
+            it.isBefore(now) && Duration.between(it, now).toMinutes() > rules.lateLookback.toMinutes()
+        } ?: false
+        return !missedLongAgo && Duration.between(lastSeen, now.toInstant()) <= rules.memoryDropout
     }
 
     private fun liveRoutes(request: StopRequest, now: ZonedDateTime) = request.routes

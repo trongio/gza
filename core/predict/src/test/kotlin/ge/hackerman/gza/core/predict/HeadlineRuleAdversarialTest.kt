@@ -28,7 +28,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 /**
@@ -312,7 +311,6 @@ class HeadlineRuleAdversarialTest {
     }
 
     @Test
-    @Disabled("Bug: a first sighting of any age waives the turnaround floor (T05 tester report)")
     fun `yesterday's first sighting does not waive today's turnaround`() {
         // The bus pulled in seconds ago; only a day-old memory entry says it has been there long.
         val schedules = listOf(Synthetic.schedule(r326, "0:01", listOf("17:49", "18:07")))

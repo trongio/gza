@@ -23,13 +23,18 @@ internal class TerminusAssignment(
     private val terminus: LatLon,
     private val previous: LayoverMemory
 ) {
+    private val nowInstant = now.toInstant()
     private val states = HashMap<Int, DepartureState>()
     private val memory = LinkedHashMap<ParkedKey, ParkedVehicle>()
 
     /** [rows] sorted by time; [positions] null when there is no fresh live data. */
     fun assign(routeId: RouteId, rows: List<ScheduledDeparture>, positions: RoutePositions?): TerminusOutcome {
+        if (positions == null) return TerminusOutcome(states, memory)
+        val remembered = previous.vehicles
+            .filter { (key, entry) -> key.routeId == routeId && !entry.isStale() }
+            .mapKeys { (key, _) -> key.vehicleId }
         val firstStopRows = rows.indices.filter { rows[it].atFirstStop }.groupBy { rows[it].pattern }
-        if (positions != null && firstStopRows.isNotEmpty()) {
+        if (firstStopRows.isNotEmpty()) {
             val parked = positions.vehicles
                 .filter { it.isInLayoverAt(terminus, rules) }
                 // The feed can list one bus under two patterns: it is one bus and takes one
@@ -37,8 +42,8 @@ internal class TerminusAssignment(
                 .sortedBy { it.pattern !in firstStopRows }
                 .distinctBy { it.vehicleId }
                 .map { vehicle ->
-                    val remembered = previous.vehicles[ParkedKey(routeId, vehicle.vehicleId)]
-                    Parked(vehicle, remembered, firstSeen(remembered))
+                    val entry = remembered[vehicle.vehicleId]
+                    Parked(vehicle, entry, entry?.firstSeen?.coerceAtMost(nowInstant) ?: nowInstant)
                 }
             val byPattern = parked.groupBy { targetPattern(it, firstStopRows, rows) }
             firstStopRows.forEach { (pattern, indices) ->
@@ -46,6 +51,7 @@ internal class TerminusAssignment(
                 assignPattern(routeId, pattern, queue, indices, rows)
             }
         }
+        keepThroughDropout(routeId, remembered)
         return TerminusOutcome(states, memory)
     }
 
@@ -64,8 +70,7 @@ internal class TerminusAssignment(
                 val leavesAt = latest(rows[index].scheduled, turnaroundEnd(bus))
                 states[index] = DepartureState.Waiting(bus.id, leavesAt)
             }
-            memory[ParkedKey(routeId, bus.id)] =
-                ParkedVehicle(pattern, bus.firstSeen, index?.let { rows[it].scheduled })
+            remember(routeId, pattern, bus, index?.let { rows[it].scheduled })
         }
         val next = upcoming.firstOrNull()
         if (next != null && next !in states && !rows[next].scheduled.isAfter(now.plus(rules.noBusWindow))) {
@@ -85,21 +90,45 @@ internal class TerminusAssignment(
         indices: List<Int>,
         rows: List<ScheduledDeparture>
     ): Boolean {
-        val index = missedRow(bus, indices, rows) ?: return false
-        val missed = rows[index].scheduled
+        val missed = bus.remembered?.waitingFor?.takeIf { it.isRecentlyPast() }
+        val index = missed?.let { time -> indices.firstOrNull { it !in states && rows[it].scheduled.isEqual(time) } }
+            ?: return false
         val leavesAt = latest(now.plus(rules.lateStep), turnaroundEnd(bus))
         states[index] = DepartureState.Late(bus.id, leavesAt, Duration.between(missed, leavesAt))
-        memory[ParkedKey(routeId, bus.id)] = ParkedVehicle(pattern, bus.firstSeen, missed)
+        remember(routeId, pattern, bus, missed)
         return true
     }
 
-    /** The unclaimed, recently passed row this bus was waiting for, if any. */
-    private fun missedRow(bus: Parked, indices: List<Int>, rows: List<ScheduledDeparture>): Int? {
-        val missed = bus.remembered?.waitingFor
-            ?.takeIf { it.isBefore(now) }
-            ?.takeIf { Duration.between(it, now).toMinutes() <= rules.lateLookback.toMinutes() }
-        return missed?.let { indices.firstOrNull { it !in states && rows[it].scheduled.isEqual(missed) } }
+    private fun remember(routeId: RouteId, pattern: PatternSuffix, bus: Parked, waitingFor: ZonedDateTime?) {
+        memory[ParkedKey(routeId, bus.id)] = ParkedVehicle(pattern, bus.firstSeen, waitingFor, lastSeen = nowInstant)
     }
+
+    /**
+     * The gateway sometimes leaves a parked bus out of one poll. Its entry is kept for
+     * [PredictionRules.memoryDropout] after it was last seen, so it is still late, and still
+     * holds its first sighting, when it comes back.
+     */
+    private fun keepThroughDropout(routeId: RouteId, remembered: Map<VehicleId, ParkedVehicle>) {
+        remembered.forEach { (vehicleId, entry) ->
+            val key = ParkedKey(routeId, vehicleId)
+            if (key !in memory && Duration.between(entry.lastSeen, nowInstant) <= rules.memoryDropout) {
+                memory[key] = entry
+            }
+        }
+    }
+
+    /**
+     * An old entry (from before a long gap, or yesterday) says nothing about the bus parked
+     * now, which may have pulled in seconds ago: it is a new sighting, with a new turnaround.
+     */
+    private fun ParkedVehicle.isStale(): Boolean {
+        val missedLongAgo = waitingFor?.let { it.isBefore(now) && !it.isRecentlyPast() } ?: false
+        return missedLongAgo || Duration.between(lastSeen, nowInstant) > rules.memoryMaxAge
+    }
+
+    /** Before now by at most [PredictionRules.lateLookback] whole minutes. */
+    private fun ZonedDateTime.isRecentlyPast(): Boolean =
+        isBefore(now) && Duration.between(this, now).toMinutes() <= rules.lateLookback.toMinutes()
 
     /**
      * The gateway relabels buses while they wait (TTC_API.md), so a parked bus labelled with a
@@ -113,21 +142,13 @@ internal class TerminusAssignment(
     ): PatternSuffix {
         val known = listOfNotNull(bus.position.pattern, bus.remembered?.pattern).firstOrNull { it in firstStopRows }
         return known ?: firstStopRows.minBy { (_, indices) ->
-            indices.map { rows[it].scheduled.toInstant() }.firstOrNull { !it.isBefore(now.toInstant()) } ?: Instant.MAX
+            indices.map { rows[it].scheduled.toInstant() }.firstOrNull { !it.isBefore(nowInstant) } ?: Instant.MAX
         }.key
-    }
-
-    // A memory entry from the future (the clock moved back) counts as seen now.
-    private fun firstSeen(remembered: ParkedVehicle?): Instant {
-        val seen = remembered?.firstSeen
-        val nowInstant = now.toInstant()
-        return if (seen == null || seen.isAfter(nowInstant)) nowInstant else seen
     }
 
     private fun turnaroundEnd(bus: Parked): ZonedDateTime = bus.firstSeen.plus(rules.minTurnaround).atZone(now.zone)
 
-    private fun latest(a: ZonedDateTime, b: ZonedDateTime): ZonedDateTime = if (b.isAfter(a)) b else a
-
+    /** [remembered] is null for a bus seen for the first time or whose entry is stale. */
     private class Parked(val position: VehiclePosition, val remembered: ParkedVehicle?, val firstSeen: Instant) {
         val id: VehicleId get() = position.vehicleId
         val waitingFor: Instant get() = remembered?.waitingFor?.toInstant() ?: Instant.MAX
@@ -139,3 +160,5 @@ internal class TerminusAssignment(
             compareBy<Parked>({ it.waitingFor }, { it.firstSeen }, { it.id.value })
     }
 }
+
+private fun latest(a: ZonedDateTime, b: ZonedDateTime): ZonedDateTime = if (b.isAfter(a)) b else a

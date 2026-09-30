@@ -55,10 +55,32 @@ class LayoverMemoryFoldTest {
     }
 
     @Test
-    fun `a bus that leaves is dropped`() {
+    fun `a bus that leaves is kept through a short dropout, then dropped`() {
         val first = poll("17:30:00", LayoverMemory.Empty, listOf("1:1", "1:2"))
         val second = poll("17:30:15", first, listOf("1:2"))
-        assertEquals(setOf(VehicleId("1:2")), second.vehicleIds)
+        assertEquals(setOf(VehicleId("1:1"), VehicleId("1:2")), second.vehicleIds)
+        assertEquals(first.of("1:1"), second.of("1:1"), "an unseen entry is kept as it was")
+        assertEquals(instant("17:30:15"), second.of("1:2").lastSeen)
+
+        val third = poll("17:31:00", second, listOf("1:2"))
+        assertEquals(setOf(VehicleId("1:1"), VehicleId("1:2")), third.vehicleIds, "a minute after it was last seen")
+        val fourth = poll("17:31:01", third, listOf("1:2"))
+        assertEquals(setOf(VehicleId("1:2")), fourth.vehicleIds)
+    }
+
+    @Test
+    fun `a stale entry is not kept through a dropout`() {
+        // Last seen seconds ago, but waiting for a departure more than 10 whole minutes gone.
+        val old = memoryOf(
+            r326.id,
+            "1:1" to ParkedVehicle(
+                PatternSuffix("0:01"),
+                instant("17:20:00"),
+                tbilisi("${day}T17:19:00"),
+                lastSeen = instant("17:29:50")
+            )
+        )
+        assertEquals(LayoverMemory.Empty, poll("17:30:00", old, emptyList()))
     }
 
     @Test
@@ -106,7 +128,8 @@ class LayoverMemoryFoldTest {
         // 551 no longer sees it: its entry goes, the 326 history is untouched.
         val second = poll("17:32:00", first, listOf("1:1"), emptyList())
         assertEquals(setOf(on326), second.vehicles.keys)
-        assertEquals(first.vehicles.getValue(on326), second.vehicles.getValue(on326))
+        assertEquals(first.vehicles.getValue(on326).firstSeen, second.vehicles.getValue(on326).firstSeen)
+        assertEquals(first.vehicles.getValue(on326).waitingFor, second.vehicles.getValue(on326).waitingFor)
     }
 
     @Test

@@ -105,6 +105,111 @@ class LateDepartureTest {
     }
 
     @Test
+    fun `a bus left out of one poll is still late when it comes back`() {
+        val first = predict("17:48:30", LayoverMemory.Empty, "1:3046")
+        val late = predict("17:50:30", first.memory, "1:3046")
+        assertTrue(late.departures.at("326", "17:49").state is DepartureState.Late)
+
+        // The gateway leaves it out of one poll: its entry survives the gap.
+        val dropout = predict("17:50:45", late.memory)
+        assertEquals(late.memory.of("1:3046"), dropout.memory.of("1:3046"))
+
+        val back = predict("17:51:00", dropout.memory, "1:3046")
+        assertEquals(late("1:3046", "17:52:00", Duration.ofMinutes(3)), back.departures.at("326", "17:49").state)
+        assertEquals(tbilisi("${day}T17:48:30").toInstant(), back.memory.of("1:3046").firstSeen)
+    }
+
+    @Test
+    fun `after a longer absence the bus is a new sighting`() {
+        val first = predict("17:48:30", LayoverMemory.Empty, "1:3046")
+        val gone = predict("17:48:45", first.memory)
+        val longGone = predict("17:50:00", gone.memory)
+        assertTrue(!longGone.memory.remembers(VehicleId("1:3046")))
+
+        val back = predict("17:50:30", longGone.memory, "1:3046")
+        assertTrue(back.departures.none { it.state is DepartureState.Late })
+        assertEquals("1:3046", back.departures.at("326", "18:07").waitingVehicle)
+    }
+
+    @Test
+    fun `a bus that took its departure leaves the next one to the bus behind it`() {
+        val both = memory(Triple("1:A", "17:30:00", "17:49:00"), Triple("1:B", "17:45:00", "18:07:00"))
+        // A left on time; B is still parked, and C has just pulled in.
+        val rows = predict("17:50:30", both, "1:B", "1:C").departures
+        assertTrue(rows.none { it.state is DepartureState.Late })
+        assertEquals("1:B", rows.at("326", "18:07").waitingVehicle)
+        assertEquals(tbilisi("${day}T18:07:00"), rows.at("326", "18:07").predicted)
+    }
+
+    @Test
+    fun `an entry last seen long ago is a new sighting with a new turnaround`() {
+        val old = LayoverMemory(
+            mapOf(
+                ParkedKey(r326.id, VehicleId("1:3046")) to ParkedVehicle(
+                    PatternSuffix("0:01"),
+                    tbilisi("${day}T17:00:00").toInstant(),
+                    tbilisi("${day}T18:07:00"),
+                    lastSeen = tbilisi("${day}T17:18:49").toInstant()
+                )
+            )
+        )
+        val result = predict("17:48:50", old, "1:3046")
+        assertEquals(tbilisi("${day}T17:50:50"), result.departures.at("326", "17:49").predicted)
+        assertEquals(tbilisi("${day}T17:48:50").toInstant(), result.memory.of("1:3046").firstSeen)
+
+        // Within 30 minutes of the last sighting the entry still holds.
+        val recent =
+            LayoverMemory(
+                old.vehicles.mapValues { (_, it) ->
+                    it.copy(lastSeen = tbilisi("${day}T17:18:50").toInstant())
+                }
+            )
+        assertEquals(
+            tbilisi("${day}T17:49:00"),
+            predict("17:48:50", recent, "1:3046").departures.at("326", "17:49").predicted
+        )
+    }
+
+    @Test
+    fun `parked across midnight, late for yesterday's 24 05`() {
+        // Sunday's service day lists 24:05, which is Monday 00:05.
+        val sunday = LayoverMemory(
+            mapOf(
+                ParkedKey(r326.id, VehicleId("1:3046")) to ParkedVehicle(
+                    PatternSuffix("0:01"),
+                    tbilisi("2026-09-27T23:50:00").toInstant(),
+                    tbilisi("2026-09-28T00:05:00")
+                )
+            )
+        )
+        val snapshot = { now: String ->
+            RouteSnapshot(
+                r326,
+                listOf(schedule(r326, "0:01", listOf("23:30", "24:05"))),
+                positions = positions(r326, tbilisi(now).toInstant(), parked("1:3046"))
+            )
+        }
+        val predictAt = { now: String ->
+            DeparturePredictor(tbilisiClock(now)).predict(StopRequest(home, listOf(snapshot(now)), memory = sunday))
+        }
+
+        val before = predictAt("2026-09-28T00:03:00")
+        val waiting = before.departures.single { it.waitingVehicle == "1:3046" }
+        assertEquals(DepartureState.Waiting(VehicleId("1:3046"), tbilisi("2026-09-28T00:05:00")), waiting.state)
+        assertEquals(tbilisi("2026-09-27T00:00:00").toLocalDate(), waiting.serviceDate)
+
+        val after = predictAt("2026-09-28T00:06:00")
+        val row = after.departures.single { it.state is DepartureState.Late }
+        assertEquals(
+            DepartureState.Late(VehicleId("1:3046"), tbilisi("2026-09-28T00:07:00"), Duration.ofMinutes(2)),
+            row.state
+        )
+        assertEquals(tbilisi("2026-09-27T00:00:00").toLocalDate(), row.serviceDate)
+        assertEquals(tbilisi("2026-09-28T00:05:00"), row.scheduled)
+        assertEquals(tbilisi("2026-09-28T00:05:00"), after.memory.of("1:3046").waitingFor)
+    }
+
+    @Test
     fun `waiting then late across two polls`() {
         val first = predict("17:48:30", LayoverMemory.Empty, "1:3046")
         assertEquals(tbilisi("${day}T17:50:30"), first.departures.at("326", "17:49").predicted)
