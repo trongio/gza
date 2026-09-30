@@ -11,8 +11,8 @@ import ge.hackerman.gza.core.model.RoutePolyline
  * null here: the gateway flips it during the day, so it is never cached.
  */
 data class RouteBundle(
-    /** The catalog row, null before the catalog has synced. */
-    val route: Route?,
+    /** From the catalog; before the catalog has synced, from the route's detail, without a long name. */
+    val route: Route,
     val detail: RouteDetail,
     val patternStops: Map<PatternSuffix, PatternStops>,
     val polylines: Map<PatternSuffix, RoutePolyline>
