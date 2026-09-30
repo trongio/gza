@@ -1,0 +1,458 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "201c4e51021cba795749d85e235d620d",
+    "entities": [
+      {
+        "tableName": "stops",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `code` TEXT, `name_en` TEXT, `name_ka` TEXT, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `kind` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "code",
+            "columnName": "code",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "nameEn",
+            "columnName": "name_en",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "nameKa",
+            "columnName": "name_ka",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lat",
+            "columnName": "lat",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lon",
+            "columnName": "lon",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_stops_code",
+            "unique": false,
+            "columnNames": [
+              "code"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_stops_code` ON `${TABLE_NAME}` (`code`)"
+          }
+        ]
+      },
+      {
+        "tableName": "routes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `short_name` TEXT NOT NULL, `long_name_en` TEXT, `long_name_ka` TEXT, `color` INTEGER, `kind` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shortName",
+            "columnName": "short_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longNameEn",
+            "columnName": "long_name_en",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "longNameKa",
+            "columnName": "long_name_ka",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "color",
+            "columnName": "color",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "stop_routes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`stop_id` TEXT NOT NULL, `route_id` TEXT NOT NULL, PRIMARY KEY(`stop_id`, `route_id`))",
+        "fields": [
+          {
+            "fieldPath": "stopId",
+            "columnName": "stop_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "routeId",
+            "columnName": "route_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "stop_id",
+            "route_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_stop_routes_route_id",
+            "unique": false,
+            "columnNames": [
+              "route_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_stop_routes_route_id` ON `${TABLE_NAME}` (`route_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "patterns",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`route_id` TEXT NOT NULL, `suffix` TEXT NOT NULL, `direction_id` INTEGER, `first_stop_id` TEXT, `first_stop_name_en` TEXT, `first_stop_name_ka` TEXT, `last_stop_id` TEXT, `last_stop_name_en` TEXT, `last_stop_name_ka` TEXT, `headsign_en` TEXT, `headsign_ka` TEXT, PRIMARY KEY(`route_id`, `suffix`))",
+        "fields": [
+          {
+            "fieldPath": "routeId",
+            "columnName": "route_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "suffix",
+            "columnName": "suffix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "directionId",
+            "columnName": "direction_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "firstStopId",
+            "columnName": "first_stop_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "firstStopNameEn",
+            "columnName": "first_stop_name_en",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "firstStopNameKa",
+            "columnName": "first_stop_name_ka",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastStopId",
+            "columnName": "last_stop_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastStopNameEn",
+            "columnName": "last_stop_name_en",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastStopNameKa",
+            "columnName": "last_stop_name_ka",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "headsignEn",
+            "columnName": "headsign_en",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "headsignKa",
+            "columnName": "headsign_ka",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "route_id",
+            "suffix"
+          ]
+        }
+      },
+      {
+        "tableName": "pattern_stops",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`route_id` TEXT NOT NULL, `suffix` TEXT NOT NULL, `seq` INTEGER NOT NULL, `stop_id` TEXT NOT NULL, PRIMARY KEY(`route_id`, `suffix`, `seq`))",
+        "fields": [
+          {
+            "fieldPath": "routeId",
+            "columnName": "route_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "suffix",
+            "columnName": "suffix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seq",
+            "columnName": "seq",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stopId",
+            "columnName": "stop_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "route_id",
+            "suffix",
+            "seq"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_pattern_stops_stop_id",
+            "unique": false,
+            "columnNames": [
+              "stop_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pattern_stops_stop_id` ON `${TABLE_NAME}` (`stop_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "polylines",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`route_id` TEXT NOT NULL, `suffix` TEXT NOT NULL, `encoded` TEXT NOT NULL, `color` INTEGER, PRIMARY KEY(`route_id`, `suffix`))",
+        "fields": [
+          {
+            "fieldPath": "routeId",
+            "columnName": "route_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "suffix",
+            "columnName": "suffix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "encoded",
+            "columnName": "encoded",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "color",
+            "columnName": "color",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "route_id",
+            "suffix"
+          ]
+        }
+      },
+      {
+        "tableName": "schedule_periods",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`route_id` TEXT NOT NULL, `suffix` TEXT NOT NULL, `period_index` INTEGER NOT NULL, `from_day` INTEGER NOT NULL, `to_day` INTEGER NOT NULL, `service_dates` TEXT NOT NULL, PRIMARY KEY(`route_id`, `suffix`, `period_index`))",
+        "fields": [
+          {
+            "fieldPath": "routeId",
+            "columnName": "route_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "suffix",
+            "columnName": "suffix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "periodIndex",
+            "columnName": "period_index",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fromDay",
+            "columnName": "from_day",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "toDay",
+            "columnName": "to_day",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "serviceDates",
+            "columnName": "service_dates",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "route_id",
+            "suffix",
+            "period_index"
+          ]
+        }
+      },
+      {
+        "tableName": "schedule_stop_times",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`route_id` TEXT NOT NULL, `suffix` TEXT NOT NULL, `period_index` INTEGER NOT NULL, `seq` INTEGER NOT NULL, `position` INTEGER NOT NULL, `stop_id` TEXT NOT NULL, `times` BLOB NOT NULL, PRIMARY KEY(`route_id`, `suffix`, `period_index`, `seq`))",
+        "fields": [
+          {
+            "fieldPath": "routeId",
+            "columnName": "route_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "suffix",
+            "columnName": "suffix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "periodIndex",
+            "columnName": "period_index",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seq",
+            "columnName": "seq",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stopId",
+            "columnName": "stop_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "times",
+            "columnName": "times",
+            "affinity": "BLOB",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "route_id",
+            "suffix",
+            "period_index",
+            "seq"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_schedule_stop_times_stop_id",
+            "unique": false,
+            "columnNames": [
+              "stop_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_schedule_stop_times_stop_id` ON `${TABLE_NAME}` (`stop_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "sync_state",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`key` TEXT NOT NULL, `synced_at` INTEGER NOT NULL, `last_used_at` INTEGER, PRIMARY KEY(`key`))",
+        "fields": [
+          {
+            "fieldPath": "key",
+            "columnName": "key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncedAt",
+            "columnName": "synced_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastUsedAt",
+            "columnName": "last_used_at",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "key"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '201c4e51021cba795749d85e235d620d')"
+    ]
+  }
+}

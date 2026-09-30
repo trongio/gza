@@ -49,7 +49,6 @@ Acceptance:
 - [x] Key never logged (test asserts the logging interceptor redacts the header).
 
 Follow-ups:
-- For T04: `FirebaseRemoteConfigClient` does not wrap `TtcConfigCache.readInstallation()` / `writeInstallation()`, so a throwing DataStore installation store makes every fetch fall back to the build-time key. Treat a read failure as "no installation" and writes as best effort, with tests (an installation read or write that throws still fetches the key).
 - `DefaultGatewayConfigProvider.current()` cold branch does not record a backoff failure for a non-IO exception outside the wrapped calls (e.g. from `rules.fromCache`); unlikely, optional fix.
 - Decide whether Settings shows where the gateway config came from (remote, cache, fallback).
 - Firebase web credentials are baked in at build time; consider reading them from TTC's web page at runtime.
@@ -67,14 +66,13 @@ Acceptance:
 - [x] Lenient parsing: unknown fields and nulls never crash.
 
 Follow-ups:
-- For T04: a sync that returns an empty stops or routes list must never replace a non-empty Room table (defence in depth on top of the client's all-misfit Malformed rule).
 - Positions whose pattern keys are all invalid (gateway key format change) come back as 0 vehicles, not Malformed; polylines already apply the rule to keys (`PositionMappers.kt`).
 - Positions: one fully bad pattern fails the whole response; consider returning the good patterns and marking only the bad one unknown.
 - Plan: a leg whose `steps` or `intermediateStops` all misfit drops the whole itinerary; these are secondary detail and could become null instead.
 - Route 469 detail returned HTTP 500 live on 2026-09-28 in en and ka (gateway side); record it as an error fixture if it persists.
 - PLAN.md says the parked 326 waited "38 minutes"; the weekday timetable runs every 18 minutes. Confirm with the user and correct.
 
-## [ ] T04 Local data layer and sync
+## [~] T04 Local data layer and sync
 Depends: T03
 - `:core:data`: Room entities/DAOs for stops, routes, patterns, pattern stops, polylines,
   schedules; DataStore for preferences; repositories exposing Flows (Room is the source
@@ -85,6 +83,15 @@ Depends: T03
 Acceptance:
 - [ ] Room DAO tests (in-memory) and repository tests with a fake gateway.
 - [ ] App works offline after one online launch (test: repository serves cached data when the gateway throws).
+
+Follow-ups:
+- After T05 merges: move the gateway fixtures and the shared test helpers (`FixtureDomain`, `MutableClock`) into `:core:ttc` `testFixtures`; `:core:data` reads the fixtures in place today.
+- Evict route data unused for 30 days in the weekly worker (about 50 KB per route, never evicted today).
+- `CachedResult` freshness is computed when a flow emits and does not tick; T07 decides whether the Now screen needs a minute ticker.
+- A pattern stop whose stop a later catalog sync deleted is dropped on read (no coordinates to show).
+- Confirm with the user that saved stops may be backed up to Google (end-to-end encrypted only); if not, exclude everything in both backup rule files.
+- Only English and Georgian names are synced; Russian UI strings would need `name_ru` columns and a migration.
+- Non-forced refreshes back off after a failure (5 min doubling to 2 h) and return the last error meanwhile; T07/T08 retry buttons must call the forced `refreshRoute`, and stop routes have no forced refresh yet.
 
 ## [x] T05 Prediction engine v1: timetable + layover (PR #5)
 Depends: T03

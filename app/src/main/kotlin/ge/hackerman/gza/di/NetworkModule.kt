@@ -6,10 +6,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import ge.hackerman.gza.BuildConfig
+import ge.hackerman.gza.core.data.coroutines.ApplicationScope
+import ge.hackerman.gza.core.data.coroutines.IoDispatcher
 import ge.hackerman.gza.core.ttc.TtcFallbackConfig
 import ge.hackerman.gza.core.ttc.config.DefaultGatewayConfigProvider
 import ge.hackerman.gza.core.ttc.config.GatewayConfigProvider
-import ge.hackerman.gza.core.ttc.config.InMemoryTtcConfigCache
 import ge.hackerman.gza.core.ttc.config.TtcConfigCache
 import ge.hackerman.gza.core.ttc.firebase.FirebaseEndpoints
 import ge.hackerman.gza.core.ttc.firebase.FirebaseRemoteConfigClient
@@ -53,11 +54,6 @@ object NetworkModule {
 
     @Provides
     fun provideFirebaseCredentials(fallback: TtcFallbackConfig): FirebaseWebCredentials = fallback.firebaseCredentials()
-
-    // T04 replaces this with a DataStore-backed cache.
-    @Provides
-    @Singleton
-    fun provideTtcConfigCache(): TtcConfigCache = InMemoryTtcConfigCache()
 
     @Provides
     @Singleton

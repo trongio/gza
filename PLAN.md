@@ -216,12 +216,15 @@ Kotlin and Jetpack Compose. The toolchain matches `gree-local` (Gradle 8.11.2, K
 ### 3.1 Storage (Room)
 | Table | Contents | Refresh |
 |---|---|---|
-| `stops` | 2,753 stops: id, code, names (ka/en/ru), lat/lon, mode | Weekly |
-| `routes` | 280 routes, patterns, colors, headsigns | Weekly |
-| `pattern_stops` | Stop order per pattern, with polyline offsets | Weekly |
-| `polylines` | Encoded polyline per pattern | Weekly |
-| `schedules` | Departure minutes per stop, pattern and service period | On open for saved stops, weekly for others |
-| `places` | Saved places with walk times | User |
+| `stops` | 2,753 stops: id, code, names (en and ka side by side), lat/lon, mode | Weekly (WorkManager) |
+| `routes` | 280 routes: short and long names (en/ka), color, kind | Weekly (WorkManager) |
+| `stop_routes` | Which routes serve a stop, for saved stops offline | On first use, then weekly |
+| `patterns` | A route's patterns with headsigns and termini (en/ka); the default pattern is never stored | On first use of the route, then on app open if older than 12 h and used in the last 14 days |
+| `pattern_stops` | Stop order per pattern | Same as `patterns` |
+| `polylines` | Encoded polyline per pattern | Same as `patterns` |
+| `schedule_periods`, `schedule_stop_times` | Service periods with their dates; per stop row, the service minutes packed as 16-bit values (about 50 KB per busy route) | Same as `patterns` |
+| `sync_state` | When each of the above was last synced and used | With each sync |
+| `places` | Saved places with walk times (saved stops, walk times and route filters are in DataStore since T04) | User |
 | `commutes` | Recurring trips | User |
 | `observations` | GPS fixes of tracked buses (rolling 30 days) | Live |
 | `segment_speeds` | Learned seconds per segment by hour bucket and day type | Nightly WorkManager |

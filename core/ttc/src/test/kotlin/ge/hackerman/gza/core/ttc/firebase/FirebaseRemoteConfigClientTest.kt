@@ -12,6 +12,7 @@ import ge.hackerman.gza.core.ttc.testing.FirebaseFixtures.FID
 import ge.hackerman.gza.core.ttc.testing.FirebaseFixtures.FIREBASE_KEY
 import ge.hackerman.gza.core.ttc.testing.FirebaseFixtures.GATEWAY_KEY
 import ge.hackerman.gza.core.ttc.testing.FirebaseFixtures.REFRESH_TOKEN
+import ge.hackerman.gza.core.ttc.testing.FlakyInstallationCache
 import ge.hackerman.gza.core.ttc.testing.MutableClock
 import java.time.Duration
 import java.util.concurrent.TimeUnit
@@ -21,7 +22,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -39,7 +44,7 @@ import org.junit.jupiter.api.Test
 class FirebaseRemoteConfigClientTest {
     private val server = MockWebServer()
     private val firebase = FakeFirebase()
-    private val cache = InMemoryTtcConfigCache()
+    private val cache = FlakyInstallationCache(InMemoryTtcConfigCache())
     private val clock = MutableClock()
     private var nextFid = "cGeneratedFid000000001"
 
@@ -270,6 +275,73 @@ class FirebaseRemoteConfigClientTest {
             assertEquals(1, firebase.installations.get())
             assertEquals(REFRESH_TOKEN, runBlocking { cache.readInstallation() }?.refreshToken)
         }
+    }
+
+    // A broken installation store (a file since T04) never costs the key
+
+    @Test
+    fun `an installation read that throws still fetches the key`() {
+        cache.failReads = true
+        val config = fetch()
+        assertEquals(GATEWAY_KEY, config.apiKey)
+        assertEquals(1, firebase.installations.get())
+        assertEquals(nextFid, firebase.requestsTo("/installations").single().json().string("fid"))
+        assertEquals(AUTH_TOKEN, fetchRequest().json().string("appInstanceIdToken"))
+    }
+
+    @Test
+    fun `an installation read that throws and a failed registration fetch without a token`() {
+        cache.failReads = true
+        firebase.onInstall = { FirebaseFixtures.json(500, "{}") }
+        assertEquals(GATEWAY_KEY, fetch().apiKey)
+        val body = fetchRequest().json()
+        assertFalse("appInstanceIdToken" in body)
+        assertEquals(nextFid, body.string("appInstanceId"))
+    }
+
+    @Test
+    fun `an installation write that throws still fetches the key`() {
+        cache.failWrites = true
+        val config = fetch()
+        assertEquals(GATEWAY_KEY, config.apiKey)
+        assertEquals(1, firebase.installations.get())
+        val body = fetchRequest().json()
+        assertEquals(FID, body.string("appInstanceId"))
+        assertEquals(AUTH_TOKEN, body.string("appInstanceIdToken"))
+    }
+
+    @Test
+    fun `a refresh write that throws keeps the refreshed token for this fetch`() {
+        seedInstallation(expiresIn = Duration.ofMinutes(30))
+        cache.failWrites = true
+        assertEquals(GATEWAY_KEY, fetch().apiKey)
+        assertEquals(1, firebase.tokenRefreshes.get())
+        assertEquals(AUTH_TOKEN_2, fetchRequest().json().string("appInstanceIdToken"))
+    }
+
+    @Test
+    fun `clearing a rejected installation that throws still registers anew`() {
+        seedInstallation(expiresIn = Duration.ofMinutes(30))
+        firebase.onRefresh = { FirebaseFixtures.json(401, FirebaseFixtures.read("error-unauthenticated.json")) }
+        cache.failWrites = true
+        assertEquals(GATEWAY_KEY, fetch().apiKey)
+        assertEquals(1, firebase.installations.get())
+        assertEquals(AUTH_TOKEN, fetchRequest().json().string("appInstanceIdToken"))
+    }
+
+    @Test
+    fun `cancellation during an installation read is not swallowed`() = runBlocking {
+        val reading = CompletableDeferred<Unit>()
+        cache.onRead = {
+            reading.complete(Unit)
+            awaitCancellation()
+        }
+        val job = launch(Dispatchers.IO) { client().fetch() }
+        reading.await()
+        job.cancelAndJoin()
+        assertTrue(job.isCancelled)
+        assertEquals(0, firebase.installations.get())
+        assertEquals(0, firebase.fetches.get())
     }
 
     // Error mapping

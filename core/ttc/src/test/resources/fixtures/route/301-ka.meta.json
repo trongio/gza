@@ -1,0 +1,8 @@
+{
+  "request": "/v3/routes/1:R29981?locale=ka",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-30T14:07:47Z",
+  "recordedAtTbilisi": "2026-09-30T18:07:47+04:00",
+  "derived": false
+}

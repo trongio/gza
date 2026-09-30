@@ -1,0 +1,35 @@
+{
+  "id": "1:R29981",
+  "shortName": "301",
+  "color": "00B38B",
+  "mode": "BUS",
+  "patterns": [
+    {
+      "patternSuffix": "0:01",
+      "directionId": 0,
+      "firstStop": {
+        "id": "1:970",
+        "name": "ანა პოლიტკოვსკაიას ქუჩა"
+      },
+      "lastStop": {
+        "id": "1:2919",
+        "name": "ქვედა მელითონეთა დასახლება"
+      },
+      "headsign": "წმინდა ბარბარეს უბანი"
+    },
+    {
+      "patternSuffix": "1:01",
+      "directionId": 1,
+      "firstStop": {
+        "id": "1:2919",
+        "name": "ქვედა მელითონეთა დასახლება"
+      },
+      "lastStop": {
+        "id": "1:970",
+        "name": "ანა პოლიტკოვსკაიას ქუჩა"
+      },
+      "headsign": "პოლიტკოვსკაიას ქ."
+    }
+  ],
+  "defaultPatternSuffix": "0:01"
+}

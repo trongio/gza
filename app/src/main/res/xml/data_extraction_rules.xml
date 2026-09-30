@@ -1,18 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Nothing worth backing up or transferring yet (Android 12+). Revisit in T04 for favourites. -->
+<!-- Android 12 and higher. Only the user's own preferences (saved stops, walk times, route
+     filters, buffer) are backed up and transferred; everything else is excluded by not being
+     included. Not the Room cache (re-fetchable, and a restored copy would only be stale), not
+     ttc_config.json (gateway key and Firebase installation: device specific, may have
+     rotated). Saved stops hint at where the user lives, so cloud backup needs end-to-end
+     encryption. The path is DataStoreFiles.USER_PREFERENCES in :core:data. -->
 <data-extraction-rules>
-    <cloud-backup>
-        <exclude domain="root" path="." />
-        <exclude domain="file" path="." />
-        <exclude domain="database" path="." />
-        <exclude domain="sharedpref" path="." />
-        <exclude domain="external" path="." />
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
+        <include domain="file" path="datastore/user_prefs.json" />
     </cloud-backup>
     <device-transfer>
-        <exclude domain="root" path="." />
-        <exclude domain="file" path="." />
-        <exclude domain="database" path="." />
-        <exclude domain="sharedpref" path="." />
-        <exclude domain="external" path="." />
+        <include domain="file" path="datastore/user_prefs.json" />
     </device-transfer>
 </data-extraction-rules>

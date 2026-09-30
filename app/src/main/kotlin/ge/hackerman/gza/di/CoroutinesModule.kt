@@ -5,28 +5,15 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import javax.inject.Qualifier
+import ge.hackerman.gza.core.data.coroutines.ApplicationScope
+import ge.hackerman.gza.core.data.coroutines.DefaultDispatcher
+import ge.hackerman.gza.core.data.coroutines.IoDispatcher
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-
-/** Blocking I/O dispatcher. Injected so tests can swap it; never hardcode Dispatchers.IO in classes. */
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class IoDispatcher
-
-/** CPU dispatcher, for work like decoding a large response. Injected for the same reason. */
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class DefaultDispatcher
-
-/** Lives as long as the process, for work no screen owns, such as background config refreshes. */
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class ApplicationScope
 
 @Module
 @InstallIn(SingletonComponent::class)

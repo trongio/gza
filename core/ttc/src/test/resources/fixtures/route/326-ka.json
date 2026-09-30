@@ -1,0 +1,35 @@
+{
+  "id": "1:R97493",
+  "shortName": "326",
+  "color": "00B38B",
+  "mode": "BUS",
+  "patterns": [
+    {
+      "patternSuffix": "1:01",
+      "directionId": 1,
+      "firstStop": {
+        "id": "1:824",
+        "name": "ნიკოლოზ ბარათაშვილის ქუჩა"
+      },
+      "lastStop": {
+        "id": "1:970",
+        "name": "ანა პოლიტკოვსკაიას ქუჩა"
+      },
+      "headsign": "პოლიტკოვსკაიას ქ."
+    },
+    {
+      "patternSuffix": "0:01",
+      "directionId": 0,
+      "firstStop": {
+        "id": "1:970",
+        "name": "ანა პოლიტკოვსკაიას ქუჩა"
+      },
+      "lastStop": {
+        "id": "1:824",
+        "name": "ნიკოლოზ ბარათაშვილის ქუჩა"
+      },
+      "headsign": "ბარათაშვილის ქ."
+    }
+  ],
+  "defaultPatternSuffix": "1:01"
+}

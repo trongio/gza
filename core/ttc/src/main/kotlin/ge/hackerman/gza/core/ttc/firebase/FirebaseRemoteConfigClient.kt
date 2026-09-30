@@ -8,7 +8,11 @@ import ge.hackerman.gza.core.ttc.firebase.RemoteConfigException.Reason
 import java.math.BigDecimal
 import java.time.Clock
 import java.time.Duration
+import java.util.logging.Logger
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -44,13 +48,13 @@ class FirebaseRemoteConfigClient(
     // so the fetch still runs without one.
     private suspend fun installationOrNull(): FirebaseInstallation? {
         val now = clock.instant()
-        val stored = cache.readInstallation()
+        val stored = bestEffortCache("Installation read") { cache.readInstallation() }
         return when {
             stored == null -> register()
 
             // It goes in a header: one OkHttp rejects could never be refreshed, only replaced.
             !GatewayKeys.isHeaderSafe(stored.refreshToken) -> {
-                cache.writeInstallation(null)
+                storeInstallation(null)
                 register()
             }
 
@@ -60,7 +64,7 @@ class FirebaseRemoteConfigClient(
                 is TokenRefresh.Refreshed -> refreshed.installation
 
                 TokenRefresh.Rejected -> {
-                    cache.writeInstallation(null)
+                    storeInstallation(null)
                     register()
                 }
 
@@ -83,8 +87,14 @@ class FirebaseRemoteConfigClient(
             // Deliberate: see installationOrNull().
             null
         }
-        installation?.let { cache.writeInstallation(it) }
+        installation?.let { storeInstallation(it) }
         return installation
+    }
+
+    // A write that fails only costs a new registration on the next launch; the installation
+    // in hand is still good for this fetch.
+    private suspend fun storeInstallation(installation: FirebaseInstallation?) {
+        bestEffortCache("Installation write") { cache.writeInstallation(installation) }
     }
 
     // Uses the returned fid: the server replaces a malformed one with its own.
@@ -127,7 +137,7 @@ class FirebaseRemoteConfigClient(
             // Deliberate: a failed refresh falls back to the stored token while it lasts.
             TokenRefresh.Failed
         }
-        if (outcome is TokenRefresh.Refreshed) cache.writeInstallation(outcome.installation)
+        if (outcome is TokenRefresh.Refreshed) storeInstallation(outcome.installation)
         return outcome
     }
 
@@ -217,3 +227,23 @@ class FirebaseRemoteConfigClient(
         }
     }
 }
+
+// The store is a file (T04): a disk error there must never cost the key. Same rules as
+// DefaultGatewayConfigProvider: a cancelled caller still cancels, only the class name is logged.
+@Suppress("TooGenericExceptionCaught") // Whatever the store throws is a failed cache call, not a failed fetch.
+private suspend fun <T> bestEffortCache(what: String, block: suspend () -> T): T? = try {
+    block()
+} catch (e: CancellationException) {
+    currentCoroutineContext().ensureActive()
+    logCacheFailure(what, e)
+    null
+} catch (e: Exception) {
+    logCacheFailure(what, e)
+    null
+}
+
+private fun logCacheFailure(what: String, e: Exception) {
+    logger.warning("$what failed: ${e.javaClass.name}")
+}
+
+private val logger: Logger = Logger.getLogger(FirebaseRemoteConfigClient::class.java.name)
