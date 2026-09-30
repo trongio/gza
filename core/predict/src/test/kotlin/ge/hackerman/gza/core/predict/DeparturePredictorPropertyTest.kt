@@ -67,7 +67,10 @@ class DeparturePredictorPropertyTest {
         listOf("Waiting", "Late", "NoBusYet", "TimetableOnly").forEach { state ->
             assertTrue(seen.getOrDefault(state, 0) >= MIN_ROWS_PER_STATE, "too few $state rows in $seen")
         }
+        assertTrue(heldRows >= MIN_ROWS_PER_STATE, "too few rows held through a dropout: $heldRows")
     }
+
+    private var heldRows = 0
 
     private val seen = mutableMapOf<String, Int>()
 
@@ -80,13 +83,34 @@ class DeparturePredictorPropertyTest {
     /**
      * The next poll of the same stop: the same buses a little later, fed the memory the last
      * poll returned. This is how buses become late, which random clocks alone rarely reach.
+     * Sometimes the feed leaves a bus out (a dropout, so the bus is held) or shows it driving
+     * off; a short gap keeps the dropout window open.
      */
     private fun followUp(request: StopRequest, result: StopPrediction): Pair<ZonedDateTime, StopRequest> {
-        val now = result.now.plusSeconds(random.nextLong(FOLLOW_UP_MIN_SECONDS, FOLLOW_UP_MAX_SECONDS))
+        val maxGap = if (random.nextBoolean()) FOLLOW_UP_MIN_SECONDS else FOLLOW_UP_MAX_SECONDS
+        val now = result.now.plusSeconds(random.nextLong(FOLLOW_UP_MIN_SECONDS, maxGap + 1))
         val snapshots = request.routes.map { snapshot ->
-            snapshot.copy(positions = snapshot.positions?.copy(fetchedAt = now.toInstant()))
+            snapshot.copy(
+                positions = snapshot.positions?.let {
+                    it.copy(fetchedAt = now.toInstant(), vehicles = it.vehicles.churned())
+                }
+            )
         }
         return now to request.copy(routes = snapshots, memory = result.memory)
+    }
+
+    private fun List<VehiclePosition>.churned(): List<VehiclePosition> {
+        if (isEmpty()) return this
+        val picked = random.nextInt(size)
+        return when (random.nextInt(CHURN_ODDS)) {
+            0 -> filterIndexed { index, _ -> index != picked }
+
+            1 -> mapIndexed { index, vehicle ->
+                if (index == picked) vehicle.copy(headingDegrees = 90.0, nextStopId = StopId("1:969")) else vehicle
+            }
+
+            else -> this
+        }
     }
 
     private fun assertSorted(rows: List<PredictedDeparture>, context: String) {
@@ -136,6 +160,10 @@ class DeparturePredictorPropertyTest {
         assertEquals(vehicles.distinct(), vehicles, "one row per bus, $context")
         // A remembered bus missing from a live poll holds its row through the dropout.
         val held = heldKeys(request, now)
+        heldRows += result.departures.count { row ->
+            val id = (row.state as? DepartureState.Waiting)?.vehicleId ?: (row.state as? DepartureState.Late)?.vehicleId
+            id != null && ParkedKey(row.routeId, id).let { it in held && it !in parkedKeys(request, now) }
+        }
         vehicles.forEach { id ->
             val routeKeys = result.departures.filter { row ->
                 (row.state as? DepartureState.Waiting)?.vehicleId == id ||
@@ -163,6 +191,12 @@ class DeparturePredictorPropertyTest {
         result.memory.vehicles.filterKeys { it in parked }.values.forEach {
             assertEquals(now.toInstant(), it.lastSeen, "a parked bus is seen now, $context")
             assertFalse(it.firstSeen.isAfter(now.toInstant()), "first seen in the future, $context")
+            assertFalse(it.seenMoving, "a parked bus is not moving, $context")
+        }
+        // A bus listed on its route but not parked here has left: never held again from that entry.
+        val listed = listedKeys(request, now)
+        result.memory.vehicles.filterKeys { it in listed && it !in parked }.values.forEach {
+            assertTrue(it.seenMoving, "a bus seen moving is marked, $context")
         }
     }
 
@@ -187,15 +221,26 @@ class DeparturePredictorPropertyTest {
         }
     }
 
-    /** Remembered buses on a live route that the poll leaves out altogether, still within their dropout. */
+    /**
+     * Remembered buses on a live route that no live route of the poll lists, still within their
+     * dropout and never seen moving since they were last parked here.
+     */
     private fun heldKeys(request: StopRequest, now: ZonedDateTime): Set<ParkedKey> {
         val live = liveRoutes(request, now)
-        val listed = request.routes.mapNotNull { it.positions }.filter { it.routeId in live }
+        val listedAnywhere = listedKeys(request, now).mapTo(HashSet()) { it.vehicleId }
+        return request.memory.vehicles
+            .filter { (key, entry) ->
+                key.routeId in live && key.vehicleId !in listedAnywhere && !entry.seenMoving &&
+                    entry.survivesDropout(now)
+            }
+            .keys
+    }
+
+    private fun listedKeys(request: StopRequest, now: ZonedDateTime): Set<ParkedKey> {
+        val live = liveRoutes(request, now)
+        return request.routes.mapNotNull { it.positions }.filter { it.routeId in live }
             .flatMap { positions -> positions.vehicles.map { ParkedKey(positions.routeId, it.vehicleId) } }
             .toSet()
-        return request.memory.vehicles
-            .filter { (key, entry) -> key.routeId in live && key !in listed && entry.survivesDropout(now) }
-            .keys
     }
 
     private fun ParkedVehicle.survivesDropout(now: ZonedDateTime): Boolean {
@@ -203,7 +248,8 @@ class DeparturePredictorPropertyTest {
         val missedLongAgo = waitingFor?.let {
             it.isBefore(now) && Duration.between(it, now).toMinutes() > rules.lateLookback.toMinutes()
         } ?: false
-        return !missedLongAgo && Duration.between(lastSeen, now.toInstant()) <= rules.memoryDropout
+        val gap = Duration.between(lastSeen, now.toInstant())
+        return !missedLongAgo && !gap.isNegative && gap <= rules.memoryDropout
     }
 
     private fun liveRoutes(request: StopRequest, now: ZonedDateTime) = request.routes
@@ -290,5 +336,6 @@ class DeparturePredictorPropertyTest {
         const val FOLLOW_UP_MIN_SECONDS = 15L
         const val FOLLOW_UP_MAX_SECONDS = 900L
         const val MAX_FUTURE_SECONDS = 300L
+        const val CHURN_ODDS = 5
     }
 }
