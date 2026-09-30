@@ -18,7 +18,6 @@ import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -151,11 +150,6 @@ class ErrorBackoffAdversarialTest {
         assertEquals(SyncOutcome.Synced, graph.routes.refreshRouteIfStale(r326))
     }
 
-    @Ignore(
-        "BUG: a cancelled retry restarts the error backoff window. SyncStatusTracker.begin sets " +
-            "lastAttemptAt and abandon keeps lastError, so isBackingOff measures the window from an " +
-            "attempt that never finished; the next use waits another full window with no request"
-    )
     @Test
     fun `a retry cancelled mid flight does not restart the window`() = runBlocking {
         graph.routes.refreshRouteIfStale(r326)

@@ -7,6 +7,7 @@ import ge.hackerman.gza.core.data.model.SyncOutcome
 import ge.hackerman.gza.core.data.testing.MutableClock
 import ge.hackerman.gza.core.model.RouteId
 import ge.hackerman.gza.core.model.StopId
+import java.time.Duration
 import kotlin.test.assertEquals
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -21,7 +22,8 @@ class SyncStatusTrackerTest {
     fun `begin and end record the attempt and its error`() = runTest {
         assertEquals(KeyStatus.NONE, tracker.status(key).first())
         tracker.begin(key)
-        assertEquals(KeyStatus(true, null, clock.now), tracker.current(key))
+        // The start is only held until the attempt ends; lastAttemptAt counts finished attempts.
+        assertEquals(KeyStatus(true, null, null, attemptStartedAt = clock.now), tracker.current(key))
         tracker.end(key, SyncOutcome.Failed(SyncError.OFFLINE))
         assertEquals(KeyStatus(false, SyncError.OFFLINE, clock.now, 1), tracker.status(key).first())
         tracker.begin(key)
@@ -87,5 +89,20 @@ class SyncStatusTrackerTest {
         tracker.begin(key)
         tracker.end(key, SyncOutcome.UpToDate)
         assertEquals(0, tracker.current(key).consecutiveFailures)
+    }
+
+    @Test
+    fun `an attempt is dated by its start, and an abandoned one leaves the last date alone`() {
+        val failedAt = clock.now
+        tracker.begin(key)
+        clock.advanceBy(Duration.ofSeconds(30))
+        tracker.end(key, SyncOutcome.Failed(SyncError.OFFLINE))
+        assertEquals(failedAt, tracker.current(key).lastAttemptAt)
+
+        clock.advanceBy(Duration.ofMinutes(5))
+        tracker.begin(key)
+        clock.advanceBy(Duration.ofSeconds(10))
+        tracker.abandon(key)
+        assertEquals(KeyStatus(false, SyncError.OFFLINE, failedAt, 1), tracker.current(key))
     }
 }

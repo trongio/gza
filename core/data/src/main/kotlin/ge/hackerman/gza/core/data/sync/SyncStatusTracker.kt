@@ -19,9 +19,12 @@ import kotlinx.coroutines.flow.update
 internal data class KeyStatus(
     val inFlight: Boolean,
     val lastError: SyncError?,
+    /** When the last attempt that finished began; the backoff window is measured from it. */
     val lastAttemptAt: Instant?,
     /** Failed attempts since the last success; sizes the retry backoff (see [StalenessPolicy.errorBackoff]). */
-    val consecutiveFailures: Int = 0
+    val consecutiveFailures: Int = 0,
+    /** When the running attempt began; it becomes [lastAttemptAt] only if the attempt finishes. */
+    val attemptStartedAt: Instant? = null
 ) {
     companion object {
         val NONE = KeyStatus(inFlight = false, lastError = null, lastAttemptAt = null)
@@ -45,7 +48,7 @@ internal class SyncStatusTracker @Inject constructor(private val clock: Clock) {
 
     fun begin(key: SyncKey) {
         val now = clock.instant()
-        state.update { it + (key to (it[key] ?: KeyStatus.NONE).copy(inFlight = true, lastAttemptAt = now)) }
+        state.update { it + (key to (it[key] ?: KeyStatus.NONE).copy(inFlight = true, attemptStartedAt = now)) }
     }
 
     fun end(key: SyncKey, outcome: SyncOutcome) {
@@ -53,13 +56,26 @@ internal class SyncStatusTracker @Inject constructor(private val clock: Clock) {
         state.update {
             val old = it[key] ?: KeyStatus.NONE
             val failures = if (error == null) 0 else old.consecutiveFailures + 1
-            it + (key to old.copy(inFlight = false, lastError = error, consecutiveFailures = failures))
+            val attemptAt = old.attemptStartedAt ?: clock.instant()
+            it + (
+                key to old.copy(
+                    inFlight = false,
+                    lastError = error,
+                    lastAttemptAt = attemptAt,
+                    consecutiveFailures = failures,
+                    attemptStartedAt = null
+                )
+                )
         }
     }
 
-    /** A cancelled attempt: not running any more, and it says nothing new about the data. */
+    /**
+     * A cancelled attempt: not running any more, and it says nothing new about the data. The
+     * previous [KeyStatus.lastAttemptAt] stays, so a screen left mid retry does not restart the
+     * error backoff window.
+     */
     fun abandon(key: SyncKey) {
-        state.update { it + (key to (it[key] ?: KeyStatus.NONE).copy(inFlight = false)) }
+        state.update { it + (key to (it[key] ?: KeyStatus.NONE).copy(inFlight = false, attemptStartedAt = null)) }
     }
 
     /**
