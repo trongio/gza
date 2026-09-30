@@ -134,7 +134,21 @@ class DeparturePredictorPropertyTest {
             }
         }
         assertEquals(vehicles.distinct(), vehicles, "one row per bus, $context")
-        assertTrue(vehicles.size <= parkedKeys(request, now).size, "no more buses than parked, $context")
+        // A remembered bus missing from a live poll holds its row through the dropout.
+        val held = heldKeys(request, now)
+        vehicles.forEach { id ->
+            val routeKeys = result.departures.filter { row ->
+                (row.state as? DepartureState.Waiting)?.vehicleId == id ||
+                    (row.state as? DepartureState.Late)?.vehicleId == id
+            }.map { ParkedKey(it.routeId, id) }
+            routeKeys.forEach { key ->
+                assertTrue(
+                    key in parkedKeys(request, now) || key in held,
+                    "shown but neither parked nor held, $context: $key"
+                )
+            }
+        }
+        assertTrue(vehicles.size <= (parkedKeys(request, now) + held).size, "no more buses than parked, $context")
     }
 
     private fun assertMemory(result: StopPrediction, request: StopRequest, now: ZonedDateTime, context: String) {
@@ -171,6 +185,17 @@ class DeparturePredictorPropertyTest {
             val buffer = random.nextInt(0, 4)
             assertEquals(row.predicted.minusMinutes((walk + buffer).toLong()), row.leaveBy(walk, buffer), context)
         }
+    }
+
+    /** Remembered buses on a live route that the poll leaves out altogether, still within their dropout. */
+    private fun heldKeys(request: StopRequest, now: ZonedDateTime): Set<ParkedKey> {
+        val live = liveRoutes(request, now)
+        val listed = request.routes.mapNotNull { it.positions }.filter { it.routeId in live }
+            .flatMap { positions -> positions.vehicles.map { ParkedKey(positions.routeId, it.vehicleId) } }
+            .toSet()
+        return request.memory.vehicles
+            .filter { (key, entry) -> key.routeId in live && key !in listed && entry.survivesDropout(now) }
+            .keys
     }
 
     private fun ParkedVehicle.survivesDropout(now: ZonedDateTime): Boolean {

@@ -3,8 +3,10 @@ package ge.hackerman.gza.core.predict
 import ge.hackerman.gza.core.model.PatternSuffix
 import ge.hackerman.gza.core.model.Route
 import ge.hackerman.gza.core.model.RouteSchedule
+import ge.hackerman.gza.core.model.StopId
 import ge.hackerman.gza.core.model.VehicleId
 import ge.hackerman.gza.core.model.VehiclePosition
+import ge.hackerman.gza.core.predict.testing.Synthetic.HOME
 import ge.hackerman.gza.core.predict.testing.Synthetic.home
 import ge.hackerman.gza.core.predict.testing.Synthetic.parked
 import ge.hackerman.gza.core.predict.testing.Synthetic.positions
@@ -23,7 +25,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
@@ -193,7 +194,8 @@ class LayoverMemoryRulesAdversarialTest {
 
         @Test
         fun `positions stamped exactly 2 min ahead are live and 1 ns more are offline`() {
-            val memory = memoryOf(r326.id, "1:9" to entry("17:40:00", null, lastSeen = "17:44:00"))
+            // 1:9 is past its dropout, so a live poll forgets it and does not hold a row for it.
+            val memory = memoryOf(r326.id, "1:9" to entry("17:40:00", null, lastSeen = "17:43:00"))
             val now = at("17:45:00")
             val bus = listOf(parked("1:1"))
 
@@ -356,7 +358,12 @@ class LayoverMemoryRulesAdversarialTest {
             val on551 = snapshot(r551, now, listOf(parked("1:1")))
             val result = poll(now, memory, emptyList(), others = listOf(on551))
 
-            assertTrue(result.departures.none { it.state is DepartureState.Late }, "${result.departures}")
+            // 326 holds its own late bus through the dropout; 551 never saw it waiting, so no late there.
+            assertTrue(
+                result.departures.none { it.routeId == r551.id && it.state is DepartureState.Late },
+                "${result.departures}"
+            )
+            assertTrue(result.rowAt(at("17:49:00"))?.state is DepartureState.Late, "${result.departures}")
             val row551 = result.departures.single { it.routeId == r551.id && it.state is DepartureState.Waiting }
             assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("18:07:00")), row551.state)
             assertEquals(
@@ -558,14 +565,12 @@ class LayoverMemoryRulesAdversarialTest {
     }
 
     /**
-     * The dropout keeps the entry, but the poll without the bus shows the stop as if it had
-     * left. Kept disabled until the manager decides whether a remembered bus should hold its
-     * row through a dropout.
+     * A remembered bus left out of a poll within the dropout window still holds its row, with
+     * the same leave-time rules as if it had been seen, so the list does not flicker.
      */
     @Nested
     inner class RowsDuringADropout {
         @Test
-        @Disabled("BUG: a waiting bus left out of one poll shows its departure as NoBusYet for that poll")
         fun `a waiting bus left out of one poll still holds its departure`() {
             val memory = memoryOf(r326.id, "1:1" to entry("17:40:00", "17:49:00", lastSeen = "17:45:00"))
             val gap = poll(at("17:45:15"), memory, emptyList())
@@ -574,7 +579,6 @@ class LayoverMemoryRulesAdversarialTest {
         }
 
         @Test
-        @Disabled("BUG: a late bus left out of one poll makes its late departure vanish from the list for that poll")
         fun `a late bus left out of one poll keeps its late departure listed`() {
             val memory = memoryOf(r326.id, "1:1" to entry("17:40:00", "17:49:00", lastSeen = "17:50:00"))
             val gap = poll(at("17:50:15"), memory, emptyList())
@@ -583,15 +587,58 @@ class LayoverMemoryRulesAdversarialTest {
         }
 
         @Test
-        fun `what a dropout poll shows today`() {
-            // Pins the current behaviour the two disabled tests above describe.
-            val waiting = memoryOf(r326.id, "1:1" to entry("17:40:00", "17:49:00", lastSeen = "17:45:00"))
+        fun `what a dropout poll shows`() {
+            // Same leave times as if seen, and lastSeen stays the poll that saw it.
+            val waiting = memoryOf(r326.id, "1:1" to entry("17:48:30", "17:49:00", lastSeen = "17:48:45"))
+            val gap = poll(at("17:49:00"), waiting, emptyList())
+            assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("17:50:30")), gap.rowAt(at("17:49:00"))?.state)
             assertEquals(
-                DepartureState.NoBusYet,
-                poll(at("17:45:15"), waiting, emptyList()).rowAt(at("17:49:00"))?.state
+                instant("17:48:45"),
+                gap.memory.vehicles.getValue(ParkedKey(r326.id, VehicleId("1:1"))).lastSeen
             )
+            gap.assertHeadline(mapOf("1:1" to instant("17:48:30")), "waiting dropout")
+
             val late = memoryOf(r326.id, "1:1" to entry("17:40:00", "17:49:00", lastSeen = "17:50:00"))
-            assertNull(poll(at("17:50:15"), late, emptyList()).rowAt(at("17:49:00")))
+            val lateGap = poll(at("17:50:15"), late, emptyList())
+            assertEquals(
+                DepartureState.Late(VehicleId("1:1"), at("17:51:15"), Duration.parse("PT2M15S")),
+                lateGap.rowAt(at("17:49:00"))?.state
+            )
+            assertEquals(
+                instant("17:50:00"),
+                lateGap.memory.vehicles.getValue(ParkedKey(r326.id, VehicleId("1:1"))).lastSeen
+            )
+            lateGap.assertHeadline(mapOf("1:1" to instant("17:40:00")), "late dropout")
+        }
+
+        @Test
+        fun `a dropout does not stretch the window`() {
+            // Polls without the bus keep lastSeen, so the entry and its row end one window after it was seen.
+            val memory = memoryOf(r326.id, "1:1" to entry("17:40:00", "17:49:00", lastSeen = "17:45:00"))
+            val inside = poll(at("17:45:45"), memory, emptyList())
+            assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("17:49:00")), inside.rowAt(at("17:49:00"))?.state)
+            val atEdge = poll(at("17:46:00"), inside.memory, emptyList())
+            assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("17:49:00")), atEdge.rowAt(at("17:49:00"))?.state)
+            val after = poll(at("17:46:01"), atEdge.memory, emptyList())
+            assertFalse(after.memory.remembers(VehicleId("1:1")))
+            assertEquals(DepartureState.NoBusYet, after.rowAt(at("17:49:00"))?.state)
+        }
+
+        @Test
+        fun `a bus in the feed but no longer parked does not hold its row`() {
+            val memory = memoryOf(r326.id, "1:1" to entry("17:40:00", "17:49:00", lastSeen = "17:45:00"))
+            val moving = VehiclePosition(VehicleId("1:1"), out, HOME, 90.0, StopId("1:969"))
+            val gap = poll(at("17:45:15"), memory, listOf(moving))
+            assertNull(gap.rowOf("1:1"))
+            assertEquals(DepartureState.NoBusYet, gap.rowAt(at("17:49:00"))?.state)
+        }
+
+        @Test
+        fun `a held bus keeps its place ahead of a bus that just pulled in`() {
+            val memory = memoryOf(r326.id, "1:1" to entry("17:40:00", "17:49:00", lastSeen = "17:45:00"))
+            val gap = poll(at("17:45:15"), memory, listOf(parked("1:2", "0:01")))
+            assertEquals(DepartureState.Waiting(VehicleId("1:1"), at("17:49:00")), gap.rowAt(at("17:49:00"))?.state)
+            assertEquals(DepartureState.Waiting(VehicleId("1:2"), at("18:07:00")), gap.rowAt(at("18:07:00"))?.state)
         }
     }
 

@@ -5,7 +5,6 @@ import ge.hackerman.gza.core.model.PatternSuffix
 import ge.hackerman.gza.core.model.RouteId
 import ge.hackerman.gza.core.model.RoutePositions
 import ge.hackerman.gza.core.model.VehicleId
-import ge.hackerman.gza.core.model.VehiclePosition
 import java.time.Duration
 import java.time.Instant
 import java.time.ZonedDateTime
@@ -43,9 +42,12 @@ internal class TerminusAssignment(
                 .distinctBy { it.vehicleId }
                 .map { vehicle ->
                     val entry = remembered[vehicle.vehicleId]
-                    Parked(vehicle, entry, entry?.firstSeen?.coerceAtMost(nowInstant) ?: nowInstant)
+                    val firstSeen = entry?.firstSeen?.coerceAtMost(nowInstant) ?: nowInstant
+                    Parked(vehicle.vehicleId, vehicle.pattern, entry, firstSeen, lastSeen = nowInstant)
                 }
-            val byPattern = parked.groupBy { targetPattern(it, firstStopRows, rows) }
+            val listed = positions.vehicles.mapTo(HashSet()) { it.vehicleId }
+            val held = heldThroughDropout(remembered, listed)
+            val byPattern = (parked + held).groupBy { targetPattern(it, firstStopRows, rows) }
             firstStopRows.forEach { (pattern, indices) ->
                 val queue = byPattern[pattern].orEmpty().sortedWith(QUEUE_ORDER)
                 assignPattern(routeId, pattern, queue, indices, rows)
@@ -100,22 +102,34 @@ internal class TerminusAssignment(
     }
 
     private fun remember(routeId: RouteId, pattern: PatternSuffix, bus: Parked, waitingFor: ZonedDateTime?) {
-        memory[ParkedKey(routeId, bus.id)] = ParkedVehicle(pattern, bus.firstSeen, waitingFor, lastSeen = nowInstant)
+        memory[ParkedKey(routeId, bus.id)] = ParkedVehicle(pattern, bus.firstSeen, waitingFor, bus.lastSeen)
     }
 
     /**
-     * The gateway sometimes leaves a parked bus out of one poll. Its entry is kept for
-     * [PredictionRules.memoryDropout] after it was last seen, so it is still late, and still
-     * holds its first sighting, when it comes back.
+     * The gateway sometimes leaves a parked bus out of one poll. A remembered bus missing from
+     * the feed within [PredictionRules.memoryDropout] of when it was last seen is still parked:
+     * it keeps its place in the queue, so its row does not flicker to "no bus" or vanish for
+     * one poll. A bus in the feed but not parked has left, and is not held.
+     */
+    private fun heldThroughDropout(remembered: Map<VehicleId, ParkedVehicle>, listed: Set<VehicleId>): List<Parked> =
+        remembered.filter { (vehicleId, entry) -> vehicleId !in listed && entry.withinDropout() }
+            .map { (vehicleId, entry) ->
+                Parked(vehicleId, null, entry, entry.firstSeen.coerceAtMost(nowInstant), entry.lastSeen)
+            }
+
+    /**
+     * Entries not given a row this poll (no first-stop rows, or the bus was seen moving) are
+     * still kept through the dropout, so the bus is still late, and still holds its first
+     * sighting, when it comes back.
      */
     private fun keepThroughDropout(routeId: RouteId, remembered: Map<VehicleId, ParkedVehicle>) {
         remembered.forEach { (vehicleId, entry) ->
             val key = ParkedKey(routeId, vehicleId)
-            if (key !in memory && Duration.between(entry.lastSeen, nowInstant) <= rules.memoryDropout) {
-                memory[key] = entry
-            }
+            if (key !in memory && entry.withinDropout()) memory[key] = entry
         }
     }
+
+    private fun ParkedVehicle.withinDropout(): Boolean = Duration.between(lastSeen, nowInstant) <= rules.memoryDropout
 
     /**
      * An old entry (from before a long gap, or yesterday) says nothing about the bus parked
@@ -140,7 +154,7 @@ internal class TerminusAssignment(
         firstStopRows: Map<PatternSuffix, List<Int>>,
         rows: List<ScheduledDeparture>
     ): PatternSuffix {
-        val known = listOfNotNull(bus.position.pattern, bus.remembered?.pattern).firstOrNull { it in firstStopRows }
+        val known = listOfNotNull(bus.label, bus.remembered?.pattern).firstOrNull { it in firstStopRows }
         return known ?: firstStopRows.minBy { (_, indices) ->
             indices.map { rows[it].scheduled.toInstant() }.firstOrNull { !it.isBefore(nowInstant) } ?: Instant.MAX
         }.key
@@ -148,9 +162,18 @@ internal class TerminusAssignment(
 
     private fun turnaroundEnd(bus: Parked): ZonedDateTime = bus.firstSeen.plus(rules.minTurnaround).atZone(now.zone)
 
-    /** [remembered] is null for a bus seen for the first time or whose entry is stale. */
-    private class Parked(val position: VehiclePosition, val remembered: ParkedVehicle?, val firstSeen: Instant) {
-        val id: VehicleId get() = position.vehicleId
+    /**
+     * [remembered] is null for a bus seen for the first time or whose entry is stale. [label]
+     * is null for a bus held through a dropout, whose [lastSeen] stays the poll that last saw
+     * it, so the dropout window does not stretch.
+     */
+    private class Parked(
+        val id: VehicleId,
+        val label: PatternSuffix?,
+        val remembered: ParkedVehicle?,
+        val firstSeen: Instant,
+        val lastSeen: Instant
+    ) {
         val waitingFor: Instant get() = remembered?.waitingFor?.toInstant() ?: Instant.MAX
     }
 
