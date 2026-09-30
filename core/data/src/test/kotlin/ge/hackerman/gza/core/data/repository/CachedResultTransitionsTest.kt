@@ -71,7 +71,13 @@ class CachedResultTransitionsTest {
             assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), graph.routes.refreshRouteIfStale(r326))
             assertEquals(CachedResult.Data(fresh.value, syncedAt, Freshness.STALE, SyncError.OFFLINE), route())
 
+            // Within the 5 minute error backoff the failure is repeated without a request.
             gateway.failure = null
+            gateway.calls.clear()
+            clock.advanceBy(Duration.ofMinutes(5) - oneMilli)
+            assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), graph.routes.refreshRouteIfStale(r326))
+            assertTrue(gateway.calls.isEmpty())
+            clock.advanceBy(oneMilli)
             assertEquals(SyncOutcome.Synced, graph.routes.refreshRouteIfStale(r326))
             assertEquals(CachedResult.Data(fresh.value, clock.now, Freshness.FRESH, null), route())
         }
@@ -113,6 +119,7 @@ class CachedResultTransitionsTest {
             val gate = CompletableDeferred<Unit>()
             gateway.gate = gate
             gateway.failure = null
+            clock.advanceBy(Duration.ofMinutes(5)) // past the error backoff
             val retry = async { graph.routes.refreshRouteIfStale(r301) }
             assertEquals(CachedResult.Loading, awaitItem())
             gate.complete(Unit)

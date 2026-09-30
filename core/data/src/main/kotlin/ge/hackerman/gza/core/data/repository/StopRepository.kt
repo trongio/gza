@@ -17,6 +17,9 @@ interface StopRepository {
 
     fun observeStopRoutes(id: StopId): Flow<CachedResult<List<Route>>>
 
-    /** Call when a screen shows [id]'s routes; a no-op while the cache is fresh. */
+    /**
+     * Call when a screen shows [id]'s routes; a no-op while the cache is fresh, and while a
+     * recent failure backs off (5 minutes doubling to 2 h; the last error is returned).
+     */
     suspend fun refreshStopRoutesIfStale(id: StopId): SyncOutcome
 }

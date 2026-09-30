@@ -181,6 +181,19 @@ class CatalogSyncTest {
         assertTrue(tracker.current(SyncKey.Routes).inFlight)
         gate.complete(Unit)
         running.await()
-        assertEquals(KeyStatus(false, SyncError.OFFLINE, clock.now), tracker.current(SyncKey.Stops))
+        assertEquals(KeyStatus(false, SyncError.OFFLINE, clock.now, 1), tracker.current(SyncKey.Stops))
+    }
+
+    @Test
+    fun `app open respects the error backoff, the worker does not`() = runBlocking {
+        gateway.failure = TtcGatewayException.Network(IOException())
+        assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), sync.syncIfStale(respectBackoff = true))
+        gateway.failure = null
+        gateway.calls.clear()
+        clock.advanceBy(Duration.ofMinutes(4))
+        assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), sync.syncIfStale(respectBackoff = true))
+        assertTrue(gateway.calls.isEmpty())
+        assertEquals(SyncOutcome.Synced, sync.syncIfStale())
+        assertEquals(2753, stopCount())
     }
 }

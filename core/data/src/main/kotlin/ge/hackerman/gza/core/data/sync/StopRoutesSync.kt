@@ -30,8 +30,12 @@ internal class StopRoutesSync @Inject constructor(
         val key = SyncKey.StopRoutes(stopId)
         return locks.withLock(key) {
             val syncedAt = syncStateDao.get(key.value)?.syncedAt
-            if (syncedAt != null && !policy.isStale(syncedAt, policy.stopRoutesMaxAge, clock.instant())) {
+            val now = clock.instant()
+            val status = tracker.current(key)
+            if (syncedAt != null && !policy.isStale(syncedAt, policy.stopRoutesMaxAge, now)) {
                 SyncOutcome.UpToDate
+            } else if (policy.isBackingOff(status, now)) {
+                SyncOutcome.Failed(checkNotNull(status.lastError))
             } else {
                 tracker.track(key) {
                     val routes = gateway.stopRoutes(stopId, Language.EN).distinctBy { it.id }

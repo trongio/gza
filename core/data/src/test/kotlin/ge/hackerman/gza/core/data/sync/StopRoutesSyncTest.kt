@@ -9,6 +9,8 @@ import ge.hackerman.gza.core.data.testing.FixtureDomain
 import ge.hackerman.gza.core.data.testing.MutableClock
 import ge.hackerman.gza.core.data.testing.TestDatabase
 import ge.hackerman.gza.core.model.StopId
+import ge.hackerman.gza.core.ttc.gateway.TtcGatewayException
+import java.io.IOException
 import java.time.Duration
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -23,7 +25,8 @@ class StopRoutesSyncTest {
     private val db: GzaDatabase = TestDatabase.inMemory()
     private val gateway = FakeTtcGatewayClient()
     private val clock = MutableClock()
-    private val sync = StopRoutesSync(gateway, db, SyncStatusTracker(clock), StalenessPolicy(), clock)
+    private val tracker = SyncStatusTracker(clock)
+    private val sync = StopRoutesSync(gateway, db, tracker, StalenessPolicy(), clock)
     private val s970 = StopId(FixtureDomain.STOP_970)
     private val expected = listOf("301", "326", "551").map { FixtureDomain.routeId(it).value }.sorted()
 
@@ -64,5 +67,19 @@ class StopRoutesSyncTest {
         gateway.stopRoutesOverride = { emptyList() }
         assertEquals(SyncOutcome.Synced, sync.syncIfStale(StopId("1:gondola_5")))
         assertTrue(db.stopRoutesDao().getRouteIds("1:gondola_5").isEmpty())
+    }
+
+    @Test
+    fun `a failure backs off for 5 minutes without a request`() = runBlocking {
+        gateway.failure = TtcGatewayException.Network(IOException())
+        assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), sync.syncIfStale(s970))
+        gateway.failure = null
+        gateway.calls.clear()
+        clock.advanceBy(Duration.ofMinutes(5) - Duration.ofMillis(1))
+        assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), sync.syncIfStale(s970))
+        assertTrue(gateway.calls.isEmpty())
+        clock.advanceBy(Duration.ofMillis(1))
+        assertEquals(SyncOutcome.Synced, sync.syncIfStale(s970))
+        assertEquals(0, tracker.current(SyncKey.StopRoutes(s970)).consecutiveFailures)
     }
 }

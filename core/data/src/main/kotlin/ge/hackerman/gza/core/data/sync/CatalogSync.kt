@@ -34,44 +34,60 @@ internal class CatalogSync @Inject constructor(
     private val syncStateDao = database.syncStateDao()
     private val locks = KeyedMutex<SyncKey>()
 
-    /** Refreshes whichever of stops and routes is older than [maxAge] or empty. */
-    suspend fun syncIfStale(maxAge: Duration = policy.catalogMaxAge): SyncOutcome = coroutineScope {
-        val stops = async {
-            syncTable(SyncKey.Stops, maxAge, stopDao::count, stopDao::replaceAll) {
-                val en = async { gateway.stops(Language.EN) }
-                val ka = async { gateway.stops(Language.KA) }
-                Fetched(en.await().size, ka.await().size, mergeStops(en.await(), ka.await()))
+    /**
+     * Refreshes whichever of stops and routes is older than [maxAge] or empty. With
+     * [respectBackoff], a table whose last attempt failed recently is skipped (see
+     * [StalenessPolicy.isBackingOff]); the worker passes false because WorkManager already
+     * spaces its retries and only runs it once a network is up.
+     */
+    suspend fun syncIfStale(maxAge: Duration = policy.catalogMaxAge, respectBackoff: Boolean = false): SyncOutcome =
+        coroutineScope {
+            val stops = async {
+                syncTable(Table(SyncKey.Stops, stopDao::count, stopDao::replaceAll), maxAge, respectBackoff) {
+                    val en = async { gateway.stops(Language.EN) }
+                    val ka = async { gateway.stops(Language.KA) }
+                    Fetched(en.await().size, ka.await().size, mergeStops(en.await(), ka.await()))
+                }
             }
-        }
-        val routes = async {
-            syncTable(SyncKey.Routes, maxAge, routeDao::count, routeDao::replaceAll) {
-                val en = async { gateway.routes(Language.EN) }
-                val ka = async { gateway.routes(Language.KA) }
-                Fetched(en.await().size, ka.await().size, mergeRoutes(en.await(), ka.await()))
+            val routes = async {
+                syncTable(Table(SyncKey.Routes, routeDao::count, routeDao::replaceAll), maxAge, respectBackoff) {
+                    val en = async { gateway.routes(Language.EN) }
+                    val ka = async { gateway.routes(Language.KA) }
+                    Fetched(en.await().size, ka.await().size, mergeRoutes(en.await(), ka.await()))
+                }
             }
+            worse(stops.await(), routes.await())
         }
-        worse(stops.await(), routes.await())
-    }
 
     private class Fetched<R>(val enCount: Int, val kaCount: Int, val rows: List<R>)
 
+    private class Table<R>(
+        val key: SyncKey,
+        val count: suspend () -> Int,
+        val replaceAll: suspend (List<R>, SyncStateEntity) -> Unit
+    )
+
     private suspend fun <R> syncTable(
-        key: SyncKey,
+        table: Table<R>,
         maxAge: Duration,
-        cachedCount: suspend () -> Int,
-        write: suspend (List<R>, SyncStateEntity) -> Unit,
+        respectBackoff: Boolean,
         fetch: suspend CoroutineScope.() -> Fetched<R>
-    ): SyncOutcome = locks.withLock(key) {
-        val cached = cachedCount()
+    ): SyncOutcome = locks.withLock(table.key) {
+        val key = table.key
+        val cached = table.count()
         val syncedAt = syncStateDao.get(key.value)?.syncedAt
+        val now = clock.instant()
+        val status = tracker.current(key)
         // Re-checked inside the lock: a second caller finds the first one's result.
-        if (cached > 0 && !policy.isStale(syncedAt, maxAge, clock.instant())) {
+        if (cached > 0 && !policy.isStale(syncedAt, maxAge, now)) {
             SyncOutcome.UpToDate
+        } else if (respectBackoff && policy.isBackingOff(status, now)) {
+            SyncOutcome.Failed(checkNotNull(status.lastError))
         } else {
             tracker.track(key) {
                 val fetched = coroutineScope { fetch() }
                 if (isPlausible(fetched, cached)) {
-                    write(fetched.rows, SyncStateEntity(key.value, clock.instant()))
+                    table.replaceAll(fetched.rows, SyncStateEntity(key.value, clock.instant()))
                     SyncOutcome.Synced
                 } else {
                     SyncOutcome.Failed(SyncError.EMPTY_OR_SHRUNK)

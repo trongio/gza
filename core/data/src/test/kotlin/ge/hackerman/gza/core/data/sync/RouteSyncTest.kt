@@ -13,6 +13,7 @@ import ge.hackerman.gza.core.model.PatternSuffix
 import ge.hackerman.gza.core.model.RouteId
 import ge.hackerman.gza.core.model.RouteSchedule
 import ge.hackerman.gza.core.ttc.gateway.TtcGatewayException
+import java.io.IOException
 import java.time.Duration
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
@@ -31,7 +32,8 @@ class RouteSyncTest {
     private val db: GzaDatabase = TestDatabase.inMemory()
     private val gateway = FakeTtcGatewayClient()
     private val clock = MutableClock()
-    private val sync = RouteSync(gateway, db, SyncStatusTracker(clock), StalenessPolicy(), clock)
+    private val tracker = SyncStatusTracker(clock)
+    private val sync = RouteSync(gateway, db, tracker, StalenessPolicy(), clock)
     private val dao = db.routeDataDao()
 
     private val r326 = FixtureDomain.routeId("326")
@@ -219,5 +221,37 @@ class RouteSyncTest {
         gateway.failure = TtcGatewayException.Network(java.io.IOException())
         assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), sync.syncIfStale(r326))
         assertNull(db.syncStateDao().get("route:${r326.value}"))
+    }
+
+    @Test
+    fun `app open backs off a failing route, 5 then 10 minutes, and a forced sync does not wait`() = runBlocking {
+        sync.syncIfStale(r326)
+        clock.advanceBy(Duration.ofHours(13))
+        gateway.failure = TtcGatewayException.Network(IOException())
+        gateway.calls.clear()
+        sync.refreshActiveRoutes()
+        assertTrue(gateway.calls.isNotEmpty())
+        val key = SyncKey.Route(r326)
+        assertEquals(1, tracker.current(key).consecutiveFailures)
+
+        gateway.calls.clear()
+        clock.advanceBy(Duration.ofMinutes(5) - Duration.ofMillis(1))
+        sync.refreshActiveRoutes()
+        assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), sync.syncIfStale(r326))
+        assertTrue(gateway.calls.isEmpty())
+
+        clock.advanceBy(Duration.ofMillis(1))
+        sync.refreshActiveRoutes()
+        assertTrue(gateway.calls.isNotEmpty())
+        assertEquals(2, tracker.current(key).consecutiveFailures)
+
+        gateway.calls.clear()
+        clock.advanceBy(Duration.ofMinutes(10) - Duration.ofMillis(1))
+        sync.refreshActiveRoutes()
+        assertTrue(gateway.calls.isEmpty())
+
+        gateway.failure = null
+        assertEquals(SyncOutcome.Synced, sync.sync(r326))
+        assertEquals(0, tracker.current(key).consecutiveFailures)
     }
 }

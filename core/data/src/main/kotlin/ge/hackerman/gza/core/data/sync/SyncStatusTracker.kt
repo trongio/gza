@@ -16,7 +16,13 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
-internal data class KeyStatus(val inFlight: Boolean, val lastError: SyncError?, val lastAttemptAt: Instant?) {
+internal data class KeyStatus(
+    val inFlight: Boolean,
+    val lastError: SyncError?,
+    val lastAttemptAt: Instant?,
+    /** Failed attempts since the last success; sizes the retry backoff (see [StalenessPolicy.errorBackoff]). */
+    val consecutiveFailures: Int = 0
+) {
     companion object {
         val NONE = KeyStatus(inFlight = false, lastError = null, lastAttemptAt = null)
     }
@@ -44,7 +50,11 @@ internal class SyncStatusTracker @Inject constructor(private val clock: Clock) {
 
     fun end(key: SyncKey, outcome: SyncOutcome) {
         val error = (outcome as? SyncOutcome.Failed)?.error
-        state.update { it + (key to (it[key] ?: KeyStatus.NONE).copy(inFlight = false, lastError = error)) }
+        state.update {
+            val old = it[key] ?: KeyStatus.NONE
+            val failures = if (error == null) 0 else old.consecutiveFailures + 1
+            it + (key to old.copy(inFlight = false, lastError = error, consecutiveFailures = failures))
+        }
     }
 
     /** A cancelled attempt: not running any more, and it says nothing new about the data. */

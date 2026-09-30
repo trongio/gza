@@ -23,7 +23,7 @@ class SyncStatusTrackerTest {
         tracker.begin(key)
         assertEquals(KeyStatus(true, null, clock.now), tracker.current(key))
         tracker.end(key, SyncOutcome.Failed(SyncError.OFFLINE))
-        assertEquals(KeyStatus(false, SyncError.OFFLINE, clock.now), tracker.status(key).first())
+        assertEquals(KeyStatus(false, SyncError.OFFLINE, clock.now, 1), tracker.status(key).first())
         tracker.begin(key)
         // A running retry keeps showing the last error until it ends.
         assertEquals(SyncError.OFFLINE, tracker.current(key).lastError)
@@ -72,5 +72,20 @@ class SyncStatusTrackerTest {
         assertEquals("routes", SyncKey.Routes.toString())
         assertEquals("route:1:R97493", key.value)
         assertEquals("stop-routes:1:970", SyncKey.StopRoutes(StopId("1:970")).value)
+    }
+
+    @Test
+    fun `failures in a row are counted and a success resets them`() {
+        repeat(3) {
+            tracker.begin(key)
+            tracker.end(key, SyncOutcome.Failed(SyncError.OFFLINE))
+        }
+        assertEquals(3, tracker.current(key).consecutiveFailures)
+        tracker.begin(key)
+        tracker.abandon(key)
+        assertEquals(3, tracker.current(key).consecutiveFailures)
+        tracker.begin(key)
+        tracker.end(key, SyncOutcome.UpToDate)
+        assertEquals(0, tracker.current(key).consecutiveFailures)
     }
 }

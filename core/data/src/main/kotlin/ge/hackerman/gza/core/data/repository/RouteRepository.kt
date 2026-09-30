@@ -25,7 +25,11 @@ interface RouteRepository {
      */
     fun observeSchedulesAtStop(stopId: StopId): Flow<List<RouteSchedule>>
 
-    /** Call when a screen uses [id]: first use fetches it, then again when older than 12 h. */
+    /**
+     * Call when a screen uses [id]: first use fetches it, then again when older than 12 h.
+     * After a failure it waits 5 minutes (doubling to 2 h) before trying again and returns the
+     * last error meanwhile; [refreshRoute] does not wait.
+     */
     suspend fun refreshRouteIfStale(id: RouteId): SyncOutcome
 
     /** Pull to refresh: fetches now, whatever the age. */

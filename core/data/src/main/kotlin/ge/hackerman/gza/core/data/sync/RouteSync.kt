@@ -48,7 +48,7 @@ internal class RouteSync @Inject constructor(
      */
     suspend fun syncIfStale(id: RouteId): SyncOutcome = syncIfStale(id, markUsed = true)
 
-    /** Refreshes now, whatever the age. */
+    /** Refreshes now, whatever the age or the error backoff: the user asked. */
     suspend fun sync(id: RouteId): SyncOutcome {
         val key = SyncKey.Route(id)
         return locks.withLock(key) { syncLocked(id, key, lastUsedAt = clock.instant()) }
@@ -74,8 +74,11 @@ internal class RouteSync @Inject constructor(
             val state = syncStateDao.get(key.value)
             if (markUsed && state != null && isUseMarkDue(state.lastUsedAt, now)) syncStateDao.markUsed(key.value, now)
             val cached = dao.countPatterns(id.value) > 0
+            val status = tracker.current(key)
             if (state != null && cached && !policy.isStale(state.syncedAt, policy.routeMaxAge, now)) {
                 SyncOutcome.UpToDate
+            } else if (policy.isBackingOff(status, now)) {
+                SyncOutcome.Failed(checkNotNull(status.lastError))
             } else {
                 syncLocked(id, key, lastUsedAt = if (markUsed) now else state?.lastUsedAt)
             }
