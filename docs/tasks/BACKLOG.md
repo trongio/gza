@@ -86,7 +86,7 @@ Acceptance:
 - [ ] Room DAO tests (in-memory) and repository tests with a fake gateway.
 - [ ] App works offline after one online launch (test: repository serves cached data when the gateway throws).
 
-## [ ] T05 Prediction engine v1: timetable + layover
+## [~] T05 Prediction engine v1: timetable + layover
 Depends: T03
 - `:core:predict` pure JVM with an injected `Clock`. Service period selection
   (serviceDates first, weekday fallback), times past midnight, departures for a stop
