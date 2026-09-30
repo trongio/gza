@@ -47,15 +47,14 @@ internal class OfflineFirstRouteRepository @Inject constructor(
     private val routeDao = database.routeDao()
     private val routeDataDao = database.routeDataDao()
     private val scheduleDao = database.scheduleDao()
-    private val syncStateDao = database.syncStateDao()
 
     override fun observeRoutes(): Flow<CachedResult<List<Route>>> = combine(
-        routeDao.observeAll(),
-        syncStateDao.observe(SyncKey.Routes.value),
+        database.invalidationTracker.createFlow("routes", "sync_state").map { routeDao.loadAll(SyncKey.Routes.value) },
         tracker.status(SyncKey.Routes),
         contentLanguage.language
-    ) { rows, state, status, language ->
-        val routes = rows.mapNotNull { it.toRoute(language) }
+    ) { snapshot, status, language ->
+        val state = snapshot.syncState
+        val routes = snapshot.rows.mapNotNull { it.toRoute(language) }
         val freshness = policy.freshness(state?.syncedAt, policy.catalogMaxAge, clock.instant())
         cachedResult(routes.ifEmpty { null }, state?.syncedAt, freshness, status)
     }.flowOn(mappingDispatcher).distinctUntilChanged()
@@ -64,14 +63,10 @@ internal class OfflineFirstRouteRepository @Inject constructor(
         val key = SyncKey.Route(id)
         // One read transaction per change of any of these tables, so a bundle never mixes two syncs.
         val snapshots = database.invalidationTracker
-            .createFlow("routes", "patterns", "pattern_stops", "polylines", "stops")
-            .map { routeDataDao.loadRouteData(id.value) }
-        return combine(
-            snapshots,
-            syncStateDao.observe(key.value),
-            tracker.status(key),
-            contentLanguage.language
-        ) { snapshot, state, status, language ->
+            .createFlow("routes", "patterns", "pattern_stops", "polylines", "stops", "sync_state")
+            .map { routeDataDao.loadRouteData(id.value, key.value) }
+        return combine(snapshots, tracker.status(key), contentLanguage.language) { snapshot, status, language ->
+            val state = snapshot.syncState
             val freshness = policy.freshness(state?.syncedAt, policy.routeMaxAge, clock.instant())
             cachedResult(snapshot.toBundle(id, language), state?.syncedAt, freshness, status)
         }.flowOn(mappingDispatcher).distinctUntilChanged()

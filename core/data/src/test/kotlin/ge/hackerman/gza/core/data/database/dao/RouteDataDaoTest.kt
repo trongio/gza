@@ -111,8 +111,10 @@ internal class RouteDataDaoTest : DaoTest() {
     fun `loadRouteData joins pattern stops with stop names and keeps unknown stops`() = runTest {
         store("326")
         db.stopDao().replaceAll(listOf(stop("1:970", en = "Ana", ka = "ანა")), synced("stops"))
-        val snapshot = dao.loadRouteData(FixtureDomain.routeId("326").value)
+        val id = FixtureDomain.routeId("326").value
+        val snapshot = dao.loadRouteData(id, "route:$id")
         assertEquals("326", snapshot.route?.shortName)
+        assertEquals(T0, snapshot.syncState?.syncedAt)
         assertEquals(46 + 45, snapshot.patternStops.size)
         val first = snapshot.patternStops.first()
         assertEquals("1:970", first.stopId)

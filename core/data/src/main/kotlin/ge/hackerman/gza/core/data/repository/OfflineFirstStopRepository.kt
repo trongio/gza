@@ -39,15 +39,14 @@ internal class OfflineFirstStopRepository @Inject constructor(
 ) : StopRepository {
     private val stopDao = database.stopDao()
     private val stopRoutesDao = database.stopRoutesDao()
-    private val syncStateDao = database.syncStateDao()
 
     override fun observeStops(): Flow<CachedResult<List<Stop>>> = combine(
-        stopDao.observeAll(),
-        syncStateDao.observe(SyncKey.Stops.value),
+        database.invalidationTracker.createFlow("stops", "sync_state").map { stopDao.loadAll(SyncKey.Stops.value) },
         tracker.status(SyncKey.Stops),
         contentLanguage.language
-    ) { rows, state, status, language ->
-        val stops = rows.mapNotNull { it.toStop(language) }
+    ) { snapshot, status, language ->
+        val state = snapshot.syncState
+        val stops = snapshot.rows.mapNotNull { it.toStop(language) }
         cachedResult(stops.ifEmpty { null }, state?.syncedAt, freshness(state?.syncedAt, policy.catalogMaxAge), status)
     }.flowOn(mappingDispatcher).distinctUntilChanged()
 
@@ -63,7 +62,7 @@ internal class OfflineFirstStopRepository @Inject constructor(
         return combine(snapshots, tracker.status(key), contentLanguage.language) { snapshot, status, language ->
             val state = snapshot.syncState
             // A synced stop with no routes is data too (an empty list), not "nothing cached".
-            val routes = snapshot.routes.mapNotNull { it.toRoute(language) }.takeIf { state != null || it.isNotEmpty() }
+            val routes = snapshot.rows.mapNotNull { it.toRoute(language) }.takeIf { state != null || it.isNotEmpty() }
             cachedResult(routes, state?.syncedAt, freshness(state?.syncedAt, policy.stopRoutesMaxAge), status)
         }.flowOn(mappingDispatcher).distinctUntilChanged()
     }

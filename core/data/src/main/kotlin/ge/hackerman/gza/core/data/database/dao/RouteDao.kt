@@ -11,12 +11,24 @@ import ge.hackerman.gza.core.data.database.entity.SyncStateEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
+@Suppress("TooManyFunctions") // One function per query.
 internal abstract class RouteDao {
     @Query("SELECT * FROM routes ORDER BY id")
     abstract fun observeAll(): Flow<List<RouteEntity>>
 
     @Query("SELECT * FROM routes WHERE id = :id")
     abstract fun observe(id: String): Flow<RouteEntity?>
+
+    @Query("SELECT * FROM routes ORDER BY id")
+    abstract suspend fun getAll(): List<RouteEntity>
+
+    @Query("SELECT * FROM sync_state WHERE `key` = :key")
+    abstract suspend fun getSyncState(key: String): SyncStateEntity?
+
+    /** Same as [StopDao.loadAll]. */
+    @Transaction
+    open suspend fun loadAll(syncKey: String): TableSnapshot<RouteEntity> =
+        TableSnapshot(getAll(), getSyncState(syncKey))
 
     @Query("SELECT * FROM routes WHERE id = :id")
     abstract suspend fun get(id: String): RouteEntity?

@@ -11,9 +11,6 @@ import ge.hackerman.gza.core.data.database.entity.StopRouteEntity
 import ge.hackerman.gza.core.data.database.entity.SyncStateEntity
 import kotlinx.coroutines.flow.Flow
 
-/** A stop's routes and when they were synced, read together. */
-internal data class StopRoutesSnapshot(val routes: List<RouteEntity>, val syncState: SyncStateEntity?)
-
 @Dao
 internal abstract class StopRoutesDao {
     @Query(
@@ -44,8 +41,8 @@ internal abstract class StopRoutesDao {
      * synced yet look alike otherwise.
      */
     @Transaction
-    open suspend fun loadSnapshot(stopId: String, syncKey: String): StopRoutesSnapshot =
-        StopRoutesSnapshot(getRoutes(stopId), getSyncState(syncKey))
+    open suspend fun loadSnapshot(stopId: String, syncKey: String): TableSnapshot<RouteEntity> =
+        TableSnapshot(getRoutes(stopId), getSyncState(syncKey))
 
     @Query("SELECT route_id FROM stop_routes WHERE stop_id = :stopId ORDER BY route_id")
     abstract suspend fun getRouteIds(stopId: String): List<String>

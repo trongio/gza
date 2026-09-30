@@ -32,10 +32,14 @@ dependencies {
     ksp(libs.androidx.room3.compiler)
     implementation(libs.androidx.datastore)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
 
     testImplementation(libs.androidx.room3.testing)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.androidx.work.testing)
     testImplementation(libs.turbine)
 
     androidTestImplementation(libs.androidx.test.runner)

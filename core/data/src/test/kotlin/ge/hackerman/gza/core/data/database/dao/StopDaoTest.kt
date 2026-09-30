@@ -2,6 +2,7 @@ package ge.hackerman.gza.core.data.database.dao
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
+import ge.hackerman.gza.core.data.database.entity.StopEntity
 import ge.hackerman.gza.core.data.database.mergeStops
 import ge.hackerman.gza.core.data.testing.FixtureDomain
 import ge.hackerman.gza.core.model.Language
@@ -36,6 +37,15 @@ internal class StopDaoTest : DaoTest() {
         assertEquals("Ana Politkovskaia Street", stop.nameEn)
         assertEquals("ანა პოლიტკოვსკაიას ქუჩა", stop.nameKa)
         assertEquals(listOf(FixtureDomain.STOP_970), dao.getByCode("970").map { it.id })
+    }
+
+    @Test
+    fun `loadAll reads the rows with their sync time`() = runTest {
+        assertEquals(TableSnapshot<StopEntity>(emptyList(), null), dao.loadAll("stops"))
+        dao.replaceAll(listOf(stop("1:1")), synced("stops"))
+        val snapshot = dao.loadAll("stops")
+        assertEquals(listOf("1:1"), snapshot.rows.map { it.id })
+        assertEquals(T0, snapshot.syncState?.syncedAt)
     }
 
     @Test

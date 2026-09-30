@@ -79,7 +79,7 @@ class GzaDatabaseSmokeTest {
         )
         val first = open()
         first.routeDataDao().replaceRouteData("1:R", rows, SyncStateEntity("route:1:R", Instant.EPOCH))
-        assertEquals(2, first.routeDataDao().loadRouteData("1:R").patterns.size)
+        assertEquals(2, first.routeDataDao().loadRouteData("1:R", "route:1:R").patterns.size)
         first.close()
 
         val reopened = open()

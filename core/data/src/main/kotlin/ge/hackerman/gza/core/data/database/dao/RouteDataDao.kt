@@ -46,6 +46,7 @@ internal data class PatternStopRow(
 
 /** One consistent read of a route's cached data. */
 internal data class RouteDataSnapshot(
+    val syncState: SyncStateEntity?,
     val route: RouteEntity?,
     val patterns: List<PatternEntity>,
     val patternStops: List<PatternStopRow>,
@@ -80,6 +81,9 @@ internal abstract class RouteDataDao {
     @Query("SELECT * FROM routes WHERE id = :routeId")
     abstract suspend fun getRoute(routeId: String): RouteEntity?
 
+    @Query("SELECT * FROM sync_state WHERE `key` = :key")
+    abstract suspend fun getSyncState(key: String): SyncStateEntity?
+
     @Query("SELECT * FROM schedule_periods WHERE route_id = :routeId AND suffix = :suffix ORDER BY period_index")
     abstract suspend fun getSchedulePeriods(routeId: String, suffix: String): List<SchedulePeriodEntity>
 
@@ -88,9 +92,10 @@ internal abstract class RouteDataDao {
     )
     abstract suspend fun getScheduleStopTimes(routeId: String, suffix: String): List<ScheduleStopTimesEntity>
 
-    /** Patterns, stops in order and shapes read together, so they always belong to one sync. */
+    /** Patterns, stops in order, shapes and sync time read together, so they always belong to one sync. */
     @Transaction
-    open suspend fun loadRouteData(routeId: String): RouteDataSnapshot = RouteDataSnapshot(
+    open suspend fun loadRouteData(routeId: String, syncKey: String): RouteDataSnapshot = RouteDataSnapshot(
+        syncState = getSyncState(syncKey),
         route = getRoute(routeId),
         patterns = getPatterns(routeId),
         patternStops = getPatternStopRows(routeId),
