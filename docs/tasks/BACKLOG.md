@@ -101,6 +101,10 @@ Acceptance:
 - [ ] Tests for Sunday to Monday rollover, 23:59 to 00:10 departures, empty service day, missing schedule.
 - [ ] Ports and passes the test cases from the ttc-leave-by prototype.
 
+Follow-ups:
+- Warm-route late claim: when the route was polled moments ago, a parked bus with no memory past its time could claim the passed row as Late (rejected for cold start, see PLAN.md 2.0).
+- Bus stale only via missedLongAgo but seen on every poll resets firstSeen; keep firstSeen and clear waitingFor instead.
+
 ## [x] T06 App shell and design system (PR #3)
 Depends: T01
 - `:core:designsystem`: color tokens (light/dark), typography (a display face, a body
