@@ -61,6 +61,10 @@ gradlePlugin {
             id = "gza.hilt"
             implementationClass = "HiltConventionPlugin"
         }
+        register("androidRobolectric") {
+            id = "gza.android.robolectric"
+            implementationClass = "AndroidRobolectricConventionPlugin"
+        }
         register("androidScreenshot") {
             id = "gza.android.screenshot"
             implementationClass = "AndroidScreenshotTestConventionPlugin"
