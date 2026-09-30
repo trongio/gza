@@ -122,11 +122,15 @@ internal class RouteSync @Inject constructor(
                         result.copy(patternStops = result.patternStops + cached).also { logKept(id) }
                 }
             }
-            if (result.periods.none { it.suffix == suffix }) {
-                val periods = dao.getSchedulePeriods(id.value, suffix)
-                if (periods.isNotEmpty()) {
-                    val times = dao.getScheduleStopTimes(id.value, suffix)
-                    result = result.copy(periods = result.periods + periods, stopTimes = result.stopTimes + times)
+            // Periods that all came back without a single stop row are as empty as no periods.
+            if (result.stopTimes.none { it.suffix == suffix }) {
+                val times = dao.getScheduleStopTimes(id.value, suffix)
+                if (times.isNotEmpty()) {
+                    val periods = dao.getSchedulePeriods(id.value, suffix)
+                    result = result.copy(
+                        periods = result.periods.filterNot { it.suffix == suffix } + periods,
+                        stopTimes = result.stopTimes + times
+                    )
                     logKept(id)
                 }
             }

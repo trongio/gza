@@ -15,7 +15,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -46,10 +45,6 @@ class RouteSyncEdgeCasesTest {
         assertEquals(2, db.routeDataDao().countPatterns(r326.value))
     }
 
-    @Ignore(
-        "BUG: a schedule whose periods all come back with no stop rows replaces the cached timetable " +
-            "with an empty one (RouteSync.keepCachedWhereEmpty only checks for a missing period list)"
-    )
     @Test
     fun `a timetable whose periods came back with no rows keeps the cached rows`() = runBlocking {
         graph.routes.refreshRouteIfStale(r326)
@@ -64,11 +59,6 @@ class RouteSyncEdgeCasesTest {
         assertEquals(before, stopTimeRows(outbound))
     }
 
-    @Ignore(
-        "BUG: route data whose catalog row a later catalog sync removed reads as Loading forever " +
-            "(toBundle needs the route row although RouteBundle.route is nullable), and " +
-            "refreshRouteIfStale says UpToDate, so nothing puts the row back for 12 h"
-    )
     @Test
     fun `cached route data stays visible when the catalog no longer lists the route`() = runBlocking {
         assertEquals(SyncOutcome.Synced, graph.routes.refreshRouteIfStale(r326))

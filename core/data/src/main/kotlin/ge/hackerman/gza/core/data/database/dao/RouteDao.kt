@@ -40,20 +40,25 @@ internal abstract class RouteDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     abstract suspend fun insertIfAbsent(routes: List<RouteEntity>)
 
-    @Insert
-    abstract suspend fun insertAll(routes: List<RouteEntity>)
+    /** Routes with cached route data stay, so their bundle still has a row to read. */
+    @Query("DELETE FROM routes WHERE id NOT IN (SELECT DISTINCT route_id FROM patterns)")
+    abstract suspend fun deleteAllWithoutRouteData()
 
-    @Query("DELETE FROM routes")
-    abstract suspend fun deleteAll()
+    @Upsert
+    abstract suspend fun upsertAll(routes: List<RouteEntity>)
 
     @Upsert
     abstract suspend fun upsertSyncState(state: SyncStateEntity)
 
-    /** Same contract as [StopDao.replaceAll]. */
+    /**
+     * Same contract as [StopDao.replaceAll], with one exception: a route the catalog dropped
+     * keeps its row while its patterns are cached. Its next route sync would insert that row
+     * again from the detail anyway, and without it the cached bundle reads as nothing.
+     */
     @Transaction
     open suspend fun replaceAll(routes: List<RouteEntity>, syncState: SyncStateEntity) {
-        deleteAll()
-        insertAll(routes)
+        deleteAllWithoutRouteData()
+        upsertAll(routes)
         upsertSyncState(syncState)
     }
 }

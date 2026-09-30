@@ -2,6 +2,7 @@ package ge.hackerman.gza.core.data.database.dao
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
+import ge.hackerman.gza.core.data.database.entity.PatternEntity
 import ge.hackerman.gza.core.data.database.mergeRoutes
 import ge.hackerman.gza.core.data.testing.FixtureDomain
 import ge.hackerman.gza.core.model.Language
@@ -44,6 +45,16 @@ internal class RouteDaoTest : DaoTest() {
     }
 
     @Test
+    fun `replaceAll keeps a dropped route whose patterns are cached, and updates a listed one`() = runTest {
+        dao.replaceAll(listOf(route("1:A"), route("1:B"), route("1:C")), synced("routes"))
+        db.routeDataDao().insertPatterns(listOf(pattern("1:A"), pattern("1:B")))
+        dao.replaceAll(listOf(route("1:B", en = "Renamed"), route("1:D")), synced("routes"))
+        assertEquals(listOf("1:A", "1:B", "1:D"), dao.getAll().map { it.id })
+        assertEquals("Route A", dao.get("1:A")?.longNameEn)
+        assertEquals("Renamed", dao.get("1:B")?.longNameEn)
+    }
+
+    @Test
     fun `insertIfAbsent keeps the catalog row`() = runTest {
         dao.replaceAll(listOf(route("1:A", en = "Catalog")), synced("routes"))
         dao.insertIfAbsent(listOf(route("1:A", en = null), route("1:B")))
@@ -51,4 +62,7 @@ internal class RouteDaoTest : DaoTest() {
         assertEquals(2, dao.count())
         dao.observe("1:Z").test { assertNull(awaitItem()) }
     }
+
+    private fun pattern(routeId: String) =
+        PatternEntity(routeId, "0:01", 0, null, null, null, null, null, null, null, null)
 }
