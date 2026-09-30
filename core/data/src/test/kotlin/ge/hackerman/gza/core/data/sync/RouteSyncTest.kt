@@ -100,6 +100,26 @@ class RouteSyncTest {
     }
 
     @Test
+    fun `a use is recorded at most once an hour`() = runBlocking {
+        sync.syncIfStale(r326)
+        val firstUse = clock.now
+        clock.advanceBy(Duration.ofHours(1) - Duration.ofMillis(1))
+        assertEquals(SyncOutcome.UpToDate, sync.syncIfStale(r326))
+        assertEquals(firstUse, db.syncStateDao().get("route:${r326.value}")!!.lastUsedAt)
+        clock.advanceBy(Duration.ofMillis(1))
+        assertEquals(SyncOutcome.UpToDate, sync.syncIfStale(r326))
+        assertEquals(clock.now, db.syncStateDao().get("route:${r326.value}")!!.lastUsedAt)
+    }
+
+    @Test
+    fun `a use recorded in the future after the clock moved back is overwritten`() = runBlocking {
+        sync.syncIfStale(r326)
+        clock.advanceBy(Duration.ofMinutes(-3))
+        assertEquals(SyncOutcome.UpToDate, sync.syncIfStale(r326))
+        assertEquals(clock.now, db.syncStateDao().get("route:${r326.value}")!!.lastUsedAt)
+    }
+
+    @Test
     fun `a forced sync refetches even when fresh`() = runBlocking {
         sync.syncIfStale(r326)
         gateway.calls.clear()

@@ -11,6 +11,7 @@ import ge.hackerman.gza.core.model.Language
 import ge.hackerman.gza.core.model.RouteId
 import ge.hackerman.gza.core.ttc.gateway.TtcGatewayClient
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -41,7 +42,10 @@ internal class RouteSync @Inject constructor(
     // a few requests at a time (PLAN.md 3.2).
     private val requests = Semaphore(MAX_REQUESTS_IN_FLIGHT)
 
-    /** A screen uses [id]: records the use, and refreshes when older than 12 h or never synced. */
+    /**
+     * A screen uses [id]: records the use (at most once an hour), and refreshes when older than
+     * 12 h or never synced.
+     */
     suspend fun syncIfStale(id: RouteId): SyncOutcome = syncIfStale(id, markUsed = true)
 
     /** Refreshes now, whatever the age. */
@@ -67,8 +71,8 @@ internal class RouteSync @Inject constructor(
         val key = SyncKey.Route(id)
         return locks.withLock(key) {
             val now = clock.instant()
-            if (markUsed) syncStateDao.markUsed(key.value, now)
             val state = syncStateDao.get(key.value)
+            if (markUsed && state != null && isUseMarkDue(state.lastUsedAt, now)) syncStateDao.markUsed(key.value, now)
             val cached = dao.countPatterns(id.value) > 0
             if (state != null && cached && !policy.isStale(state.syncedAt, policy.routeMaxAge, now)) {
                 SyncOutcome.UpToDate
@@ -77,6 +81,13 @@ internal class RouteSync @Inject constructor(
             }
         }
     }
+
+    /**
+     * Every write to `sync_state` re-runs each cached flow that reads it (all 2,753 stops too),
+     * and the 14-day active window needs no finer use time than an hour.
+     */
+    private fun isUseMarkDue(lastUsedAt: Instant?, now: Instant): Boolean =
+        lastUsedAt == null || lastUsedAt > now || Duration.between(lastUsedAt, now) >= USE_MARK_GRANULARITY
 
     private suspend fun syncLocked(id: RouteId, key: SyncKey, lastUsedAt: Instant?): SyncOutcome = tracker.track(key) {
         val fetched = fetch(id)
@@ -151,6 +162,7 @@ internal class RouteSync @Inject constructor(
 
     private companion object {
         const val MAX_REQUESTS_IN_FLIGHT = 4
+        val USE_MARK_GRANULARITY: Duration = Duration.ofHours(1)
         const val TAG = "GzaRouteSync"
     }
 }

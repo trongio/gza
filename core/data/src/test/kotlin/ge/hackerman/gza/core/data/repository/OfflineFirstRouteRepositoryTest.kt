@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import ge.hackerman.gza.core.data.model.CachedResult
 import ge.hackerman.gza.core.data.model.Freshness
 import ge.hackerman.gza.core.data.model.RouteBundle
+import ge.hackerman.gza.core.data.model.SyncOutcome
 import ge.hackerman.gza.core.data.testing.DataTestGraph
 import ge.hackerman.gza.core.data.testing.FixtureDomain
 import ge.hackerman.gza.core.data.testing.TestDatabase
@@ -12,7 +13,9 @@ import ge.hackerman.gza.core.model.Language
 import ge.hackerman.gza.core.model.PatternSuffix
 import ge.hackerman.gza.core.model.StopId
 import java.time.DayOfWeek
+import java.time.Duration
 import kotlin.math.abs
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -46,6 +49,28 @@ class OfflineFirstRouteRepositoryTest {
             assertEquals(Freshness.FRESH, item.freshness)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `an up to date route refresh writes nothing, so the stop list is not reloaded`() = runBlocking {
+        graph.catalogSync.syncIfStale()
+        assertEquals(SyncOutcome.Synced, repository.refreshRouteIfStale(r326))
+        graph.clock.advanceBy(Duration.ofMinutes(59))
+        // The tables observeStops reads: any write to them re-queries all 2,753 stops.
+        graph.db.invalidationTracker.createFlow("stops", "sync_state").test {
+            awaitItem()
+            repeat(3) { assertEquals(SyncOutcome.UpToDate, repository.refreshRouteIfStale(r326)) }
+            // Invalidations arrive asynchronously; give one time to show up.
+            delay(INVALIDATION_WAIT_MS)
+            expectNoEvents()
+
+            // Positive control: an hour after the recorded use, the next use is written.
+            graph.clock.advanceBy(Duration.ofMinutes(1))
+            assertEquals(SyncOutcome.UpToDate, repository.refreshRouteIfStale(r326))
+            awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(graph.clock.now, graph.db.syncStateDao().get("route:${r326.value}")?.lastUsedAt)
     }
 
     @Test
@@ -121,5 +146,9 @@ class OfflineFirstRouteRepositoryTest {
         graph.language.language.value = Language.KA
         val ka = (repository.observeRoutes().first() as CachedResult.Data).value
         assertTrue(ka.first { it.id == r326 }.longName!!.any { it in 'ა'..'ჰ' })
+    }
+
+    private companion object {
+        const val INVALIDATION_WAIT_MS = 300L
     }
 }
