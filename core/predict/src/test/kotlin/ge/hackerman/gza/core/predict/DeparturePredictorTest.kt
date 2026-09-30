@@ -157,11 +157,33 @@ class DeparturePredictorTest {
         assertNull(rows.at("326", "17:49").boardHint)
         assertEquals(3, rows.at("326", "17:40").boardHint?.realtimeMinutes)
         assertEquals(1, rows.count { it.boardHint != null })
+    }
 
+    @Test
+    fun `a board row with no pattern goes on the route's single next row`() {
+        val now = "${monday}T17:32:00"
+        val snapshot = RouteSnapshot(
+            r326,
+            listOf(
+                schedule(r326, "0:01", listOf("17:31", "17:49", "18:07")),
+                schedule(r326, "1:01", listOf("17:40", "17:58"), position = 2)
+            )
+        )
         val anyPattern = StopBoard(home.id, live(now), listOf(boardRow("326", null, 5, scheduled = 7)))
         val hinted = predictAt(now, snapshot, board = anyPattern).departures.filter { it.boardHint != null }
-        assertEquals(listOf("17:40", "17:49"), hinted.map { it.scheduled.toLocalTime().toString() })
-        assertEquals(BoardHint(5, 7, live(now)), hinted.first().boardHint)
+        assertEquals(listOf("17:40"), hinted.map { it.scheduled.toLocalTime().toString() })
+        assertEquals(BoardHint(5, 7, live(now)), hinted.single().boardHint)
+
+        // A row of the pattern itself wins its slot; the patternless row does not move elsewhere.
+        val both = StopBoard(
+            home.id,
+            live(now),
+            listOf(boardRow("326", null, 5), boardRow("326", "1:01", 8), boardRow("326", "0:01", 17))
+        )
+        val rows = predictAt(now, snapshot, board = both).departures
+        assertEquals(8, rows.at("326", "17:40").boardHint?.realtimeMinutes)
+        assertEquals(17, rows.at("326", "17:49").boardHint?.realtimeMinutes)
+        assertEquals(2, rows.count { it.boardHint != null })
     }
 
     @Test

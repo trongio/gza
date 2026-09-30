@@ -1,5 +1,6 @@
 package ge.hackerman.gza.core.predict
 
+import ge.hackerman.gza.core.model.BoardArrival
 import ge.hackerman.gza.core.model.RouteId
 import ge.hackerman.gza.core.model.RoutePositions
 import ge.hackerman.gza.core.model.StopBoard
@@ -88,8 +89,10 @@ class DeparturePredictor(private val clock: Clock, private val rules: Prediction
     )
 
     /**
-     * The board row of this route and pattern goes on the pattern's next row. It is a hint for
-     * the UI only: at a terminus it reads 0 for a bus that is waiting, not arriving.
+     * The board row of this route and pattern goes on the pattern's next row; a row with no
+     * pattern cannot say which pattern it counts, so it goes on the route's single next row.
+     * It is a hint for the UI only: at a terminus it reads 0 for a bus that is waiting, not
+     * arriving.
      */
     private fun List<PredictedDeparture>.withBoardHints(
         board: StopBoard?,
@@ -98,18 +101,24 @@ class DeparturePredictor(private val clock: Clock, private val rules: Prediction
     ): List<PredictedDeparture> {
         if (board == null) return this
         val route = snapshot.route
-        val nextOfPattern = indices
-            .filter { !this[it].scheduled.isBefore(now) }
-            .groupBy { this[it].pattern }
-            .mapValues { (_, rows) -> rows.minBy { this[it].scheduled } }
-        val hints = nextOfPattern.mapNotNull { (pattern, index) ->
-            board.arrivals.firstOrNull { arrival ->
-                arrival.routeShortName == route.shortName &&
-                    (arrival.pattern == null || arrival.pattern == pattern) &&
-                    sameBoardKind(arrival.kind, route.kind)
-            }?.let { index to BoardHint(it.realtimeMinutesHint, it.scheduledMinutesHint, board.fetchedAt) }
-        }.toMap()
-        return mapIndexed { index, row -> hints[index]?.let { row.copy(boardHint = it) } ?: row }
+        val matching = board.arrivals.filter {
+            it.routeShortName == route.shortName && sameBoardKind(it.kind, route.kind)
+        }
+        // Rows are sorted by time, so the first upcoming row of each group is its next one.
+        val upcoming = indices.filter { !this[it].scheduled.isBefore(now) }
+        val hints = HashMap<Int, BoardArrival>()
+        upcoming.groupBy { this[it].pattern }.forEach { (pattern, rows) ->
+            matching.firstOrNull { it.pattern == pattern }?.let { hints[rows.first()] = it }
+        }
+        val next = upcoming.firstOrNull()
+        if (next != null && next !in hints) {
+            matching.firstOrNull { it.pattern == null }?.let { hints[next] = it }
+        }
+        return mapIndexed { index, row ->
+            hints[index]?.let {
+                row.copy(boardHint = BoardHint(it.realtimeMinutesHint, it.scheduledMinutesHint, board.fetchedAt))
+            } ?: row
+        }
     }
 
     // Metro and cable car numbers restart at 1, so a board "1" must match the kind too. Buses
