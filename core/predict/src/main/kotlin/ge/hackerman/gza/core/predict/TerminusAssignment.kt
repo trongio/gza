@@ -6,6 +6,7 @@ import ge.hackerman.gza.core.model.RouteId
 import ge.hackerman.gza.core.model.RoutePositions
 import ge.hackerman.gza.core.model.VehicleId
 import ge.hackerman.gza.core.model.VehiclePosition
+import java.time.Duration
 import java.time.Instant
 import java.time.ZonedDateTime
 
@@ -31,7 +32,11 @@ internal class TerminusAssignment(
         if (positions != null && firstStopRows.isNotEmpty()) {
             val parked = positions.vehicles
                 .filter { it.isInLayoverAt(terminus, rules) }
-                .map { Parked(it, firstSeen(routeId, it.vehicleId)) }
+                .map { vehicle ->
+                    // An entry of another route is another bus's history, not this one's.
+                    val remembered = previous.vehicles[vehicle.vehicleId]?.takeIf { it.routeId == routeId }
+                    Parked(vehicle, remembered, firstSeen(remembered))
+                }
             val byPattern = parked.groupBy { targetPattern(it.position, firstStopRows, rows) }
             firstStopRows.forEach { (pattern, indices) ->
                 val queue = byPattern[pattern].orEmpty().sortedWith(QUEUE_ORDER)
@@ -49,7 +54,8 @@ internal class TerminusAssignment(
         rows: List<ScheduledDeparture>
     ) {
         val upcoming = indices.filter { !rows[it].scheduled.isBefore(now) }
-        queue.forEach { bus ->
+        val notLate = queue.filterNot { bus -> claimLate(routeId, pattern, bus, indices, rows) }
+        notLate.forEach { bus ->
             val index = upcoming.firstOrNull { it !in states }
             if (index != null) {
                 val leavesAt = latest(rows[index].scheduled, turnaroundEnd(bus))
@@ -61,6 +67,34 @@ internal class TerminusAssignment(
         if (next != null && next !in states && !rows[next].scheduled.isAfter(now.plus(rules.noBusWindow))) {
             states[next] = DepartureState.NoBusYet
         }
+    }
+
+    /**
+     * A bus still parked after the departure it was waiting for keeps that departure, now
+     * late, and leaves a step after now on each poll (PLAN.md 2.0). Past [PredictionRules.lateLookback]
+     * whole minutes the trip is treated as dropped and the bus queues for the next one.
+     */
+    private fun claimLate(
+        routeId: RouteId,
+        pattern: PatternSuffix,
+        bus: Parked,
+        indices: List<Int>,
+        rows: List<ScheduledDeparture>
+    ): Boolean {
+        val index = missedRow(bus, indices, rows) ?: return false
+        val missed = rows[index].scheduled
+        val leavesAt = latest(now.plus(rules.lateStep), turnaroundEnd(bus))
+        states[index] = DepartureState.Late(bus.id, leavesAt, Duration.between(missed, leavesAt))
+        memory[bus.id] = ParkedVehicle(routeId, pattern, bus.firstSeen, missed)
+        return true
+    }
+
+    /** The unclaimed, recently passed row this bus was waiting for, if any. */
+    private fun missedRow(bus: Parked, indices: List<Int>, rows: List<ScheduledDeparture>): Int? {
+        val missed = bus.remembered?.waitingFor
+            ?.takeIf { it.isBefore(now) }
+            ?.takeIf { Duration.between(it, now).toMinutes() <= rules.lateLookback.toMinutes() }
+        return missed?.let { indices.firstOrNull { it !in states && rows[it].scheduled.isEqual(missed) } }
     }
 
     /**
@@ -79,8 +113,8 @@ internal class TerminusAssignment(
     }
 
     // A memory entry from the future (the clock moved back) counts as seen now.
-    private fun firstSeen(routeId: RouteId, id: VehicleId): Instant {
-        val seen = previous.vehicles[id]?.takeIf { it.routeId == routeId }?.firstSeen
+    private fun firstSeen(remembered: ParkedVehicle?): Instant {
+        val seen = remembered?.firstSeen
         val nowInstant = now.toInstant()
         return if (seen == null || seen.isAfter(nowInstant)) nowInstant else seen
     }
@@ -89,9 +123,9 @@ internal class TerminusAssignment(
 
     private fun latest(a: ZonedDateTime, b: ZonedDateTime): ZonedDateTime = if (b.isAfter(a)) b else a
 
-    private inner class Parked(val position: VehiclePosition, val firstSeen: Instant) {
+    private class Parked(val position: VehiclePosition, val remembered: ParkedVehicle?, val firstSeen: Instant) {
         val id: VehicleId get() = position.vehicleId
-        val waitingFor: Instant get() = previous.vehicles[id]?.waitingFor?.toInstant() ?: Instant.MAX
+        val waitingFor: Instant get() = remembered?.waitingFor?.toInstant() ?: Instant.MAX
     }
 
     private companion object {
