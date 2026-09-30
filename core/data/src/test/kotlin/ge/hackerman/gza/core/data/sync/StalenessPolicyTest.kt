@@ -61,7 +61,7 @@ class StalenessPolicyTest {
     @Test
     fun `a failed key backs off until the last millisecond of its window`() {
         val oneMilli = Duration.ofMillis(1)
-        val first = KeyStatus(false, SyncError.OFFLINE, now, consecutiveFailures = 1)
+        val first = KeyStatus(false, SyncError.SERVER, now, consecutiveFailures = 1)
         assertTrue(policy.isBackingOff(first, now))
         assertTrue(policy.isBackingOff(first, now + Duration.ofMinutes(5) - oneMilli))
         assertFalse(policy.isBackingOff(first, now + Duration.ofMinutes(5)))
@@ -71,6 +71,17 @@ class StalenessPolicyTest {
         val many = first.copy(consecutiveFailures = 12)
         assertTrue(policy.isBackingOff(many, now + Duration.ofHours(2) - oneMilli))
         assertFalse(policy.isBackingOff(many, now + Duration.ofHours(2)))
+    }
+
+    @Test
+    fun `an offline failure waits the base only, whatever the count`() {
+        val minutes = listOf(0, 1, 2, 7, Int.MAX_VALUE).map { policy.errorBackoff(it, SyncError.OFFLINE).toMinutes() }
+        assertEquals(listOf(0L, 5L, 5L, 5L, 5L), minutes)
+        // Other kinds keep doubling.
+        assertEquals(40L, policy.errorBackoff(4, SyncError.NO_KEY).toMinutes())
+        val offline = KeyStatus(false, SyncError.OFFLINE, now, consecutiveFailures = 12)
+        assertTrue(policy.isBackingOff(offline, now + Duration.ofMinutes(5) - Duration.ofMillis(1)))
+        assertFalse(policy.isBackingOff(offline, now + Duration.ofMinutes(5)))
     }
 
     @Test

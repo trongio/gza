@@ -1,6 +1,7 @@
 package ge.hackerman.gza.core.data.sync
 
 import ge.hackerman.gza.core.data.model.Freshness
+import ge.hackerman.gza.core.data.model.SyncError
 import java.time.Duration
 import java.time.Instant
 
@@ -31,13 +32,22 @@ data class StalenessPolicy(
     fun isStale(syncedAt: Instant?, maxAge: Duration, now: Instant): Boolean =
         freshness(syncedAt, maxAge, now) == Freshness.STALE
 
-    /** Zero before any failure, then [errorBackoffBase] doubling per failure up to [errorBackoffMax]. */
-    fun errorBackoff(consecutiveFailures: Int): Duration = if (consecutiveFailures <= 0) {
-        Duration.ZERO
-    } else {
-        // Capped shift: a long run of failures must not overflow before the max applies.
-        val doublings = minOf(consecutiveFailures - 1, MAX_BACKOFF_DOUBLINGS)
-        minOf(errorBackoffBase.multipliedBy(1L shl doublings), errorBackoffMax)
+    /**
+     * Zero before any failure, then [errorBackoffBase] doubling per failure up to
+     * [errorBackoffMax]. When the last failure was [SyncError.OFFLINE] it stays at
+     * [errorBackoffBase]: a request that never left the phone costs the gateway nothing, and a
+     * long wait would only slow the recovery once the network is back.
+     */
+    fun errorBackoff(consecutiveFailures: Int, lastError: SyncError? = null): Duration = when {
+        consecutiveFailures <= 0 -> Duration.ZERO
+
+        lastError == SyncError.OFFLINE -> errorBackoffBase
+
+        else -> {
+            // Capped shift: a long run of failures must not overflow before the max applies.
+            val doublings = minOf(consecutiveFailures - 1, MAX_BACKOFF_DOUBLINGS)
+            minOf(errorBackoffBase.multipliedBy(1L shl doublings), errorBackoffMax)
+        }
     }
 
     /**
@@ -50,7 +60,7 @@ data class StalenessPolicy(
         return status.lastError != null &&
             lastAttemptAt != null &&
             lastAttemptAt <= now &&
-            now < lastAttemptAt + errorBackoff(status.consecutiveFailures)
+            now < lastAttemptAt + errorBackoff(status.consecutiveFailures, status.lastError)
     }
 }
 
@@ -60,8 +70,8 @@ private val DEFAULT_ROUTE_MAX_AGE: Duration = Duration.ofHours(12)
 private val DEFAULT_ACTIVE_ROUTE_WINDOW: Duration = Duration.ofDays(14)
 private val DEFAULT_FUTURE_TOLERANCE: Duration = Duration.ofMinutes(5)
 
-// Offline usually lasts minutes; a gateway outage can last hours, where two hours between
-// attempts is still quick enough once it is back.
+// Offline usually lasts minutes (and never doubles, see errorBackoff); a gateway outage can
+// last hours, where two hours between attempts is still quick enough once it is back.
 private val DEFAULT_ERROR_BACKOFF_BASE: Duration = Duration.ofMinutes(5)
 private val DEFAULT_ERROR_BACKOFF_MAX: Duration = Duration.ofHours(2)
 private const val MAX_BACKOFF_DOUBLINGS = 30

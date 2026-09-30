@@ -19,7 +19,11 @@ interface StopRepository {
 
     /**
      * Call when a screen shows [id]'s routes; a no-op while the cache is fresh, and while a
-     * recent failure backs off (5 minutes doubling to 2 h; the last error is returned).
+     * recent failure backs off (5 minutes doubling to 2 h, 5 minutes flat when offline; the last
+     * error is returned). [refreshStopRoutes] does not wait.
      */
     suspend fun refreshStopRoutesIfStale(id: StopId): SyncOutcome
+
+    /** Pull to refresh and retry buttons: fetches now, whatever the age or the backoff. */
+    suspend fun refreshStopRoutes(id: StopId): SyncOutcome
 }

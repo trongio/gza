@@ -69,5 +69,7 @@ internal class OfflineFirstStopRepository @Inject constructor(
 
     override suspend fun refreshStopRoutesIfStale(id: StopId): SyncOutcome = stopRoutesSync.syncIfStale(id)
 
+    override suspend fun refreshStopRoutes(id: StopId): SyncOutcome = stopRoutesSync.sync(id)
+
     private fun freshness(syncedAt: Instant?, maxAge: Duration) = policy.freshness(syncedAt, maxAge, clock.instant())
 }

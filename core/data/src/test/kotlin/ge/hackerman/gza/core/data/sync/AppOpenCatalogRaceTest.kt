@@ -165,49 +165,64 @@ class AppOpenCatalogRaceTest {
     }
 
     @Test
-    fun `opening the app every minute for 3 hours offline tries only at 0, 5, 15, 35, 75 and 155 minutes`() =
-        runBlocking {
-            // Used online a week ago: the catalog is overdue and the route stale on every open.
-            graph.catalogSync.syncIfStale()
-            graph.routes.refreshRouteIfStale(r326)
-            graph.clock.advanceBy(Duration.ofDays(8))
-            gateway.failure = TtcGatewayException.Network(IOException())
-            gateway.calls.clear()
+    fun `opening every minute for 3 hours, gateway down, tries at 0, 5, 15, 35, 75 and 155 minutes`() = runBlocking {
+        openEveryMinuteWhileFailing(
+            failure = TtcGatewayException.Http(HTTP_SERVER_ERROR, null),
+            expected = listOf(0L, 5L, 15L, 35L, 75L, 155L)
+        )
+    }
 
-            val start = graph.clock.now
-            val stopAttempts = mutableListOf<Long>()
-            val routeAttempts = mutableListOf<Long>()
-            repeat(MINUTES_OFFLINE) {
-                val stopsBefore = gateway.callsTo("stops EN").size
-                val routeBefore = gateway.callsTo("route ${r326.value} EN").size
-                appOpen.run()
-                val minute = Duration.between(start, graph.clock.now).toMinutes()
-                if (gateway.callsTo("stops EN").size > stopsBefore) stopAttempts += minute
-                if (gateway.callsTo("route ${r326.value} EN").size > routeBefore) routeAttempts += minute
-                graph.clock.advanceBy(Duration.ofMinutes(1))
-            }
-            val expected = listOf(0L, 5L, 15L, 35L, 75L, 155L)
-            assertEquals(expected, stopAttempts)
-            assertEquals(expected, routeAttempts)
-            assertEquals(1, enqueuedOneTime().size)
+    @Test
+    fun `opening the app every minute for 3 hours offline tries every 5 minutes, never faster`() = runBlocking {
+        openEveryMinuteWhileFailing(
+            failure = TtcGatewayException.Network(IOException()),
+            expected = (0L until MINUTES_OFFLINE.toLong() step OFFLINE_RETRY_MINUTES).toList()
+        )
+    }
 
-            // Online again: the next open past the window syncs everything, the one after is free.
-            gateway.failure = null
-            graph.clock.now = start + Duration.ofMinutes(155 + 120)
-            gateway.calls.clear()
+    private suspend fun openEveryMinuteWhileFailing(failure: TtcGatewayException, expected: List<Long>) {
+        // Used online a week ago: the catalog is overdue and the route stale on every open.
+        graph.catalogSync.syncIfStale()
+        graph.routes.refreshRouteIfStale(r326)
+        graph.clock.advanceBy(Duration.ofDays(8))
+        gateway.failure = failure
+        gateway.calls.clear()
+
+        val start = graph.clock.now
+        val stopAttempts = mutableListOf<Long>()
+        val routeAttempts = mutableListOf<Long>()
+        repeat(MINUTES_OFFLINE) {
+            val stopsBefore = gateway.callsTo("stops EN").size
+            val routeBefore = gateway.callsTo("route ${r326.value} EN").size
             appOpen.run()
-            assertEquals(graph.clock.now, graph.db.syncStateDao().get(SyncKey.Stops.value)?.syncedAt)
-            assertEquals(graph.clock.now, graph.db.syncStateDao().get("route:${r326.value}")?.syncedAt)
-            gateway.calls.clear()
+            val minute = Duration.between(start, graph.clock.now).toMinutes()
+            if (gateway.callsTo("stops EN").size > stopsBefore) stopAttempts += minute
+            if (gateway.callsTo("route ${r326.value} EN").size > routeBefore) routeAttempts += minute
             graph.clock.advanceBy(Duration.ofMinutes(1))
-            appOpen.run()
-            assertTrue(gateway.calls.toString(), gateway.calls.isEmpty())
         }
+        assertEquals(expected, stopAttempts)
+        assertEquals(expected, routeAttempts)
+        assertEquals(1, enqueuedOneTime().size)
+
+        // Back again: the next open past the longest window syncs everything, the one after is free.
+        gateway.failure = null
+        graph.clock.now = start + Duration.ofMinutes(155 + 120)
+        gateway.calls.clear()
+        appOpen.run()
+        assertEquals(graph.clock.now, graph.db.syncStateDao().get(SyncKey.Stops.value)?.syncedAt)
+        assertEquals(graph.clock.now, graph.db.syncStateDao().get("route:${r326.value}")?.syncedAt)
+        gateway.calls.clear()
+        graph.clock.advanceBy(Duration.ofMinutes(1))
+        appOpen.run()
+        assertTrue(gateway.calls.toString(), gateway.calls.isEmpty())
+    }
 
     private companion object {
         const val SETTLE_MS = 200L
         const val TIMEOUT_MS = 10_000L
         const val REPEATS = 12
         const val MINUTES_OFFLINE = 180
+        const val OFFLINE_RETRY_MINUTES = 5L
+        const val HTTP_SERVER_ERROR = 500
     }
 }

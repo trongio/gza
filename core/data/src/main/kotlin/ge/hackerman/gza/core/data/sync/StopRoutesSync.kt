@@ -37,22 +37,30 @@ internal class StopRoutesSync @Inject constructor(
             } else if (policy.isBackingOff(status, now)) {
                 SyncOutcome.Failed(checkNotNull(status.lastError))
             } else {
-                tracker.track(key) {
-                    val routes = gateway.stopRoutes(stopId, Language.EN).distinctBy { it.id }
-                    if (routes.isEmpty() && dao.getRouteIds(stopId.value).isNotEmpty()) {
-                        SyncOutcome.Failed(SyncError.EMPTY_OR_SHRUNK)
-                    } else {
-                        dao.replaceForStop(
-                            stopId = stopId.value,
-                            rows = routes.map { StopRouteEntity(stopId.value, it.id.value) },
-                            // English only: the catalog adds Georgian names and wins when it runs.
-                            routesIfAbsent = routes.map { it.toEntity(longNameEn = it.longName, longNameKa = null) },
-                            syncState = SyncStateEntity(key.value, clock.instant())
-                        )
-                        SyncOutcome.Synced
-                    }
-                }
+                syncLocked(stopId, key)
             }
+        }
+    }
+
+    /** Refreshes now, whatever the age or the error backoff: the user asked. */
+    suspend fun sync(stopId: StopId): SyncOutcome {
+        val key = SyncKey.StopRoutes(stopId)
+        return locks.withLock(key) { syncLocked(stopId, key) }
+    }
+
+    private suspend fun syncLocked(stopId: StopId, key: SyncKey): SyncOutcome = tracker.track(key) {
+        val routes = gateway.stopRoutes(stopId, Language.EN).distinctBy { it.id }
+        if (routes.isEmpty() && dao.getRouteIds(stopId.value).isNotEmpty()) {
+            SyncOutcome.Failed(SyncError.EMPTY_OR_SHRUNK)
+        } else {
+            dao.replaceForStop(
+                stopId = stopId.value,
+                rows = routes.map { StopRouteEntity(stopId.value, it.id.value) },
+                // English only: the catalog adds Georgian names and wins when it runs.
+                routesIfAbsent = routes.map { it.toEntity(longNameEn = it.longName, longNameKa = null) },
+                syncState = SyncStateEntity(key.value, clock.instant())
+            )
+            SyncOutcome.Synced
         }
     }
 }

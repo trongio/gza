@@ -63,57 +63,58 @@ class ErrorBackoffAdversarialTest {
     )
 
     @Test
-    fun `failures of every kind share one doubling window, each edge exact, with the gateway already back`() =
-        runBlocking {
-            assertEquals(SyncOutcome.Synced, graph.routes.refreshRouteIfStale(r326))
-            clock.advanceBy(Duration.ofHours(13))
-            val windows = listOf(5L, 10L, 20L, 40L, 80L, 120L, 120L).map { Duration.ofMinutes(it) }
-            routeFailures().zip(windows).forEachIndexed { index, (failure, window) ->
-                failure.apply()
-                gateway.calls.clear()
-                assertEquals(SyncOutcome.Failed(failure.expected), graph.routes.refreshRouteIfStale(r326))
-                assertTrue("attempt ${index + 1} made no request", gateway.calls.isNotEmpty())
-                assertEquals(index + 1, graph.tracker.current(routeKey).consecutiveFailures)
+    fun `failures of every kind share one doubling count, offline stays at the base, each edge exact`() = runBlocking {
+        assertEquals(SyncOutcome.Synced, graph.routes.refreshRouteIfStale(r326))
+        clock.advanceBy(Duration.ofHours(13))
+        // The sixth failure is OFFLINE: 5 minutes, not 2 h, yet it still counts, so the
+        // seventh (a server error) waits the full 2 h.
+        val windows = listOf(5L, 10L, 20L, 40L, 80L, 5L, 120L).map { Duration.ofMinutes(it) }
+        routeFailures().zip(windows).forEachIndexed { index, (failure, window) ->
+            failure.apply()
+            gateway.calls.clear()
+            assertEquals(SyncOutcome.Failed(failure.expected), graph.routes.refreshRouteIfStale(r326))
+            assertTrue("attempt ${index + 1} made no request", gateway.calls.isNotEmpty())
+            assertEquals(index + 1, graph.tracker.current(routeKey).consecutiveFailures)
 
-                // The gateway is healthy again, but the window is not over: same error, no request.
-                healGateway()
-                gateway.calls.clear()
-                clock.advanceBy(window - oneMilli)
-                assertEquals(SyncOutcome.Failed(failure.expected), graph.routes.refreshRouteIfStale(r326))
-                graph.routeSync.refreshActiveRoutes()
-                assertTrue("window ${index + 1} leaked ${gateway.calls}", gateway.calls.isEmpty())
-                // A backed off answer is not an attempt: it neither counts nor moves the window.
-                assertEquals(index + 1, graph.tracker.current(routeKey).consecutiveFailures)
-                clock.advanceBy(oneMilli)
-            }
-
-            // The window is over and the gateway is back: one real attempt, and the count resets.
-            assertEquals(SyncOutcome.Synced, graph.routes.refreshRouteIfStale(r326))
-            assertEquals(0, graph.tracker.current(routeKey).consecutiveFailures)
-            assertEquals(null, graph.tracker.current(routeKey).lastError)
-
-            // After the reset the next failure waits 5 minutes again, not 2 hours.
-            clock.advanceBy(Duration.ofHours(13))
-            gateway.failure = TtcGatewayException.Network(IOException())
-            assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), graph.routes.refreshRouteIfStale(r326))
+            // The gateway is healthy again, but the window is not over: same error, no request.
             healGateway()
-            clock.advanceBy(Duration.ofMinutes(5) - oneMilli)
-            assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), graph.routes.refreshRouteIfStale(r326))
+            gateway.calls.clear()
+            clock.advanceBy(window - oneMilli)
+            assertEquals(SyncOutcome.Failed(failure.expected), graph.routes.refreshRouteIfStale(r326))
+            graph.routeSync.refreshActiveRoutes()
+            assertTrue("window ${index + 1} leaked ${gateway.calls}", gateway.calls.isEmpty())
+            // A backed off answer is not an attempt: it neither counts nor moves the window.
+            assertEquals(index + 1, graph.tracker.current(routeKey).consecutiveFailures)
             clock.advanceBy(oneMilli)
-            assertEquals(SyncOutcome.Synced, graph.routes.refreshRouteIfStale(r326))
         }
+
+        // The window is over and the gateway is back: one real attempt, and the count resets.
+        assertEquals(SyncOutcome.Synced, graph.routes.refreshRouteIfStale(r326))
+        assertEquals(0, graph.tracker.current(routeKey).consecutiveFailures)
+        assertEquals(null, graph.tracker.current(routeKey).lastError)
+
+        // After the reset the next failure waits 5 minutes again, not 2 hours.
+        clock.advanceBy(Duration.ofHours(13))
+        gateway.failure = TtcGatewayException.Network(IOException())
+        assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), graph.routes.refreshRouteIfStale(r326))
+        healGateway()
+        clock.advanceBy(Duration.ofMinutes(5) - oneMilli)
+        assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), graph.routes.refreshRouteIfStale(r326))
+        clock.advanceBy(oneMilli)
+        assertEquals(SyncOutcome.Synced, graph.routes.refreshRouteIfStale(r326))
+    }
 
     @Test
     fun `pull to refresh ignores the window, and its own failure extends it from its own time`() = runBlocking {
         graph.routes.refreshRouteIfStale(r326)
         clock.advanceBy(Duration.ofHours(13))
-        gateway.failure = TtcGatewayException.Network(IOException())
-        assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), graph.routes.refreshRouteIfStale(r326))
+        gateway.failure = TtcGatewayException.Http(HTTP_SERVER_ERROR, null)
+        assertEquals(SyncOutcome.Failed(SyncError.SERVER), graph.routes.refreshRouteIfStale(r326))
 
-        // Still offline, one minute in: the user pulls; it tries (and fails) at once.
+        // Still down, one minute in: the user pulls; it tries (and fails) at once.
         clock.advanceBy(Duration.ofMinutes(1))
         gateway.calls.clear()
-        assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), graph.routes.refreshRoute(r326))
+        assertEquals(SyncOutcome.Failed(SyncError.SERVER), graph.routes.refreshRoute(r326))
         assertTrue(gateway.calls.isNotEmpty())
         assertEquals(2, graph.tracker.current(routeKey).consecutiveFailures)
         val pulledAt = clock.now
@@ -121,7 +122,7 @@ class ErrorBackoffAdversarialTest {
         // The second failure's window is 10 minutes from the pull, not from the first failure.
         healGateway()
         clock.now = pulledAt + Duration.ofMinutes(10) - oneMilli
-        assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), graph.routes.refreshRouteIfStale(r326))
+        assertEquals(SyncOutcome.Failed(SyncError.SERVER), graph.routes.refreshRouteIfStale(r326))
 
         // Pulling inside the window with the gateway back succeeds and ends the backoff.
         assertEquals(SyncOutcome.Synced, graph.routes.refreshRoute(r326))
@@ -233,7 +234,7 @@ class ErrorBackoffAdversarialTest {
 
     @Test
     fun `the worker's failures grow the app open window too`() = runBlocking {
-        gateway.failure = TtcGatewayException.Network(IOException())
+        gateway.failure = TtcGatewayException.Http(HTTP_SERVER_ERROR, null)
         repeat(3) { graph.catalogSync.syncIfStale() }
         assertEquals(3, graph.tracker.current(SyncKey.Stops).consecutiveFailures)
         healGateway()
@@ -244,6 +245,53 @@ class ErrorBackoffAdversarialTest {
         clock.advanceBy(oneMilli)
         assertEquals(SyncOutcome.Synced, graph.catalogSync.syncIfStale(respectBackoff = true))
         assertTrue(gateway.callsTo("stops ${Language.EN}").size == 1)
+    }
+
+    @Test
+    fun `offline never waits longer than the base, however many times it failed`() = runBlocking {
+        graph.routes.refreshRouteIfStale(r326)
+        clock.advanceBy(Duration.ofHours(13))
+        gateway.failure = TtcGatewayException.Network(IOException())
+        repeat(6) {
+            assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), graph.routes.refreshRoute(r326))
+        }
+        assertEquals(6, graph.tracker.current(routeKey).consecutiveFailures)
+
+        healGateway()
+        gateway.calls.clear()
+        clock.advanceBy(Duration.ofMinutes(5) - oneMilli)
+        assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), graph.routes.refreshRouteIfStale(r326))
+        assertTrue(gateway.calls.isEmpty())
+        clock.advanceBy(oneMilli)
+        assertEquals(SyncOutcome.Synced, graph.routes.refreshRouteIfStale(r326))
+    }
+
+    @Test
+    fun `a stop's routes refresh on demand inside the window, and a success ends it`() = runBlocking {
+        gateway.failure = TtcGatewayException.Http(HTTP_SERVER_ERROR, null)
+        assertEquals(SyncOutcome.Failed(SyncError.SERVER), graph.stops.refreshStopRoutesIfStale(s970))
+
+        // Still down a minute later: the forced refresh asks anyway, fails, and counts it.
+        clock.advanceBy(Duration.ofMinutes(1))
+        gateway.calls.clear()
+        assertEquals(SyncOutcome.Failed(SyncError.SERVER), graph.stops.refreshStopRoutes(s970))
+        assertTrue(gateway.calls.isNotEmpty())
+        assertEquals(2, graph.tracker.current(SyncKey.StopRoutes(s970)).consecutiveFailures)
+
+        // Back up, still inside the window: the non-forced call waits, the forced one fetches.
+        healGateway()
+        gateway.calls.clear()
+        assertEquals(SyncOutcome.Failed(SyncError.SERVER), graph.stops.refreshStopRoutesIfStale(s970))
+        assertTrue(gateway.calls.isEmpty())
+        assertEquals(SyncOutcome.Synced, graph.stops.refreshStopRoutes(s970))
+        assertTrue(gateway.calls.isNotEmpty())
+        assertEquals(0, graph.tracker.current(SyncKey.StopRoutes(s970)).consecutiveFailures)
+        assertEquals(SyncOutcome.UpToDate, graph.stops.refreshStopRoutesIfStale(s970))
+
+        // Fresh data is no reason to skip a forced refresh: the user asked.
+        gateway.calls.clear()
+        assertEquals(SyncOutcome.Synced, graph.stops.refreshStopRoutes(s970))
+        assertTrue(gateway.calls.isNotEmpty())
     }
 
     private companion object {

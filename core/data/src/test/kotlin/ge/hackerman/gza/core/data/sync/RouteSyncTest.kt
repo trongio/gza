@@ -227,7 +227,7 @@ class RouteSyncTest {
     fun `app open backs off a failing route, 5 then 10 minutes, and a forced sync does not wait`() = runBlocking {
         sync.syncIfStale(r326)
         clock.advanceBy(Duration.ofHours(13))
-        gateway.failure = TtcGatewayException.Network(IOException())
+        gateway.failure = TtcGatewayException.Http(500, null)
         gateway.calls.clear()
         sync.refreshActiveRoutes()
         assertTrue(gateway.calls.isNotEmpty())
@@ -237,7 +237,7 @@ class RouteSyncTest {
         gateway.calls.clear()
         clock.advanceBy(Duration.ofMinutes(5) - Duration.ofMillis(1))
         sync.refreshActiveRoutes()
-        assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), sync.syncIfStale(r326))
+        assertEquals(SyncOutcome.Failed(SyncError.SERVER), sync.syncIfStale(r326))
         assertTrue(gateway.calls.isEmpty())
 
         clock.advanceBy(Duration.ofMillis(1))
