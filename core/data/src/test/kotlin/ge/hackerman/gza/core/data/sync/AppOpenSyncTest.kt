@@ -42,7 +42,7 @@ class AppOpenSyncTest {
         )
         workManager = WorkManager.getInstance(context)
         appOpen = AppOpenSync(
-            SyncScheduler(workManager),
+            SyncScheduler { workManager },
             graph.routeSync,
             graph.db,
             graph.language,

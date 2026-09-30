@@ -16,6 +16,8 @@ class GzaApplication :
     // manifest), so it builds the data layer's @HiltWorker classes with this factory.
     @Inject lateinit var workerFactory: HiltWorkerFactory
 
+    // Safe in any field order: nothing in AppOpenSync touches WorkManager (and so
+    // workerFactory) until onStart, because SyncScheduler resolves it lazily.
     @Inject lateinit var appOpenSync: AppOpenSync
 
     override fun onCreate() {

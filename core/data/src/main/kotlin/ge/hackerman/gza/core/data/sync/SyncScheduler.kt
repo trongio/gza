@@ -10,19 +10,26 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import dagger.Lazy
 import java.time.Duration
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** The only place that enqueues background sync. Unique work with KEEP: calling it again is free. */
+/**
+ * The only place that enqueues background sync. Unique work with KEEP: calling it again is free.
+ *
+ * [workManager] is lazy because `WorkManager.getInstance` asks `GzaApplication` for its
+ * configuration, which reads the injected worker factory. Resolved eagerly while Hilt injects
+ * the application's fields, it would crash whenever that field is not yet set.
+ */
 @Singleton
-internal class SyncScheduler @Inject constructor(private val workManager: WorkManager) {
+internal class SyncScheduler @Inject constructor(private val workManager: Lazy<WorkManager>) {
     /**
      * Weekly, on any network with the battery not low. A new periodic request runs as soon as
      * its constraints hold, which covers the first launch; KEEP never resets the schedule.
      */
     fun ensurePeriodicCatalogSync() {
-        workManager.enqueueUniquePeriodicWork(PERIODIC_WORK, ExistingPeriodicWorkPolicy.KEEP, periodicRequest())
+        workManager.get().enqueueUniquePeriodicWork(PERIODIC_WORK, ExistingPeriodicWorkPolicy.KEEP, periodicRequest())
     }
 
     /**
@@ -30,7 +37,7 @@ internal class SyncScheduler @Inject constructor(private val workManager: WorkMa
      * needs a foreground notification, and a few seconds do not matter here.
      */
     fun requestCatalogSyncNow() {
-        workManager.enqueueUniqueWork(ONE_TIME_WORK, ExistingWorkPolicy.KEEP, oneTimeRequest())
+        workManager.get().enqueueUniqueWork(ONE_TIME_WORK, ExistingWorkPolicy.KEEP, oneTimeRequest())
     }
 
     companion object {

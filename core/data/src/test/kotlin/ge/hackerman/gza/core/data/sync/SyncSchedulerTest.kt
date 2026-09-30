@@ -31,7 +31,7 @@ class SyncSchedulerTest {
             Configuration.Builder().setExecutor(SynchronousExecutor()).build()
         )
         workManager = WorkManager.getInstance(context)
-        scheduler = SyncScheduler(workManager)
+        scheduler = SyncScheduler { workManager }
     }
 
     private fun unique(name: String): List<WorkInfo> = workManager.getWorkInfosForUniqueWork(name).get()
@@ -67,5 +67,17 @@ class SyncSchedulerTest {
         assertEquals(NetworkType.CONNECTED, info.constraints.requiredNetworkType)
         assertFalse(info.constraints.requiresBatteryNotLow())
         assertEquals(WorkInfo.State.ENQUEUED, info.state)
+    }
+
+    @Test
+    fun `building the scheduler does not resolve WorkManager`() {
+        var resolved = false
+        val lazyScheduler = SyncScheduler {
+            resolved = true
+            workManager
+        }
+        assertFalse(resolved)
+        lazyScheduler.ensurePeriodicCatalogSync()
+        assertTrue(resolved)
     }
 }
