@@ -54,7 +54,7 @@ Follow-ups:
 - Decide whether Settings shows where the gateway config came from (remote, cache, fallback).
 - Firebase web credentials are baked in at build time; consider reading them from TTC's web page at runtime.
 
-## [ ] T03 Gateway client and fixtures
+## [x] T03 Gateway client and fixtures (PR #4)
 Depends: T02
 - Retrofit service + DTOs for every endpoint in `docs/TTC_API.md`: stops, stop routes,
   arrival-times, routes, route detail, schedule, stops-of-patterns, polylines,
@@ -63,8 +63,16 @@ Depends: T02
   including stop 1:970 and routes 301, 326, 551, 472.
 
 Acceptance:
-- [ ] Every endpoint parsed from a recorded fixture in a unit test, including the known-bad cases (board `0` at terminus, `arrivalDelay` 3676, negative `scheduledArrivalMinutes`, null heading).
-- [ ] Lenient parsing: unknown fields and nulls never crash.
+- [x] Every endpoint parsed from a recorded fixture in a unit test, including the known-bad cases (board `0` at terminus, `arrivalDelay` 3676, negative `scheduledArrivalMinutes`, null heading).
+- [x] Lenient parsing: unknown fields and nulls never crash.
+
+Follow-ups:
+- For T04: a sync that returns an empty stops or routes list must never replace a non-empty Room table (defence in depth on top of the client's all-misfit Malformed rule).
+- Positions whose pattern keys are all invalid (gateway key format change) come back as 0 vehicles, not Malformed; polylines already apply the rule to keys (`PositionMappers.kt`).
+- Positions: one fully bad pattern fails the whole response; consider returning the good patterns and marking only the bad one unknown.
+- Plan: a leg whose `steps` or `intermediateStops` all misfit drops the whole itinerary; these are secondary detail and could become null instead.
+- Route 469 detail returned HTTP 500 live on 2026-09-28 in en and ka (gateway side); record it as an error fixture if it persists.
+- PLAN.md says the parked 326 waited "38 minutes"; the weekday timetable runs every 18 minutes. Confirm with the user and correct.
 
 ## [ ] T04 Local data layer and sync
 Depends: T03

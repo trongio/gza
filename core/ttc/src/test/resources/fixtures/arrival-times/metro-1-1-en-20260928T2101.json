@@ -1,0 +1,12 @@
+[
+  {
+    "shortName": "1",
+    "color": "ff505b",
+    "headsign": "Varketili",
+    "patternSuffix": "1:01",
+    "vehicleMode": "SUBWAY",
+    "realtime": false,
+    "realtimeArrivalMinutes": 4,
+    "scheduledArrivalMinutes": 4
+  }
+]

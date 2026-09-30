@@ -1,0 +1,8 @@
+{
+  "request": "/v3/routes/1:R97493/polylines?patternSuffixes=1:01,0:01",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T17:01:26Z",
+  "recordedAtTbilisi": "2026-09-28T21:01:26+04:00",
+  "derived": false
+}

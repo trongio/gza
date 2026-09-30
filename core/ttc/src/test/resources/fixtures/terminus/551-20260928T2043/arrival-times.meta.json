@@ -1,0 +1,9 @@
+{
+  "request": "/v2/stops/1:970/arrival-times?locale=en&ignoreScheduledArrivalTimes=false",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T16:43:32Z",
+  "recordedAtTbilisi": "2026-09-28T20:43:32+04:00",
+  "derived": false,
+  "note": "Recorded by the T03 planner. Board and positions were fetched 76 s apart."
+}

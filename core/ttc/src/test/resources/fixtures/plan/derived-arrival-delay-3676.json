@@ -1,0 +1,1375 @@
+{
+  "from": {
+    "lat": 41.722055,
+    "lon": 44.703114,
+    "name": "Origin"
+  },
+  "to": {
+    "lat": 41.6934,
+    "lon": 44.8015,
+    "name": "Destination"
+  },
+  "itineraries": [
+    {
+      "startTime": "2026-09-28T16:43:46.000+00:00",
+      "endTime": "2026-09-28T17:29:20.000+00:00",
+      "duration": 2734,
+      "walkTime": 361,
+      "walkDistance": 425.91,
+      "legs": [
+        {
+          "from": {
+            "lat": 41.722055,
+            "lon": 44.703114,
+            "name": "Ana Politkovskaia Street"
+          },
+          "to": {
+            "lat": 41.714769,
+            "lon": 44.784136,
+            "name": "Heroes Square (Saburtalo direction)"
+          },
+          "startTime": "2026-09-28T16:43:46.000+00:00",
+          "endTime": "2026-09-28T17:05:46.000+00:00",
+          "duration": 1320,
+          "legPolyline": {
+            "encodedValue": "yys}FmazoGBD??@A?G@E?G@E?E@I@I@MBKDYBUBKBM?GBOBYDa@Fc@Ja@???A|CqNJsB???A`AqTDwB???Av@kO?M???ADEj@wK?wA[oG????F_@eAuO????o@qN????k@cROs@????Kg@AIAKA_@CYAWCa@Ca@A[IaBKgBCo@GkAAI?GCO?GAG?QA]DY???AKm@ASC]A_@A[AQCo@EaACg@C[E}@E}@Cy@Cw@BU???Ao@yQ_@yBs@kBgA{AeBuBaAsBQaAAQ???Au@cK?GAO?MAM?MAKAQCo@E{@EeAAWAWC_@A[CY?KGuC???A?b@y@oRCcB????a@kHGuAKeDA{A????yAyX???AgA_V????iBy_@?K???A_AeQOyD??AASaDV_@lJwK????|L}M?E???ALEfEoE???AtI_Jx@gAhHiG???AFe@@?BEHEJMJGHIDC@AHCJGDCDADCFCFEJE??D@F@LBF@H@F@F@D@F@@?B?F@H@D?B?D?H@J?J?LAD?NL????HQLGVMr@]nAg@v@c@v@e@NMRQPQTALEJERU^e@DCBEFKBGBITo@J[PM??@?X_BbBcCV]Ne@Dk@Ei@Mg@Y]SMs@Kg@@s@Fk@EMEuAcBaAqA",
+            "color": null
+          },
+          "mode": "BUS",
+          "steps": [],
+          "intermediateStops": [
+            {
+              "id": "1:969",
+              "code": "969",
+              "name": "Sokhumi State University",
+              "lat": 41.721692,
+              "lon": 44.704641,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:972",
+              "code": "972",
+              "name": "Elizbar Mindeli Street",
+              "lat": 41.720841,
+              "lon": 44.707722,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:973",
+              "code": "973",
+              "name": "Sazogadoebrivi Mautskebeli",
+              "lat": 41.720483,
+              "lon": 44.711789,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:974",
+              "code": "974",
+              "name": "Construction Supervision Agency",
+              "lat": 41.720201,
+              "lon": 44.714482,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:981",
+              "code": "981",
+              "name": "Special Penitentiary Service",
+              "lat": 41.720095,
+              "lon": 44.718355,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:982",
+              "code": "982",
+              "name": "Petre Kavtaradze St #68",
+              "lat": 41.720409,
+              "lon": 44.721187,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:985",
+              "code": "985",
+              "name": "Public School #35",
+              "lat": 41.72064,
+              "lon": 44.723673,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3102",
+              "code": "3102",
+              "name": "Petre Kavtaradze St #46",
+              "lat": 41.720947,
+              "lon": 44.726997,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:987",
+              "code": "987",
+              "name": "Public School #122",
+              "lat": 41.721306,
+              "lon": 44.730457,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:989",
+              "code": "989",
+              "name": "Davit Tavkhelidze Street",
+              "lat": 41.721591,
+              "lon": 44.73354,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3593",
+              "code": "3593",
+              "name": "Alexandre Kazbegi Avenue #44",
+              "lat": 41.723557,
+              "lon": 44.739761,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:994",
+              "code": "994",
+              "name": "Kalistrate Kutatelidze Street",
+              "lat": 41.724059,
+              "lon": 44.744568,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:996",
+              "code": "996",
+              "name": "Ana Antonovskaia Street",
+              "lat": 41.724369,
+              "lon": 44.748007,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:999",
+              "code": "999",
+              "name": "Givi Kartozia Street",
+              "lat": 41.724641,
+              "lon": 44.751225,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:1000",
+              "code": "1000",
+              "name": "Vaso Godziashvili Park",
+              "lat": 41.725095,
+              "lon": 44.755362,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:1001",
+              "code": "1001",
+              "name": "Tandzia Street",
+              "lat": 41.725458,
+              "lon": 44.759042,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:1003",
+              "code": "1003",
+              "name": "Tashkenti Street",
+              "lat": 41.725986,
+              "lon": 44.764363,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:1004",
+              "code": "1004",
+              "name": "Davit Gamrekeli Street",
+              "lat": 41.726391,
+              "lon": 44.76822,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:932",
+              "code": "932",
+              "name": "Adam Mitskevich Street",
+              "lat": 41.724541,
+              "lon": 44.771229,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:930",
+              "code": "930",
+              "name": "Sulkhan Tsintsadze Street",
+              "lat": 41.722313,
+              "lon": 44.773651,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:2119",
+              "code": "2119",
+              "name": "M/S Technical University",
+              "lat": 41.72124,
+              "lon": 44.774732,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:925",
+              "code": "925",
+              "name": "26 May Square",
+              "lat": 41.71775,
+              "lon": 44.778192,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:924",
+              "code": "924",
+              "name": "Simon Chikovani Street",
+              "lat": 41.716152,
+              "lon": 44.778632,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:804",
+              "code": "804",
+              "name": "Zoo",
+              "lat": 41.713526,
+              "lon": 44.780826,
+              "vehicleMode": "BUS"
+            }
+          ],
+          "route": {
+            "id": null,
+            "shortName": "551",
+            "longName": "თბილისი მოლი - ანა პოლიტკოვსკაიას ქ.",
+            "color": "0033B4",
+            "mode": null
+          },
+          "realTime": true,
+          "arrivalDelay": 3676,
+          "distance": 7913.77
+        },
+        {
+          "from": {
+            "lat": 41.714769,
+            "lon": 44.784136,
+            "name": "Heroes Square (Saburtalo direction)"
+          },
+          "to": {
+            "lat": 41.714144,
+            "lon": 44.782996,
+            "name": "Heroes Square (Saburtalo direction)"
+          },
+          "startTime": "2026-09-28T17:05:46.000+00:00",
+          "endTime": "2026-09-28T17:08:45.000+00:00",
+          "duration": 179,
+          "legPolyline": {
+            "encodedValue": "glr}Fy{ipG?A|@lA|@pANRFHTXBF?JINQWa@g@C^HL@@BE",
+            "color": null
+          },
+          "mode": "WALK",
+          "steps": [
+            {
+              "relativeDirection": "DEPART",
+              "distance": 95.64,
+              "streetName": "Queen Tamar Avenue",
+              "lat": 41.7147605,
+              "lon": 44.7841481
+            },
+            {
+              "relativeDirection": "CONTINUE",
+              "distance": 18.05,
+              "streetName": "Heroes' Square",
+              "lat": 41.7141417,
+              "lon": 44.7833479
+            },
+            {
+              "relativeDirection": "CONTINUE",
+              "distance": 34.0,
+              "streetName": "link",
+              "lat": 41.7140255,
+              "lon": 44.7831965
+            },
+            {
+              "relativeDirection": "RIGHT",
+              "distance": 13.97,
+              "streetName": "Heroes' Square",
+              "lat": 41.7139458,
+              "lon": 44.7828835
+            },
+            {
+              "relativeDirection": "CONTINUE",
+              "distance": 25.03,
+              "streetName": "Queen Tamar Avenue",
+              "lat": 41.7140365,
+              "lon": 44.783
+            },
+            {
+              "relativeDirection": "HARD_LEFT",
+              "distance": 13.44,
+              "streetName": "service road",
+              "lat": 41.7142018,
+              "lon": 44.7832046
+            },
+            {
+              "relativeDirection": "LEFT",
+              "distance": 9.04,
+              "streetName": "sidewalk",
+              "lat": 41.7142252,
+              "lon": 44.7830458
+            }
+          ],
+          "intermediateStops": null,
+          "route": null,
+          "realTime": false,
+          "arrivalDelay": 0,
+          "distance": 209.17
+        },
+        {
+          "from": {
+            "lat": 41.714144,
+            "lon": 44.782996,
+            "name": "Heroes Square (Saburtalo direction)"
+          },
+          "to": {
+            "lat": 41.692531,
+            "lon": 44.799247,
+            "name": "Sulkhan-Saba Street"
+          },
+          "startTime": "2026-09-28T17:12:49.000+00:00",
+          "endTime": "2026-09-28T17:26:18.000+00:00",
+          "duration": 809,
+          "legPolyline": {
+            "encodedValue": "khr}FutipGdAjBDZRl@PVVRVFXA\\a@^ITQl@qBD?DB?Fa@rBAXBXDJfCrCbBtArGnCdD|@XGT[lAyHz@aDz@wC????J_@??~@mD|@qDj@}B`@yATw@??Pi@??PYTw@Ri@j@gAXk@Tc@nA{BbAuBrAyBxAuAx@a@\\[PWKi@e@gAaAqBi@u@WQW?WN??wBf@eBd@oAR[PCC??QTQNUDSEKYIi@?e@@QV]d@c@n@k@zBoBl@o@n@s@JORO~@aAb@c@j@q@JKd@s@f@mAf@}Af@uA~@eC^sALo@RqAT}AV}AVmAL_@Xu@Ve@Za@n@k@^[v@i@\\c@NWp@{AnA_D|AyDbAaCvAiDn@oAj@cAVc@d@s@H]??h@gAZWl@a@nBiAbAu@f@QTXLd@X~H??B~@????FlB????Dn@????LtBLb@NPRLXh@Zf@HPXP^HvARvBT|ATb@d@x@z@V~@t@H\\BZx@|AhI",
+            "color": null
+          },
+          "mode": "BUS",
+          "steps": [],
+          "intermediateStops": [
+            {
+              "id": "1:806",
+              "code": "806",
+              "name": "Simon Janashia Street",
+              "lat": 41.708005,
+              "lon": 44.782879,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:4359",
+              "code": "4359",
+              "name": "Simon Janashia Street",
+              "lat": 41.707947,
+              "lon": 44.783036,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:4356",
+              "code": "4356",
+              "name": "Tbilisi Concert Hall",
+              "lat": 41.706816,
+              "lon": 44.786153,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:1241",
+              "code": "1241",
+              "name": "Tbilisi Concert Hall",
+              "lat": 41.706728,
+              "lon": 44.786362,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:2372",
+              "code": "2372",
+              "name": "Mikheil Javakhishvili Street",
+              "lat": 41.70497,
+              "lon": 44.791844,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:4687",
+              "code": "4687",
+              "name": "Galaktion Tabidze Bridge",
+              "lat": 41.706648,
+              "lon": 44.791284,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3569",
+              "code": "3569",
+              "name": "Public Service Hall",
+              "lat": 41.698677,
+              "lon": 44.805604,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3983",
+              "code": "3983",
+              "name": "Nikoloz Baratashvili Street",
+              "lat": 41.696689,
+              "lon": 44.805062,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:824",
+              "code": "824",
+              "name": "Nikoloz Baratashvili Street",
+              "lat": 41.696663,
+              "lon": 44.804746,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3065",
+              "code": "3065",
+              "name": "Nikoloz Baratashvili Street",
+              "lat": 41.696621,
+              "lon": 44.804196,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3932",
+              "code": "3932",
+              "name": "Nikoloz Baratashvili Street",
+              "lat": 41.696601,
+              "lon": 44.803955,
+              "vehicleMode": "BUS"
+            }
+          ],
+          "route": {
+            "id": null,
+            "shortName": "541",
+            "longName": "დიდი დიღმის IV მ/რ - ამაღლების ქ.",
+            "color": "0033B4",
+            "mode": null
+          },
+          "realTime": true,
+          "arrivalDelay": -3631,
+          "distance": 5043.23
+        },
+        {
+          "from": {
+            "lat": 41.692531,
+            "lon": 44.799247,
+            "name": "Sulkhan-Saba Street"
+          },
+          "to": {
+            "lat": 41.6934,
+            "lon": 44.8015,
+            "name": "Destination"
+          },
+          "startTime": "2026-09-28T17:26:18.000+00:00",
+          "endTime": "2026-09-28T17:29:20.000+00:00",
+          "duration": 182,
+          "legPolyline": {
+            "encodedValue": "ian}FgzlpGLGIc@SaA]gBI]GSMo@EUEMIQa@]UCFEFIBK@E",
+            "color": null
+          },
+          "mode": "WALK",
+          "steps": [
+            {
+              "relativeDirection": "DEPART",
+              "distance": 162.27,
+              "streetName": "Giorgi Leonidze Street",
+              "lat": 41.692461,
+              "lon": 44.7992851
+            },
+            {
+              "relativeDirection": "CONTINUE",
+              "distance": 35.0,
+              "streetName": "road",
+              "lat": 41.6930397,
+              "lon": 44.801073
+            },
+            {
+              "relativeDirection": "CIRCLE_COUNTERCLOCKWISE",
+              "distance": 19.48,
+              "streetName": "Freedom Square",
+              "lat": 41.693318,
+              "lon": 44.8012431
+            }
+          ],
+          "intermediateStops": null,
+          "route": null,
+          "realTime": false,
+          "arrivalDelay": 0,
+          "distance": 216.74
+        }
+      ]
+    },
+    {
+      "startTime": "2026-09-28T16:43:46.000+00:00",
+      "endTime": "2026-09-28T17:30:00.000+00:00",
+      "duration": 2774,
+      "walkTime": 101,
+      "walkDistance": 113.34,
+      "legs": [
+        {
+          "from": {
+            "lat": 41.722055,
+            "lon": 44.703114,
+            "name": "Ana Politkovskaia Street"
+          },
+          "to": {
+            "lat": 41.724059,
+            "lon": 44.744568,
+            "name": "Kalistrate Kutatelidze Street"
+          },
+          "startTime": "2026-09-28T16:43:46.000+00:00",
+          "endTime": "2026-09-28T16:53:44.000+00:00",
+          "duration": 598,
+          "legPolyline": {
+            "encodedValue": "yys}FmazoGBD??@A?G@E?G@E?E@I@I@MBKDYBUBKBM?GBOBYDa@Fc@Ja@???A|CqNJsB???A`AqTDwB???Av@kO?M???ADEj@wK?wA[oG????F_@eAuO????o@qN????k@cROs@????Kg@AIAKA_@CYAWCa@Ca@A[IaBKgBCo@GkAAI?GCO?GAG?QA]DY???AKm@ASC]A_@A[AQCo@EaACg@C[E}@E}@Cy@Cw@BU???Ao@yQ_@yBs@kBgA{AeBuBaAsBQaAAQ???Au@cK?GAO?MAM?MAKAQCo@E{@EeAAWAWC_@A[CY?KGuC",
+            "color": null
+          },
+          "mode": "BUS",
+          "steps": [],
+          "intermediateStops": [
+            {
+              "id": "1:969",
+              "code": "969",
+              "name": "Sokhumi State University",
+              "lat": 41.721692,
+              "lon": 44.704641,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:972",
+              "code": "972",
+              "name": "Elizbar Mindeli Street",
+              "lat": 41.720841,
+              "lon": 44.707722,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:973",
+              "code": "973",
+              "name": "Sazogadoebrivi Mautskebeli",
+              "lat": 41.720483,
+              "lon": 44.711789,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:974",
+              "code": "974",
+              "name": "Construction Supervision Agency",
+              "lat": 41.720201,
+              "lon": 44.714482,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:981",
+              "code": "981",
+              "name": "Special Penitentiary Service",
+              "lat": 41.720095,
+              "lon": 44.718355,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:982",
+              "code": "982",
+              "name": "Petre Kavtaradze St #68",
+              "lat": 41.720409,
+              "lon": 44.721187,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:985",
+              "code": "985",
+              "name": "Public School #35",
+              "lat": 41.72064,
+              "lon": 44.723673,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3102",
+              "code": "3102",
+              "name": "Petre Kavtaradze St #46",
+              "lat": 41.720947,
+              "lon": 44.726997,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:987",
+              "code": "987",
+              "name": "Public School #122",
+              "lat": 41.721306,
+              "lon": 44.730457,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:989",
+              "code": "989",
+              "name": "Davit Tavkhelidze Street",
+              "lat": 41.721591,
+              "lon": 44.73354,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3593",
+              "code": "3593",
+              "name": "Alexandre Kazbegi Avenue #44",
+              "lat": 41.723557,
+              "lon": 44.739761,
+              "vehicleMode": "BUS"
+            }
+          ],
+          "route": {
+            "id": null,
+            "shortName": "551",
+            "longName": "თბილისი მოლი - ანა პოლიტკოვსკაიას ქ.",
+            "color": "0033B4",
+            "mode": null
+          },
+          "realTime": true,
+          "arrivalDelay": 4609,
+          "distance": 3568.66
+        },
+        {
+          "from": {
+            "lat": 41.724059,
+            "lon": 44.744568,
+            "name": "Kalistrate Kutatelidze Street"
+          },
+          "to": {
+            "lat": 41.692739,
+            "lon": 44.802056,
+            "name": "Freedom Square"
+          },
+          "startTime": "2026-09-28T16:57:36.000+00:00",
+          "endTime": "2026-09-28T17:28:19.000+00:00",
+          "duration": 1843,
+          "legPolyline": {
+            "encodedValue": "ift}FmdbpG?AK{B?C?A@A@A@AxAK??@?jMeAzBG??@?jFPnMj@??@?tHl@bC?TARENAVGr@c@`@Yl@q@`@w@VoA????d@}DBiAf@CvC_@hC_@XOHU?Wa@cJKqD????C}CAaDDaBRyBDWfAPz@NPBJA^IL@LB`@HfBX????r@Jf@HxATNDDQBWHoBL_C????XmGh@eL???AjAkT????VyGRyG???Ar@{P???A\\{L???AXkHHiBB}B???A@yA?iCAcBAkA?i@BG@ADEFEDGBKBIBO?K?O?YEKEGGGEGECCCCECE@aB@iA????@kBVgClAoDr@qBbByD??@AVi@b@gA|@eC????jB}EzA_E???An@sBz@_CPa@N_@????N_@nAfAh@d@l@b@BBD?BC\\kAJiAJiA???APkBXeCj@Tl@NRDFADEHGBGDIDKDW?W?U???ABc@LWhA}BrAkC???Ad@aAtAqA|@_Aj@m@??@?fAsA~@mANOLIZK\\CTA??@Av@CVC`Ai@pCcAZO??@?r@_@p@[l@Ur@Qp@QTKNKT_@????P]L]J[Tm@d@]t@a@POLMJg@^{A???AJq@FUDKFGn@c@h@a@d@Wp@_@b@S??@?`@c@FGJKLKHGFCDAl@Or@QLENCZAZ?\\AX???@?h@CRCTCRENEHAJb@Hb@Nn@HFHAJGHQDMDQVc@FEJEBI?M?OAK?I?K@s@???AYeR????IoFCwBA}@A_AIIMAg@???A?qGVsGL",
+            "color": null
+          },
+          "mode": "BUS",
+          "steps": [],
+          "intermediateStops": [
+            {
+              "id": "1:1238",
+              "code": "1238",
+              "name": "Mikheil Tamarashvili Avenue",
+              "lat": 41.723628,
+              "lon": 44.745305,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:1239",
+              "code": "1239",
+              "name": "University Street",
+              "lat": 41.720693,
+              "lon": 44.745692,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:4252",
+              "code": "4252",
+              "name": "Mikheil Tamarashvili Ave #13",
+              "lat": 41.717186,
+              "lon": 44.745386,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:1240",
+              "code": "1240",
+              "name": "Ilia State University",
+              "lat": 41.71361,
+              "lon": 44.746488,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:1151",
+              "code": "1151",
+              "name": "Vake Park",
+              "lat": 41.711802,
+              "lon": 44.751126,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3898",
+              "code": "3898",
+              "name": "Vake Park",
+              "lat": 41.709869,
+              "lon": 44.753604,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3899",
+              "code": "3899",
+              "name": "Dariali Street",
+              "lat": 41.708716,
+              "lon": 44.754766,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3901",
+              "code": "3901",
+              "name": "Nikoloz Berdzenishvili Street",
+              "lat": 41.70837,
+              "lon": 44.758234,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3902",
+              "code": "3902",
+              "name": "Lado Kavsadze Street",
+              "lat": 41.707997,
+              "lon": 44.761656,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3903",
+              "code": "3903",
+              "name": "Otar Taktakishvili Street",
+              "lat": 41.707777,
+              "lon": 44.764486,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3904",
+              "code": "3904",
+              "name": "Dimitri Arakishvili Street",
+              "lat": 41.707513,
+              "lon": 44.767353,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3905",
+              "code": "3905",
+              "name": "Shalva Radiani Street",
+              "lat": 41.707367,
+              "lon": 44.769588,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:1998",
+              "code": "1998",
+              "name": "Bazaleti Street",
+              "lat": 41.70716,
+              "lon": 44.772259,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:4103",
+              "code": "4103",
+              "name": "Napareuli Street",
+              "lat": 41.707188,
+              "lon": 44.776237,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3906",
+              "code": "3906",
+              "name": "Vasil Petriashvili Street",
+              "lat": 41.705897,
+              "lon": 44.77984,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:4106",
+              "code": "4106",
+              "name": "Simon Janashia Street",
+              "lat": 41.705286,
+              "lon": 44.781086,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:4107",
+              "code": "4107",
+              "name": "Public School #53",
+              "lat": 41.704281,
+              "lon": 44.783166,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:4109",
+              "code": "4109",
+              "name": "Besarion Belinski Street",
+              "lat": 41.70357,
+              "lon": 44.784715,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:4110",
+              "code": "4110",
+              "name": "Ivane Kereselidze Street",
+              "lat": 41.702312,
+              "lon": 44.785273,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3908",
+              "code": "3908",
+              "name": "Polikarpe Kakabadze Street",
+              "lat": 41.701313,
+              "lon": 44.786858,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:4111",
+              "code": "4111",
+              "name": "Polikarpe Kakabadze St #39",
+              "lat": 41.700432,
+              "lon": 44.788497,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3909",
+              "code": "3909",
+              "name": "Borbalo Street",
+              "lat": 41.699278,
+              "lon": 44.789787,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:4113",
+              "code": "4113",
+              "name": "Polikarpe Kakabadze St #17",
+              "lat": 41.698037,
+              "lon": 44.79082,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3910",
+              "code": "3910",
+              "name": "Mtatsminda Street",
+              "lat": 41.696426,
+              "lon": 44.791498,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3911",
+              "code": "3911",
+              "name": "Funikuliori",
+              "lat": 41.694872,
+              "lon": 44.792362,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3912",
+              "code": "3912",
+              "name": "Shio Chitadze Street",
+              "lat": 41.693707,
+              "lon": 44.794175,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3913",
+              "code": "3913",
+              "name": "Ilia Vekua Physics and Mathematics Public School No. 42",
+              "lat": 41.692457,
+              "lon": 44.795369,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3914",
+              "code": "3914",
+              "name": "Mikheil Lermontov Street",
+              "lat": 41.690785,
+              "lon": 44.79601,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:846",
+              "code": "846",
+              "name": "Gizo Nishnianidze Street",
+              "lat": 41.68944,
+              "lon": 44.796686,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:847",
+              "code": "847",
+              "name": "Ivane Machabeli Street",
+              "lat": 41.689567,
+              "lon": 44.799757,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:848",
+              "code": "848",
+              "name": "Shalva Dadiani St #32",
+              "lat": 41.689983,
+              "lon": 44.802246,
+              "vehicleMode": "BUS"
+            }
+          ],
+          "route": {
+            "id": null,
+            "shortName": "383",
+            "longName": "M/S State University - Baratashvili St",
+            "color": "00B38B",
+            "mode": null
+          },
+          "realTime": true,
+          "arrivalDelay": -1039,
+          "distance": 8124.2
+        },
+        {
+          "from": {
+            "lat": 41.692739,
+            "lon": 44.802056,
+            "name": "Freedom Square"
+          },
+          "to": {
+            "lat": 41.6934,
+            "lon": 44.8015,
+            "name": "Destination"
+          },
+          "startTime": "2026-09-28T17:28:19.000+00:00",
+          "endTime": "2026-09-28T17:30:00.000+00:00",
+          "duration": 101,
+          "legPolyline": {
+            "encodedValue": "qbn}FykmpG?BQ@ECGEKACNGHWFg@\\HDDFFHBJ?L?LAD",
+            "color": null
+          },
+          "mode": "WALK",
+          "steps": [
+            {
+              "relativeDirection": "DEPART",
+              "distance": 24.67,
+              "streetName": "sidewalk",
+              "lat": 41.6927383,
+              "lon": 44.8020303
+            },
+            {
+              "relativeDirection": "LEFT",
+              "distance": 13.22,
+              "streetName": "Kote Abkhazi Street",
+              "lat": 41.6929503,
+              "lon": 44.802087
+            },
+            {
+              "relativeDirection": "RIGHT",
+              "distance": 38.87,
+              "streetName": "Shalva Dadiani Street",
+              "lat": 41.6930181,
+              "lon": 44.8019594
+            },
+            {
+              "relativeDirection": "CIRCLE_CLOCKWISE",
+              "distance": 36.57,
+              "streetName": "Freedom Square",
+              "lat": 41.6933343,
+              "lon": 44.8017683
+            }
+          ],
+          "intermediateStops": null,
+          "route": null,
+          "realTime": false,
+          "arrivalDelay": 0,
+          "distance": 113.34
+        }
+      ]
+    },
+    {
+      "startTime": "2026-09-28T16:49:28.000+00:00",
+      "endTime": "2026-09-28T17:35:52.000+00:00",
+      "duration": 2784,
+      "walkTime": 724,
+      "walkDistance": 626.82,
+      "legs": [
+        {
+          "from": {
+            "lat": 41.722055,
+            "lon": 44.703114,
+            "name": "Origin"
+          },
+          "to": {
+            "lat": 41.721692,
+            "lon": 44.704641,
+            "name": "Sokhumi State University"
+          },
+          "startTime": "2026-09-28T16:49:28.000+00:00",
+          "endTime": "2026-09-28T16:51:29.000+00:00",
+          "duration": 121,
+          "legPolyline": {
+            "encodedValue": "}ys}FsazoGRWD]?OHw@T}B@ID]LB@IEA",
+            "color": null
+          },
+          "mode": "WALK",
+          "steps": [
+            {
+              "relativeDirection": "DEPART",
+              "distance": 27.59,
+              "streetName": "road",
+              "lat": 41.7220754,
+              "lon": 44.7031433
+            },
+            {
+              "relativeDirection": "SLIGHTLY_LEFT",
+              "distance": 102.08,
+              "streetName": "Anna Politkovskaya street",
+              "lat": 41.7219423,
+              "lon": 44.7034114
+            },
+            {
+              "relativeDirection": "RIGHT",
+              "distance": 8.13,
+              "streetName": "path",
+              "lat": 41.7217435,
+              "lon": 44.7046096
+            },
+            {
+              "relativeDirection": "LEFT",
+              "distance": 3.68,
+              "streetName": "sidewalk",
+              "lat": 41.721672,
+              "lon": 44.7045894
+            }
+          ],
+          "intermediateStops": null,
+          "route": null,
+          "realTime": false,
+          "arrivalDelay": 0,
+          "distance": 141.47
+        },
+        {
+          "from": {
+            "lat": 41.721692,
+            "lon": 44.704641,
+            "name": "Sokhumi State University"
+          },
+          "to": {
+            "lat": 41.722747,
+            "lon": 44.717062,
+            "name": "M/S State University"
+          },
+          "startTime": "2026-09-28T16:51:29.000+00:00",
+          "endTime": "2026-09-28T16:56:53.000+00:00",
+          "duration": 324,
+          "legPolyline": {
+            "encodedValue": "qws}F}jzoG?A@YRkAJm@b@oB^eBJe@`@kB@A?CHq@??AA??EAqCa@[EkBUYCEA_@GaAQ[CG?OEKCOGMGGCUO]WII]c@Ye@Wk@CK???AEECIIUCKEMKi@Ik@SyBKaAEi@?M????g@gH????s@mO???AGaCQ_EtLoA`AL",
+            "color": null
+          },
+          "mode": "BUS",
+          "steps": [],
+          "intermediateStops": [
+            {
+              "id": "1:3570",
+              "code": "3570",
+              "name": "National Center for Assessment and Examinations",
+              "lat": 41.724233,
+              "lon": 44.709034,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3442",
+              "code": "3442",
+              "name": "Mining Institute",
+              "lat": 41.724679,
+              "lon": 44.711005,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3439",
+              "code": "3439",
+              "name": "Elizbar Mindeli St #5",
+              "lat": 41.724883,
+              "lon": 44.712486,
+              "vehicleMode": "BUS"
+            },
+            {
+              "id": "1:3571",
+              "code": "3571",
+              "name": "Elizbar Mindeli St #3",
+              "lat": 41.725147,
+              "lon": 44.715128,
+              "vehicleMode": "BUS"
+            }
+          ],
+          "route": {
+            "id": null,
+            "shortName": "401",
+            "longName": "მ/ს სახელმწიფო უნივერსიტეტი - იოსელიანის IV შესახვევი",
+            "color": "0033B4",
+            "mode": null
+          },
+          "realTime": true,
+          "arrivalDelay": -254,
+          "distance": 1598.75
+        },
+        {
+          "from": {
+            "lat": 41.722747,
+            "lon": 44.717062,
+            "name": "M/S State University"
+          },
+          "to": {
+            "lat": 41.722777,
+            "lon": 44.717047,
+            "name": "M/S State University"
+          },
+          "startTime": "2026-09-28T16:56:53.000+00:00",
+          "endTime": "2026-09-28T16:59:17.000+00:00",
+          "duration": 144,
+          "legPolyline": {
+            "encodedValue": "c~s}Fsx|oG?FJAHAHAFA@??Ao@D",
+            "color": null
+          },
+          "mode": "WALK",
+          "steps": [
+            {
+              "relativeDirection": "DEPART",
+              "distance": 23.41,
+              "streetName": "sidewalk",
+              "lat": 41.7227444,
+              "lon": 44.7170265
+            },
+            {
+              "relativeDirection": "ENTER_STATION",
+              "distance": 0.0,
+              "streetName": "M/S State University",
+              "lat": 41.722536,
+              "lon": 44.7170661
+            },
+            {
+              "relativeDirection": "LEFT",
+              "distance": 26.78,
+              "streetName": "pathway",
+              "lat": 41.722537,
+              "lon": 44.717074
+            }
+          ],
+          "intermediateStops": null,
+          "route": null,
+          "realTime": false,
+          "arrivalDelay": 0,
+          "distance": 50.2
+        },
+        {
+          "from": {
+            "lat": 41.722777,
+            "lon": 44.717047,
+            "name": "M/S State University"
+          },
+          "to": {
+            "lat": 41.722498,
+            "lon": 44.795765,
+            "name": "M/S Station Square 2"
+          },
+          "startTime": "2026-09-28T17:03:00.000+00:00",
+          "endTime": "2026-09-28T17:16:06.000+00:00",
+          "duration": 786,
+          "legPolyline": {
+            "encodedValue": "i~s}Fox|oGiHcuA????qFkuA????mJwpB????|d@okA??@Acc@qnA??AAf[qp@",
+            "color": null
+          },
+          "mode": "SUBWAY",
+          "steps": [],
+          "intermediateStops": [
+            {
+              "id": "1:metro_2_6",
+              "code": null,
+              "name": "M/S Vazha Pshavela",
+              "lat": 41.724269,
+              "lon": 44.730829,
+              "vehicleMode": "SUBWAY"
+            },
+            {
+              "id": "1:metro_2_5",
+              "code": null,
+              "name": "M/S Delisi",
+              "lat": 41.725472,
+              "lon": 44.744649,
+              "vehicleMode": "SUBWAY"
+            },
+            {
+              "id": "1:metro_2_4",
+              "code": null,
+              "name": "M/S Medical University",
+              "lat": 41.727305,
+              "lon": 44.762845,
+              "vehicleMode": "SUBWAY"
+            },
+            {
+              "id": "1:metro_2_3",
+              "code": null,
+              "name": "M/S Techinacal University",
+              "lat": 41.721228,
+              "lon": 44.775093,
+              "vehicleMode": "SUBWAY"
+            },
+            {
+              "id": "1:metro_2_2",
+              "code": null,
+              "name": "M/S Tsereteli",
+              "lat": 41.727011,
+              "lon": 44.787834,
+              "vehicleMode": "SUBWAY"
+            }
+          ],
+          "route": {
+            "id": null,
+            "shortName": "2",
+            "longName": "M/S Station Square - M/S State University",
+            "color": "5ca330",
+            "mode": null
+          },
+          "realTime": false,
+          "arrivalDelay": 0,
+          "distance": 7119.67
+        },
+        {
+          "from": {
+            "lat": 41.722498,
+            "lon": 44.795765,
+            "name": "M/S Station Square 2"
+          },
+          "to": {
+            "lat": 41.722098,
+            "lon": 44.797739,
+            "name": "M/S Station Square 1"
+          },
+          "startTime": "2026-09-28T17:16:06.000+00:00",
+          "endTime": "2026-09-28T17:18:06.000+00:00",
+          "duration": 120,
+          "legPolyline": {
+            "encodedValue": "q|s}FodlpGnAiK",
+            "color": null
+          },
+          "mode": "WALK",
+          "steps": [
+            {
+              "relativeDirection": "DEPART",
+              "distance": 169.76,
+              "streetName": "pathway",
+              "lat": 41.722498,
+              "lon": 44.795765
+            }
+          ],
+          "intermediateStops": null,
+          "route": null,
+          "realTime": false,
+          "arrivalDelay": 0,
+          "distance": 169.76
+        },
+        {
+          "from": {
+            "lat": 41.722098,
+            "lon": 44.797739,
+            "name": "M/S Station Square 1"
+          },
+          "to": {
+            "lat": 41.695003,
+            "lon": 44.799919,
+            "name": "M/S Liberty Square"
+          },
+          "startTime": "2026-09-28T17:23:36.000+00:00",
+          "endTime": "2026-09-28T17:30:13.000+00:00",
+          "duration": 397,
+          "legPolyline": {
+            "encodedValue": "czs}FyplpG@?|jAl@??@?dc@fp@??@@`x@k_A",
+            "color": null
+          },
+          "mode": "SUBWAY",
+          "steps": [],
+          "intermediateStops": [
+            {
+              "id": "1:metro_1_9",
+              "code": null,
+              "name": "M/S Marjanishvili",
+              "lat": 41.709931,
+              "lon": 44.797509,
+              "vehicleMode": "SUBWAY"
+            },
+            {
+              "id": "1:metro_1_10",
+              "code": null,
+              "name": "M/S Rustaveli",
+              "lat": 41.704138,
+              "lon": 44.789613,
+              "vehicleMode": "SUBWAY"
+            }
+          ],
+          "route": {
+            "id": null,
+            "shortName": "1",
+            "longName": "M/S Akhmeteli - M/S Varketili",
+            "color": "ff505b",
+            "mode": null
+          },
+          "realTime": false,
+          "arrivalDelay": 0,
+          "distance": 3600.98
+        },
+        {
+          "from": {
+            "lat": 41.695003,
+            "lon": 44.799919,
+            "name": "M/S Liberty Square"
+          },
+          "to": {
+            "lat": 41.6934,
+            "lon": 44.8015,
+            "name": "Destination"
+          },
+          "startTime": "2026-09-28T17:30:13.000+00:00",
+          "endTime": "2026-09-28T17:35:52.000+00:00",
+          "duration": 339,
+          "legPolyline": {
+            "encodedValue": "wpn}Fm~lpGCUACPMCKEKbAo@dAk@CIAGv@e@JEHEDAHCVK`ASD?D?FCFEFIBK@E",
+            "color": null
+          },
+          "mode": "WALK",
+          "steps": [
+            {
+              "relativeDirection": "DEPART",
+              "distance": 9.4,
+              "streetName": "pathway",
+              "lat": 41.695003,
+              "lon": 44.799919
+            },
+            {
+              "relativeDirection": "EXIT_STATION",
+              "distance": 0.0,
+              "streetName": "M/S Liberty Square",
+              "lat": 41.695023,
+              "lon": 44.800029
+            },
+            {
+              "relativeDirection": "RIGHT",
+              "distance": 22.57,
+              "streetName": "path",
+              "lat": 41.6950315,
+              "lon": 44.80005
+            },
+            {
+              "relativeDirection": "RIGHT",
+              "distance": 85.6,
+              "streetName": "sidewalk",
+              "lat": 41.6949951,
+              "lon": 44.8002327
+            },
+            {
+              "relativeDirection": "LEFT",
+              "distance": 7.94,
+              "streetName": "Galleria Tbilisi parkhouse",
+              "lat": 41.6943088,
+              "lon": 44.8006995
+            },
+            {
+              "relativeDirection": "RIGHT",
+              "distance": 41.86,
+              "streetName": "Shota Rustaveli Avenue",
+              "lat": 41.6943385,
+              "lon": 44.8007864
+            },
+            {
+              "relativeDirection": "CONTINUE",
+              "distance": 67.17,
+              "streetName": "Freedom Square",
+              "lat": 41.6939991,
+              "lon": 44.8010037
+            },
+            {
+              "relativeDirection": "CIRCLE_COUNTERCLOCKWISE",
+              "distance": 30.87,
+              "streetName": "Freedom Square",
+              "lat": 41.6934181,
+              "lon": 44.8012204
+            }
+          ],
+          "intermediateStops": null,
+          "route": null,
+          "realTime": false,
+          "arrivalDelay": 0,
+          "distance": 265.39
+        }
+      ]
+    }
+  ]
+}

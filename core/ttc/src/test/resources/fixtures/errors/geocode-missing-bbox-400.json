@@ -1,0 +1,7 @@
+{
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Required parameter 'bbox' is not present.",
+  "instance": "/pis-gateway/api/v2/geocode"
+}

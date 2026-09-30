@@ -29,6 +29,8 @@ espresso = "3.7.0"
 spotless = "8.10.3"
 ktlint = "1.8.0"
 detekt = "1.23.8"
+animalsniffer = "2.0.1"
+gummyBears = "0.15.0"
 
 [libraries]
 # AndroidX
@@ -105,6 +107,9 @@ ksp-gradle-plugin = { group = "com.google.devtools.ksp", name = "symbol-processi
 hilt-gradle-plugin = { group = "com.google.dagger", name = "hilt-android-gradle-plugin", version.ref = "hilt" }
 detekt-gradle-plugin = { group = "io.gitlab.arturbosch.detekt", name = "detekt-gradle-plugin", version.ref = "detekt" }
 roborazzi-gradle-plugin = { group = "io.github.takahirom.roborazzi", name = "roborazzi-gradle-plugin", version.ref = "roborazzi" }
+animalsniffer-gradle-plugin = { group = "ru.vyarus", name = "gradle-animalsniffer-plugin", version.ref = "animalsniffer" }
+# Android API 26 signature for Animal Sniffer (JVM modules run on Android, not a JDK)
+gummy-bears-api26 = { group = "com.toasttab.android", name = "gummy-bears-api-26", version.ref = "gummyBears" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -118,6 +123,7 @@ hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 room = { id = "androidx.room", version.ref = "room" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+animalsniffer = { id = "ru.vyarus.animalsniffer", version.ref = "animalsniffer" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 
 # Convention plugins defined in build-logic

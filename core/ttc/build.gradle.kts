@@ -11,6 +11,9 @@ dependencies {
     api(libs.okhttp.logging.interceptor)
     api(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
+    // Retrofit stays an implementation detail: no Retrofit type is in this module's API.
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.kotlinx.serialization)
 
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.kotlinx.coroutines.test)

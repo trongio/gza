@@ -18,6 +18,11 @@ import kotlinx.coroutines.SupervisorJob
 @Retention(AnnotationRetention.BINARY)
 annotation class IoDispatcher
 
+/** CPU dispatcher, for work like decoding a large response. Injected for the same reason. */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class DefaultDispatcher
+
 /** Lives as long as the process, for work no screen owns, such as background config refreshes. */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
@@ -29,6 +34,10 @@ object CoroutinesModule {
     @Provides
     @IoDispatcher
     fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
+    @Provides
+    @DefaultDispatcher
+    fun provideDefaultDispatcher(): CoroutineDispatcher = Dispatchers.Default
 
     // SupervisorJob: one failed child must not cancel every later one. The handler is a
     // safety net: without it a child's uncaught exception reaches the thread's handler and

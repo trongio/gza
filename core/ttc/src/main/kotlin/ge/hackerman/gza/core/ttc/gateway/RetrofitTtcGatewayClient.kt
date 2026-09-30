@@ -1,0 +1,180 @@
+package ge.hackerman.gza.core.ttc.gateway
+
+import ge.hackerman.gza.core.model.BoundingBox
+import ge.hackerman.gza.core.model.GeocodeResult
+import ge.hackerman.gza.core.model.Language
+import ge.hackerman.gza.core.model.LatLon
+import ge.hackerman.gza.core.model.PatternStops
+import ge.hackerman.gza.core.model.PatternSuffix
+import ge.hackerman.gza.core.model.Route
+import ge.hackerman.gza.core.model.RouteDetail
+import ge.hackerman.gza.core.model.RouteId
+import ge.hackerman.gza.core.model.RoutePolyline
+import ge.hackerman.gza.core.model.RoutePositions
+import ge.hackerman.gza.core.model.RouteSchedule
+import ge.hackerman.gza.core.model.Stop
+import ge.hackerman.gza.core.model.StopBoard
+import ge.hackerman.gza.core.model.StopId
+import ge.hackerman.gza.core.model.TripPlan
+import ge.hackerman.gza.core.model.TripRequest
+import ge.hackerman.gza.core.ttc.TtcJson
+import ge.hackerman.gza.core.ttc.config.GatewayConfigUnavailableException
+import ge.hackerman.gza.core.ttc.gateway.dto.BoardArrivalDto
+import ge.hackerman.gza.core.ttc.gateway.dto.PatternStopDto
+import ge.hackerman.gza.core.ttc.gateway.dto.ProblemDto
+import ge.hackerman.gza.core.ttc.gateway.dto.RouteDetailDto
+import ge.hackerman.gza.core.ttc.gateway.dto.RouteDto
+import ge.hackerman.gza.core.ttc.gateway.dto.ServicePeriodDto
+import ge.hackerman.gza.core.ttc.gateway.dto.StopDto
+import ge.hackerman.gza.core.ttc.gateway.dto.decodeEachElement
+import ge.hackerman.gza.core.ttc.gateway.dto.decodeObject
+import ge.hackerman.gza.core.ttc.gateway.dto.toFeatureCollectionDto
+import ge.hackerman.gza.core.ttc.gateway.dto.toPlanResponseDto
+import ge.hackerman.gza.core.ttc.gateway.dto.toPolylineDtos
+import ge.hackerman.gza.core.ttc.gateway.dto.toPositionDtos
+import ge.hackerman.gza.core.ttc.gateway.mapper.toGeocodeResults
+import ge.hackerman.gza.core.ttc.gateway.mapper.toPatternStops
+import ge.hackerman.gza.core.ttc.gateway.mapper.toRouteDetailOrNull
+import ge.hackerman.gza.core.ttc.gateway.mapper.toRoutePolylines
+import ge.hackerman.gza.core.ttc.gateway.mapper.toRoutePositions
+import ge.hackerman.gza.core.ttc.gateway.mapper.toRouteSchedule
+import ge.hackerman.gza.core.ttc.gateway.mapper.toRoutes
+import ge.hackerman.gza.core.ttc.gateway.mapper.toStopBoard
+import ge.hackerman.gza.core.ttc.gateway.mapper.toStopOrNull
+import ge.hackerman.gza.core.ttc.gateway.mapper.toStops
+import ge.hackerman.gza.core.ttc.gateway.mapper.toTripPlan
+import java.io.IOException
+import java.time.Clock
+import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonElement
+import okhttp3.ResponseBody
+import retrofit2.HttpException
+
+/**
+ * Main-safe: Retrofit calls enqueue on OkHttp's dispatcher, so the network, the auth
+ * interceptor and JSON tokenizing run on OkHttp's threads; decoding into DTOs and mapping
+ * (thousands of stops, a whole schedule) run on [parseDispatcher]. [clock] stamps boards and
+ * positions, whose minutes and GPS fixes are relative to when they arrived.
+ */
+@Suppress("TooManyFunctions") // One function per endpoint, plus the error mapping.
+internal class RetrofitTtcGatewayClient(
+    private val service: TtcGatewayService,
+    private val clock: Clock,
+    private val parseDispatcher: CoroutineDispatcher
+) : TtcGatewayClient {
+    override suspend fun stops(language: Language): List<Stop> =
+        call({ service.stops(language.code) }) { it.decodeEachElement<StopDto>().toStops() }
+
+    override suspend fun stop(id: StopId, language: Language): Stop = call({ service.stop(id.value, language.code) }) {
+        it.decodeObject<StopDto>().toStopOrNull() ?: throw TtcGatewayException.Malformed(null)
+    }
+
+    override suspend fun stopRoutes(id: StopId, language: Language): List<Route> =
+        call({ service.stopRoutes(id.value, language.code) }) { it.decodeEachElement<RouteDto>().toRoutes() }
+
+    override suspend fun arrivalBoard(id: StopId, language: Language): StopBoard =
+        call({ service.arrivalTimes(id.value, language.code) }) {
+            it.decodeEachElement<BoardArrivalDto>().toStopBoard(id, clock.instant())
+        }
+
+    override suspend fun routes(language: Language): List<Route> =
+        call({ service.routes(QueryFormat.ROUTE_MODES, language.code) }) { it.decodeEachElement<RouteDto>().toRoutes() }
+
+    override suspend fun route(id: RouteId, language: Language): RouteDetail =
+        call({ service.route(id.value, language.code) }) {
+            it.decodeObject<RouteDetailDto>().toRouteDetailOrNull() ?: throw TtcGatewayException.Malformed(null)
+        }
+
+    override suspend fun schedule(id: RouteId, pattern: PatternSuffix, language: Language): RouteSchedule =
+        call({ service.schedule(id.value, pattern.value, language.code) }) {
+            it.decodeEachElement<ServicePeriodDto>().toRouteSchedule(id, pattern)
+        }
+
+    override suspend fun patternStops(id: RouteId, pattern: PatternSuffix, language: Language): PatternStops =
+        call({ service.stopsOfPatterns(id.value, pattern.value, language.code) }) {
+            it.decodeEachElement<PatternStopDto>().toPatternStops(id, pattern)
+        }
+
+    override suspend fun polylines(id: RouteId, patterns: List<PatternSuffix>): List<RoutePolyline> {
+        require(patterns.isNotEmpty()) { "at least one pattern" }
+        return call({ service.polylines(id.value, QueryFormat.patterns(patterns)) }) {
+            it.toPolylineDtos().toRoutePolylines()
+        }
+    }
+
+    override suspend fun positions(id: RouteId, patterns: List<PatternSuffix>): RoutePositions {
+        require(patterns.isNotEmpty()) { "at least one pattern" }
+        return call({ service.positions(id.value, QueryFormat.patterns(patterns)) }) {
+            it.toPositionDtos().toRoutePositions(id, clock.instant())
+        }
+    }
+
+    override suspend fun plan(request: TripRequest, language: Language): TripPlan =
+        call({ service.plan(QueryFormat.planQuery(request, language)) }) {
+            it.toPlanResponseDto().toTripPlan(request)
+        }
+
+    override suspend fun geocode(query: String, language: Language, bounds: BoundingBox): List<GeocodeResult> =
+        call({ service.geocode(query, language.code, QueryFormat.bbox(bounds)) }) {
+            it.toFeatureCollectionDto().toGeocodeResults()
+        }
+
+    override suspend fun reverseGeocode(at: LatLon, language: Language): List<GeocodeResult> = call({
+        service.reverseGeocode(QueryFormat.coordinate(at.lat), QueryFormat.coordinate(at.lon), language.code)
+    }) { it.toFeatureCollectionDto().toGeocodeResults() }
+
+    /** Fetches on OkHttp's threads, then decodes and maps on [parseDispatcher]. */
+    private suspend inline fun <T> call(fetch: () -> JsonElement, crossinline parse: (JsonElement) -> T): T = guarded {
+        val body = fetch()
+        withContext(parseDispatcher) { parse(body) }
+    }
+
+    /**
+     * Every failure leaves as a [TtcGatewayException], except cancellation, which must reach
+     * the coroutine machinery untouched.
+     */
+    // HttpException is deliberately not kept as a cause: it holds the whole response, whose
+    // request carries the key header. Only the code and the problem survive.
+    @Suppress("SwallowedException")
+    private inline fun <T> guarded(block: () -> T): T = try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: HttpException) {
+        throw TtcGatewayException.Http(e.code(), e.response()?.errorBody()?.let(::problemOrNull))
+    } catch (e: GatewayConfigUnavailableException) {
+        throw TtcGatewayException.NoKey(e)
+    } catch (e: IOException) {
+        throw TtcGatewayException.Network(e)
+    } catch (e: IllegalArgumentException) {
+        // kotlinx.serialization's SerializationException is an IllegalArgumentException.
+        throw TtcGatewayException.Malformed(e)
+    } catch (e: KotlinNullPointerException) {
+        // Retrofit's answer to a 204 or null body for a non-null return type.
+        throw TtcGatewayException.Malformed(e)
+    }
+
+    /** Only RFC 7807 JSON is read, capped; anything else (the 500 text, 401 `Unauthorized`) is null. */
+    @Suppress("SwallowedException") // An unreadable problem only loses the detail; the status still surfaces.
+    private fun problemOrNull(body: ResponseBody): GatewayProblem? = body.use {
+        if (it.contentType()?.subtype?.contains("json", ignoreCase = true) != true) return@use null
+        try {
+            // Okio, not InputStream.readNBytes: that is API 33, and minSdk is 26.
+            val source = it.source()
+            source.request(MAX_PROBLEM_BYTES)
+            val text = source.buffer.readUtf8(minOf(source.buffer.size, MAX_PROBLEM_BYTES))
+            val problem = TtcJson.decodeFromString<ProblemDto>(text)
+            GatewayProblem(problem.title, problem.detail)
+        } catch (_: IOException) {
+            null
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+    }
+
+    private companion object {
+        const val MAX_PROBLEM_BYTES = 4L * 1024
+    }
+}

@@ -1,0 +1,8 @@
+{
+  "request": "/v2/stops/1:gondola_5/arrival-times?locale=en&ignoreScheduledArrivalTimes=false",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T17:03:02Z",
+  "recordedAtTbilisi": "2026-09-28T21:03:02+04:00",
+  "derived": false
+}

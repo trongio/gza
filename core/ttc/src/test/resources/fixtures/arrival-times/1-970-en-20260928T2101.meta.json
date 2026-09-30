@@ -1,0 +1,8 @@
+{
+  "request": "/v2/stops/1:970/arrival-times?locale=en&ignoreScheduledArrivalTimes=false",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T17:01:48Z",
+  "recordedAtTbilisi": "2026-09-28T21:01:48+04:00",
+  "derived": false
+}

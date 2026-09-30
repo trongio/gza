@@ -1,0 +1,8 @@
+{
+  "request": "/v3/routes/1:R97493/schedule?patternSuffix=0:01&locale=en",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T17:01:23Z",
+  "recordedAtTbilisi": "2026-09-28T21:01:23+04:00",
+  "derived": false
+}

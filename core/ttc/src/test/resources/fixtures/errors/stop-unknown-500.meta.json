@@ -1,0 +1,8 @@
+{
+  "request": "/v2/stops/1:99999999?locale=en",
+  "status": 500,
+  "contentType": "text/plain;charset=UTF-8",
+  "recordedAt": "2026-09-28T17:02:00Z",
+  "recordedAtTbilisi": "2026-09-28T21:02:00+04:00",
+  "derived": false
+}

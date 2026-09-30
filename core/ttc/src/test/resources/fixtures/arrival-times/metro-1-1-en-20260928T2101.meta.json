@@ -1,0 +1,8 @@
+{
+  "request": "/v2/stops/1:metro_1_1/arrival-times?locale=en&ignoreScheduledArrivalTimes=false",
+  "status": 200,
+  "contentType": "application/json",
+  "recordedAt": "2026-09-28T17:01:51Z",
+  "recordedAtTbilisi": "2026-09-28T21:01:51+04:00",
+  "derived": false
+}

@@ -1,0 +1,769 @@
+[
+  {
+    "stop": {
+      "id": "1:970",
+      "code": "970",
+      "name": "Ana Politkovskaia Street",
+      "lat": 41.722055,
+      "lon": 44.703114,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:969",
+      "code": "969",
+      "name": "Sokhumi State University",
+      "lat": 41.721692,
+      "lon": 44.704641,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:972",
+      "code": "972",
+      "name": "Elizbar Mindeli Street",
+      "lat": 41.720841,
+      "lon": 44.707722,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:4144",
+      "code": "4144",
+      "name": "Geology Institute",
+      "lat": 41.720687,
+      "lon": 44.709482,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:973",
+      "code": "973",
+      "name": "Sazogadoebrivi Mautskebeli",
+      "lat": 41.720483,
+      "lon": 44.711789,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:974",
+      "code": "974",
+      "name": "Construction Supervision Agency",
+      "lat": 41.720201,
+      "lon": 44.714482,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:981",
+      "code": "981",
+      "name": "Special Penitentiary Service",
+      "lat": 41.720095,
+      "lon": 44.718355,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:982",
+      "code": "982",
+      "name": "Petre Kavtaradze St #68",
+      "lat": 41.720409,
+      "lon": 44.721187,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:985",
+      "code": "985",
+      "name": "Public School #35",
+      "lat": 41.72064,
+      "lon": 44.723673,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3102",
+      "code": "3102",
+      "name": "Petre Kavtaradze St #46",
+      "lat": 41.720947,
+      "lon": 44.726997,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:987",
+      "code": "987",
+      "name": "Public School #122",
+      "lat": 41.721306,
+      "lon": 44.730457,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:989",
+      "code": "989",
+      "name": "Davit Tavkhelidze Street",
+      "lat": 41.721591,
+      "lon": 44.73354,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:4340",
+      "code": "4340",
+      "name": "Petre Kavtaradze St #20",
+      "lat": 41.72185,
+      "lon": 44.736406,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3593",
+      "code": "3593",
+      "name": "Alexandre Kazbegi Avenue #44",
+      "lat": 41.723557,
+      "lon": 44.739761,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:994",
+      "code": "994",
+      "name": "Kalistrate Kutatelidze Street",
+      "lat": 41.724059,
+      "lon": 44.744568,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1238",
+      "code": "1238",
+      "name": "Mikheil Tamarashvili Avenue",
+      "lat": 41.723628,
+      "lon": 44.745305,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1239",
+      "code": "1239",
+      "name": "University Street",
+      "lat": 41.720693,
+      "lon": 44.745692,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:4252",
+      "code": "4252",
+      "name": "Mikheil Tamarashvili Ave #13",
+      "lat": 41.717186,
+      "lon": 44.745386,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1240",
+      "code": "1240",
+      "name": "Ilia State University",
+      "lat": 41.71361,
+      "lon": 44.746488,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3976",
+      "code": "3976",
+      "name": "Vake Park",
+      "lat": 41.712208,
+      "lon": 44.751835,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3972",
+      "code": "3972",
+      "name": "Nikoloz Kipshidze Street",
+      "lat": 41.711375,
+      "lon": 44.75604,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3968",
+      "code": "3968",
+      "name": "Lado Kavsadze Street",
+      "lat": 41.710433,
+      "lon": 44.762113,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3964",
+      "code": "3964",
+      "name": "Mziuri",
+      "lat": 41.709575,
+      "lon": 44.768943,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3960",
+      "code": "3960",
+      "name": "Rafiel Eristavi Street",
+      "lat": 41.709027,
+      "lon": 44.77427,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3956",
+      "code": "3956",
+      "name": "State University",
+      "lat": 41.70932,
+      "lon": 44.778426,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:806",
+      "code": "806",
+      "name": "Simon Janashia Street",
+      "lat": 41.708005,
+      "lon": 44.782879,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:4356",
+      "code": "4356",
+      "name": "Tbilisi Concert Hall",
+      "lat": 41.706816,
+      "lon": 44.786153,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:2372",
+      "code": "2372",
+      "name": "Mikheil Javakhishvili Street",
+      "lat": 41.70497,
+      "lon": 44.791844,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:4687",
+      "code": "4687",
+      "name": "Galaktion Tabidze Bridge",
+      "lat": 41.706648,
+      "lon": 44.791284,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3569",
+      "code": "3569",
+      "name": "Public Service Hall",
+      "lat": 41.698677,
+      "lon": 44.805604,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3931",
+      "code": "3931",
+      "name": "Nikoloz Baratashvili Street",
+      "lat": 41.69634,
+      "lon": 44.803925,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1362",
+      "code": "1362",
+      "name": "Mshvidoba Bridge",
+      "lat": 41.692056,
+      "lon": 44.807876,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1464",
+      "code": "1464",
+      "name": "Abanotubani",
+      "lat": 41.688888,
+      "lon": 44.812876,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:2914",
+      "code": "2914",
+      "name": "Alexandre Shimkevich Street",
+      "lat": 41.688381,
+      "lon": 44.816617,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1365",
+      "code": "1365",
+      "name": "Ibrahim-Isfahanli Street",
+      "lat": 41.687728,
+      "lon": 44.818586,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1366",
+      "code": "1366",
+      "name": "300 Aragveli Memorial",
+      "lat": 41.686566,
+      "lon": 44.819882,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3886",
+      "code": "3886",
+      "name": "Ioseb Grishashvili Street",
+      "lat": 41.684178,
+      "lon": 44.822183,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1367",
+      "code": "1367",
+      "name": "Bejan Kalandadze Street",
+      "lat": 41.682067,
+      "lon": 44.823712,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1466",
+      "code": "1466",
+      "name": "Ortachala Street",
+      "lat": 41.679106,
+      "lon": 44.824645,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3836",
+      "code": "3836",
+      "name": "Dimitri Gulia Square",
+      "lat": 41.675566,
+      "lon": 44.828529,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1491",
+      "code": "1491",
+      "name": "Dimitri Gulia Street",
+      "lat": 41.675897,
+      "lon": 44.833918,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3016",
+      "code": "3016",
+      "name": "Beri Gabriel Salosi Square",
+      "lat": 41.676782,
+      "lon": 44.840811,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1024",
+      "code": "1024",
+      "name": "Dirsichala Street",
+      "lat": 41.676364,
+      "lon": 44.845424,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3015",
+      "code": "3015",
+      "name": "Beri Gabriel Salosi Ave #49",
+      "lat": 41.675981,
+      "lon": 44.849571,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:4244",
+      "code": "4244",
+      "name": "Public School #99",
+      "lat": 41.67528,
+      "lon": 44.85265,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1028",
+      "code": "1028",
+      "name": "Shota Nadirashvili Street",
+      "lat": 41.67391,
+      "lon": 44.85739,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1948",
+      "code": "1948",
+      "name": "Beri Gabriel Salosi Ave #120",
+      "lat": 41.673076,
+      "lon": 44.862145,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1031",
+      "code": "1031",
+      "name": "Beri Gabriel Salosi Ave #153",
+      "lat": 41.67207,
+      "lon": 44.867475,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1034",
+      "code": "1034",
+      "name": "Beri Gabriel Salosi Ave #169",
+      "lat": 41.670702,
+      "lon": 44.872005,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1035",
+      "code": "1035",
+      "name": "Bogdan Khmelnitski St #3",
+      "lat": 41.671189,
+      "lon": 44.875771,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1037",
+      "code": "1037",
+      "name": "Bogdan Khmelnitski St #7",
+      "lat": 41.671978,
+      "lon": 44.878222,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1041",
+      "code": "1041",
+      "name": "Public School #106",
+      "lat": 41.670241,
+      "lon": 44.882197,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1040",
+      "code": "1040",
+      "name": "Emir Burjanadze St #10",
+      "lat": 41.664541,
+      "lon": 44.890723,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:1046",
+      "code": "1046",
+      "name": "Saint Barbare Cemetery",
+      "lat": 41.662559,
+      "lon": 44.894625,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3484",
+      "code": "3484",
+      "name": "Emir Burjanadze St #39",
+      "lat": 41.661652,
+      "lon": 44.896447,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3481",
+      "code": "3481",
+      "name": "Dositeos Kutateli Street",
+      "lat": 41.659578,
+      "lon": 44.901688,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:2910",
+      "code": "2910",
+      "name": "Gaioz Rectori Street",
+      "lat": 41.6588,
+      "lon": 44.905134,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:3480",
+      "code": "3480",
+      "name": "Maria Perini Street",
+      "lat": 41.657616,
+      "lon": 44.909745,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  },
+  {
+    "stop": {
+      "id": "1:2919",
+      "code": "2919",
+      "name": "Kveda Melotineta Settlement",
+      "lat": 41.657377,
+      "lon": 44.911989,
+      "vehicleMode": "BUS"
+    },
+    "patternSuffixes": [
+      "0:01"
+    ]
+  }
+]

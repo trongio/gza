@@ -58,4 +58,9 @@ class NetworkModuleTest {
     fun `io dispatcher is provided`() {
         assertEquals(kotlinx.coroutines.Dispatchers.IO, CoroutinesModule.provideIoDispatcher())
     }
+
+    @Test
+    fun `default dispatcher is provided`() {
+        assertEquals(kotlinx.coroutines.Dispatchers.Default, CoroutinesModule.provideDefaultDispatcher())
+    }
 }

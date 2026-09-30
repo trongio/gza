@@ -1,0 +1,8 @@
+{
+  "request": "/v3/routes/1:R97493/schedule?locale=en",
+  "status": 400,
+  "contentType": "application/problem+json",
+  "recordedAt": "2026-09-28T17:02:01Z",
+  "recordedAtTbilisi": "2026-09-28T21:02:01+04:00",
+  "derived": false
+}

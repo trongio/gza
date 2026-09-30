@@ -1,0 +1,7 @@
+{
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Required parameter 'patternSuffix' is not present.",
+  "instance": "/pis-gateway/api/v3/routes/1:R97493/schedule"
+}

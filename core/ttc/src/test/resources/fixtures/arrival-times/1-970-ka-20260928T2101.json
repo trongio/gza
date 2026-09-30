@@ -1,0 +1,32 @@
+[
+  {
+    "shortName": "551",
+    "color": "0033B4",
+    "headsign": "თბილისი მოლი",
+    "patternSuffix": "0:01",
+    "vehicleMode": "BUS",
+    "realtime": true,
+    "realtimeArrivalMinutes": 0,
+    "scheduledArrivalMinutes": -84
+  },
+  {
+    "shortName": "301",
+    "color": "00B38B",
+    "headsign": "წმინდა ბარბარეს უბანი",
+    "patternSuffix": "0:01",
+    "vehicleMode": "BUS",
+    "realtime": true,
+    "realtimeArrivalMinutes": 0,
+    "scheduledArrivalMinutes": 47
+  },
+  {
+    "shortName": "326",
+    "color": "00B38B",
+    "headsign": "ბარათაშვილის ქ.",
+    "patternSuffix": "0:01",
+    "vehicleMode": "BUS",
+    "realtime": true,
+    "realtimeArrivalMinutes": 2,
+    "scheduledArrivalMinutes": -48
+  }
+]

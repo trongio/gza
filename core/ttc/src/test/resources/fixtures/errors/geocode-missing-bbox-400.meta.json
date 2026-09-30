@@ -1,0 +1,8 @@
+{
+  "request": "/v2/geocode?query=rustaveli&locale=en",
+  "status": 400,
+  "contentType": "application/problem+json",
+  "recordedAt": "2026-09-28T17:02:02Z",
+  "recordedAtTbilisi": "2026-09-28T21:02:02+04:00",
+  "derived": false
+}

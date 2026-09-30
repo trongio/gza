@@ -1,0 +1,62 @@
+{
+  "1:01": [
+    {
+      "vehicleId": "1:220",
+      "lat": 41.8152847,
+      "lon": 44.7720757,
+      "heading": null,
+      "nextStopId": null
+    },
+    {
+      "vehicleId": "1:987",
+      "lat": 41.8152847,
+      "lon": 44.7720757,
+      "heading": null,
+      "nextStopId": null
+    },
+    {
+      "vehicleId": "1:774",
+      "lat": 41.7453613,
+      "lon": 44.7781029,
+      "heading": 168.79736328125,
+      "nextStopId": "1:4596"
+    },
+    {
+      "vehicleId": "1:983",
+      "lat": 41.7216873,
+      "lon": 44.734108,
+      "heading": 263.19488525390625,
+      "nextStopId": "1:990"
+    },
+    {
+      "vehicleId": "1:985",
+      "lat": 41.8154526,
+      "lon": 44.7711945,
+      "heading": 171.17950439453125,
+      "nextStopId": "1:2942"
+    }
+  ],
+  "0:01": [
+    {
+      "vehicleId": "1:979",
+      "lat": 41.8154182,
+      "lon": 44.7718811,
+      "heading": 350.12652587890625,
+      "nextStopId": null
+    },
+    {
+      "vehicleId": "1:762",
+      "lat": 41.7220535,
+      "lon": 44.7031136,
+      "heading": null,
+      "nextStopId": null
+    },
+    {
+      "vehicleId": "1:981",
+      "lat": 41.7234535,
+      "lon": 44.7393303,
+      "heading": 71.06649017333984,
+      "nextStopId": "1:3593"
+    }
+  ]
+}
