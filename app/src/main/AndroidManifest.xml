@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Backup is off: nothing worth backing up yet. allowBackup and fullBackupContent
-         cover Android 11 and lower, dataExtractionRules covers 12 and higher.
-         Revisit in T04 for favourites. -->
+    <!-- Only the user's preferences file is backed up (saved stops, walk times, filters,
+         buffer), never the transit cache or the gateway config: see the two rule files.
+         allowBackup must be true for any backup on Android 11 and lower; fullBackupContent
+         covers those, dataExtractionRules covers 12 and higher. -->
     <application
         android:name=".GzaApplication"
-        android:allowBackup="false"
+        android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
