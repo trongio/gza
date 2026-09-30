@@ -74,7 +74,7 @@ Follow-ups:
 - Route 469 detail returned HTTP 500 live on 2026-09-28 in en and ka (gateway side); record it as an error fixture if it persists.
 - PLAN.md says the parked 326 waited "38 minutes"; the weekday timetable runs every 18 minutes. Confirm with the user and correct.
 
-## [ ] T04 Local data layer and sync
+## [~] T04 Local data layer and sync
 Depends: T03
 - `:core:data`: Room entities/DAOs for stops, routes, patterns, pattern stops, polylines,
   schedules; DataStore for preferences; repositories exposing Flows (Room is the source
