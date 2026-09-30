@@ -1,0 +1,68 @@
+package ge.hackerman.gza.core.data.sync
+
+import ge.hackerman.gza.core.data.model.CachedResult
+import ge.hackerman.gza.core.data.model.Freshness
+import ge.hackerman.gza.core.data.model.SyncError
+import ge.hackerman.gza.core.data.model.SyncOutcome
+import java.time.Clock
+import java.time.Instant
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
+
+internal data class KeyStatus(val inFlight: Boolean, val lastError: SyncError?, val lastAttemptAt: Instant?) {
+    companion object {
+        val NONE = KeyStatus(inFlight = false, lastError = null, lastAttemptAt = null)
+    }
+}
+
+/**
+ * Which syncs are running and how the last attempt of each ended. In memory on purpose: after
+ * a restart the first attempt is fresh anyway, and a persisted error would show yesterday's
+ * "offline" today.
+ */
+@Singleton
+internal class SyncStatusTracker @Inject constructor(private val clock: Clock) {
+    private val state = MutableStateFlow<Map<SyncKey, KeyStatus>>(emptyMap())
+
+    val statuses: StateFlow<Map<SyncKey, KeyStatus>> = state.asStateFlow()
+
+    fun status(key: SyncKey): Flow<KeyStatus> = state.map { it[key] ?: KeyStatus.NONE }.distinctUntilChanged()
+
+    fun current(key: SyncKey): KeyStatus = state.value[key] ?: KeyStatus.NONE
+
+    fun begin(key: SyncKey) {
+        val now = clock.instant()
+        state.update { it + (key to (it[key] ?: KeyStatus.NONE).copy(inFlight = true, lastAttemptAt = now)) }
+    }
+
+    fun end(key: SyncKey, outcome: SyncOutcome) {
+        val error = (outcome as? SyncOutcome.Failed)?.error
+        state.update { it + (key to (it[key] ?: KeyStatus.NONE).copy(inFlight = false, lastError = error)) }
+    }
+}
+
+/**
+ * The table in docs/tasks/plans/T04.md 3.6: data wins whenever there is any; without data, a
+ * failed last attempt is [CachedResult.Unavailable] and anything else is [CachedResult.Loading].
+ * [value] is null when Room has nothing to show.
+ */
+internal fun <T : Any> cachedResult(
+    value: T?,
+    syncedAt: Instant?,
+    freshness: Freshness,
+    status: KeyStatus
+): CachedResult<T> {
+    val error = status.lastError
+    return when {
+        value != null -> CachedResult.Data(value, syncedAt, freshness, error)
+        !status.inFlight && error != null -> CachedResult.Unavailable(error)
+        else -> CachedResult.Loading
+    }
+}
