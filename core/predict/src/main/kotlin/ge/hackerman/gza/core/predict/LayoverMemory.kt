@@ -11,14 +11,19 @@ import java.time.ZonedDateTime
  * function: the caller keeps the memory it returns and passes it back on the next call, which
  * gives a bus's arrival time and the departure it was waiting for.
  */
-data class LayoverMemory(val vehicles: Map<VehicleId, ParkedVehicle>) {
+data class LayoverMemory(val vehicles: Map<ParkedKey, ParkedVehicle>) {
     companion object {
         val Empty = LayoverMemory(emptyMap())
     }
 }
 
+/**
+ * A vehicle id is only trusted within one route's positions: the same id under another route
+ * is another history, so entries are keyed by both.
+ */
+data class ParkedKey(val routeId: RouteId, val vehicleId: VehicleId)
+
 data class ParkedVehicle(
-    val routeId: RouteId,
     /** The pattern it was counted for, which may differ from its label (buses are relabelled while parked). */
     val pattern: PatternSuffix,
     /** The first poll that saw it parked: the best guess at its arrival. */

@@ -17,6 +17,7 @@ import ge.hackerman.gza.core.predict.testing.Synthetic.home
 import ge.hackerman.gza.core.predict.testing.Synthetic.parked
 import ge.hackerman.gza.core.predict.testing.Synthetic.route
 import ge.hackerman.gza.core.predict.testing.at
+import ge.hackerman.gza.core.predict.testing.of
 import ge.hackerman.gza.core.predict.testing.tbilisi
 import ge.hackerman.gza.core.predict.testing.tbilisiClock
 import ge.hackerman.gza.core.predict.testing.waitingVehicle
@@ -59,7 +60,7 @@ class HeadlineRuleAdversarialTest {
             when (val state = row.state) {
                 is DepartureState.Waiting -> {
                     assertFalse(state.leavesAt.isBefore(now), "arriving now: $row")
-                    if (state.vehicleId !in memory.vehicles) {
+                    if (ParkedKey(row.routeId, state.vehicleId) !in memory.vehicles) {
                         assertFalse(state.leavesAt.isBefore(now.plusMinutes(2)), "no turnaround: $row")
                     }
                 }
@@ -166,8 +167,7 @@ class HeadlineRuleAdversarialTest {
         // Both remembered as waiting for 17:49, both still parked after it: one late row, not two.
         val both = LayoverMemory(
             listOf("1:3046", "1:3047").associate {
-                VehicleId(it) to ParkedVehicle(
-                    r326.id,
+                ParkedKey(r326.id, VehicleId(it)) to ParkedVehicle(
                     PatternSuffix("0:01"),
                     tbilisi("${monday}T17:30:00").toInstant(),
                     tbilisi("${monday}T17:49:00")
@@ -229,7 +229,7 @@ class HeadlineRuleAdversarialTest {
             val next = result.departures.first { !it.scheduled.isBefore(tbilisi(now)) }
             assertEquals("1:9999", next.waitingVehicle, "at $time")
             assertEquals(PatternSuffix("0:01"), next.pattern)
-            assertEquals(PatternSuffix("0:01"), result.memory.vehicles.getValue(VehicleId("1:9999")).pattern)
+            assertEquals(PatternSuffix("0:01"), result.memory.of("1:9999").pattern)
         }
     }
 
@@ -295,8 +295,7 @@ class HeadlineRuleAdversarialTest {
         val schedules = listOf(Synthetic.schedule(r326, "0:01", listOf("17:31", "17:49", "18:07")))
         val yesterday = LayoverMemory(
             mapOf(
-                VehicleId("1:3046") to ParkedVehicle(
-                    r326.id,
+                ParkedKey(r326.id, VehicleId("1:3046")) to ParkedVehicle(
                     PatternSuffix("0:01"),
                     tbilisi("2026-09-27T17:40:00").toInstant(),
                     tbilisi("2026-09-27T17:49:00")
@@ -322,8 +321,7 @@ class HeadlineRuleAdversarialTest {
         val schedules = listOf(Synthetic.schedule(r326, "0:01", listOf("17:49", "18:07")))
         val yesterday = LayoverMemory(
             mapOf(
-                VehicleId("1:3046") to ParkedVehicle(
-                    r326.id,
+                ParkedKey(r326.id, VehicleId("1:3046")) to ParkedVehicle(
                     PatternSuffix("0:01"),
                     tbilisi("2026-09-27T17:40:00").toInstant(),
                     tbilisi("2026-09-27T17:49:00")
@@ -341,7 +339,7 @@ class HeadlineRuleAdversarialTest {
             row.predicted.isBefore(tbilisi(now).plus(PredictionRules.Default.minTurnaround)),
             "leaves ${row.predicted}, 10 s after pulling in"
         )
-        assertEquals(tbilisi(now).toInstant(), result.memory.vehicles.getValue(VehicleId("1:3046")).firstSeen)
+        assertEquals(tbilisi(now).toInstant(), result.memory.of("1:3046").firstSeen)
     }
 
     @Test
@@ -368,8 +366,7 @@ class HeadlineRuleAdversarialTest {
         val hostile = LayoverMemory(
             routes.flatMap { snapshot ->
                 snapshot.positions!!.vehicles.map {
-                    it.vehicleId to ParkedVehicle(
-                        snapshot.route.id,
+                    ParkedKey(snapshot.route.id, it.vehicleId) to ParkedVehicle(
                         it.pattern,
                         now.minusHours(3).toInstant(),
                         now.truncatedTo(ChronoUnit.MINUTES)

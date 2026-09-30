@@ -117,7 +117,7 @@ class DeparturePredictorPropertyTest {
                     assertEquals(state.leavesAt, row.predicted, context)
                     assertFalse(state.leavesAt.isBefore(row.scheduled), "never leaves early, $context: $row")
                     assertFalse(state.leavesAt.isBefore(now), "never arriving now, $context: $row")
-                    if (state.vehicleId !in request.memory.vehicles) {
+                    if (ParkedKey(row.routeId, state.vehicleId) !in request.memory.vehicles) {
                         assertFalse(state.leavesAt.isBefore(now.plusMinutes(2)), "turnaround, $context: $row")
                     }
                 }
@@ -134,13 +134,13 @@ class DeparturePredictorPropertyTest {
             }
         }
         assertEquals(vehicles.distinct(), vehicles, "one row per bus, $context")
-        assertTrue(vehicles.size <= parkedIds(request, now).size, "no more buses than parked, $context")
+        assertTrue(vehicles.size <= parkedKeys(request, now).size, "no more buses than parked, $context")
     }
 
     private fun assertMemory(result: StopPrediction, request: StopRequest, now: ZonedDateTime, context: String) {
         val live = liveRoutes(request, now)
-        val kept = request.memory.vehicles.filterValues { it.routeId !in live }.keys
-        assertEquals(parkedIds(request, now) + kept, result.memory.vehicles.keys, "memory keys, $context")
+        val kept = request.memory.vehicles.keys.filter { it.routeId !in live }
+        assertEquals(parkedKeys(request, now) + kept, result.memory.vehicles.keys, "memory keys, $context")
     }
 
     private fun assertBoardIsOnlyAHint(
@@ -173,13 +173,16 @@ class DeparturePredictorPropertyTest {
         .map { it.routeId }
         .toSet()
 
-    private fun parkedIds(request: StopRequest, now: ZonedDateTime): Set<VehicleId> {
+    private fun parkedKeys(request: StopRequest, now: ZonedDateTime): Set<ParkedKey> {
         val live = liveRoutes(request, now)
         return request.routes
             .mapNotNull { it.positions }
             .filter { it.routeId in live }
-            .flatMap { positions -> positions.vehicles.filter { it.isInLayoverAt(stop970.location) } }
-            .map { it.vehicleId }
+            .flatMap { positions ->
+                positions.vehicles
+                    .filter { it.isInLayoverAt(stop970.location) }
+                    .map { ParkedKey(positions.routeId, it.vehicleId) }
+            }
             .toSet()
     }
 

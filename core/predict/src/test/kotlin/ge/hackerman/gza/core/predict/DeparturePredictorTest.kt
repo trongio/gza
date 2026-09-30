@@ -12,6 +12,7 @@ import ge.hackerman.gza.core.predict.testing.Synthetic.positions
 import ge.hackerman.gza.core.predict.testing.Synthetic.route
 import ge.hackerman.gza.core.predict.testing.Synthetic.schedule
 import ge.hackerman.gza.core.predict.testing.at
+import ge.hackerman.gza.core.predict.testing.of
 import ge.hackerman.gza.core.predict.testing.tbilisi
 import ge.hackerman.gza.core.predict.testing.waitingVehicle
 import java.time.Clock
@@ -40,8 +41,7 @@ class DeparturePredictorTest {
 
     private fun remembered(vehicle: String, firstSeen: String, waitingFor: String? = null) = LayoverMemory(
         mapOf(
-            VehicleId(vehicle) to ParkedVehicle(
-                r326.id,
+            ParkedKey(r326.id, VehicleId(vehicle)) to ParkedVehicle(
                 PatternSuffix("0:01"),
                 tbilisi(firstSeen).toInstant(),
                 waitingFor?.let(::tbilisi)
@@ -61,7 +61,7 @@ class DeparturePredictorTest {
         )
         val result = predictAt("${monday}T17:32:00", snapshot)
         assertEquals("1:3046", result.departures.at("326", "17:49").waitingVehicle)
-        assertEquals(PatternSuffix("0:01"), result.memory.vehicles.getValue(VehicleId("1:3046")).pattern)
+        assertEquals(PatternSuffix("0:01"), result.memory.of("1:3046").pattern)
     }
 
     @Test
@@ -79,7 +79,7 @@ class DeparturePredictorTest {
         )
         val result = predictAt(now, snapshot)
         assertEquals("1:3046", result.departures.at("326", "17:40").waitingVehicle)
-        assertEquals(PatternSuffix("0:02"), result.memory.vehicles.getValue(VehicleId("1:3046")).pattern)
+        assertEquals(PatternSuffix("0:02"), result.memory.of("1:3046").pattern)
         assertEquals(DepartureState.TimetableOnly, result.departures.at("326", "17:55").state)
     }
 

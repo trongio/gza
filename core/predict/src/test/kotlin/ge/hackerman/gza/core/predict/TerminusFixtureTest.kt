@@ -13,8 +13,11 @@ import ge.hackerman.gza.core.predict.testing.Snapshots.snapshot
 import ge.hackerman.gza.core.predict.testing.Snapshots.stop970
 import ge.hackerman.gza.core.predict.testing.at
 import ge.hackerman.gza.core.predict.testing.clock
+import ge.hackerman.gza.core.predict.testing.of
+import ge.hackerman.gza.core.predict.testing.remembers
 import ge.hackerman.gza.core.predict.testing.tbilisi
 import ge.hackerman.gza.core.predict.testing.tbilisiClock
+import ge.hackerman.gza.core.predict.testing.vehicleIds
 import ge.hackerman.gza.core.predict.testing.waitingVehicle
 import java.time.Duration
 import java.time.Instant
@@ -63,7 +66,7 @@ class TerminusFixtureTest {
         assertTrue(rows.none { it.pattern == PatternSuffix("1:01") })
         assertEquals(tbilisi("2026-09-28T17:31:00"), rows.first().scheduled)
 
-        val memory = result.memory.vehicles.getValue(VehicleId("1:3046"))
+        val memory = result.memory.of("1:3046")
         assertEquals(tbilisi("2026-09-28T17:49:00"), memory.waitingFor)
         assertEquals(PatternSuffix("0:01"), memory.pattern)
         assertEquals(Instant.parse("2026-09-28T13:32:00Z"), memory.firstSeen)
@@ -123,16 +126,16 @@ class TerminusFixtureTest {
         assertEquals("1:3871", first.departures.at("301", "21:07").waitingVehicle)
 
         val second = poll("positions/301-20260928T2101.json", "2026-09-28T21:01:52", first.memory)
-        assertTrue(VehicleId("1:3870") !in second.memory.vehicles)
+        assertTrue(!second.memory.remembers(VehicleId("1:3870")))
         assertEquals("1:3871", second.departures.at("301", "21:07").waitingVehicle)
         assertEquals("1:3868", second.departures.at("301", "21:21").waitingVehicle)
         assertEquals(
             Instant.parse("2026-09-28T17:01:52Z"),
-            second.memory.vehicles.getValue(VehicleId("1:3868")).firstSeen
+            second.memory.of("1:3868").firstSeen
         )
         assertEquals(
             Instant.parse("2026-09-28T16:44:48Z"),
-            second.memory.vehicles.getValue(VehicleId("1:3871")).firstSeen
+            second.memory.of("1:3871").firstSeen
         )
 
         val third = poll("terminus/301-20260928T2102/positions.json", "2026-09-28T21:02:28", second.memory)
@@ -210,7 +213,7 @@ class TerminusFixtureTest {
 
         assertEquals("1:220", result.departures.at("551", "21:08").waitingVehicle)
         assertEquals("1:987", result.departures.at("551", "21:28").waitingVehicle)
-        assertEquals(setOf("1:220", "1:987"), result.memory.vehicles.keys.map { it.value }.toSet())
+        assertEquals(setOf("1:220", "1:987"), result.memory.vehicleIds.map { it.value }.toSet())
     }
 
     @Test
@@ -255,8 +258,7 @@ class TerminusFixtureTest {
     fun `offline stop shows the timetable`() {
         val memory = LayoverMemory(
             mapOf(
-                VehicleId("1:3046") to ParkedVehicle(
-                    Snapshots.routeId("326"),
+                ParkedKey(Snapshots.routeId("326"), VehicleId("1:3046")) to ParkedVehicle(
                     PatternSuffix("0:01"),
                     Instant.parse("2026-09-28T13:20:00Z"),
                     tbilisi("2026-09-28T17:49:00")

@@ -8,6 +8,8 @@ import ge.hackerman.gza.core.predict.testing.Synthetic.positions
 import ge.hackerman.gza.core.predict.testing.Synthetic.route
 import ge.hackerman.gza.core.predict.testing.Synthetic.schedule
 import ge.hackerman.gza.core.predict.testing.at
+import ge.hackerman.gza.core.predict.testing.of
+import ge.hackerman.gza.core.predict.testing.remembers
 import ge.hackerman.gza.core.predict.testing.tbilisi
 import ge.hackerman.gza.core.predict.testing.tbilisiClock
 import ge.hackerman.gza.core.predict.testing.waitingVehicle
@@ -22,8 +24,7 @@ class LateDepartureTest {
 
     private fun memory(vararg entries: Triple<String, String, String?>) = LayoverMemory(
         entries.associate { (vehicle, firstSeen, waitingFor) ->
-            VehicleId(vehicle) to ParkedVehicle(
-                r326.id,
+            ParkedKey(r326.id, VehicleId(vehicle)) to ParkedVehicle(
                 PatternSuffix("0:01"),
                 tbilisi("${day}T$firstSeen").toInstant(),
                 waitingFor?.let { tbilisi("${day}T$it") }
@@ -53,7 +54,7 @@ class LateDepartureTest {
         assertEquals(late("1:3046", "17:51:30", Duration.ofSeconds(150)), row.state)
         assertEquals(tbilisi("${day}T17:51:30"), row.predicted)
         assertEquals(DepartureState.TimetableOnly, result.departures.at("326", "18:07").state)
-        assertEquals(tbilisi("${day}T17:49:00"), result.memory.vehicles.getValue(VehicleId("1:3046")).waitingFor)
+        assertEquals(tbilisi("${day}T17:49:00"), result.memory.of("1:3046").waitingFor)
     }
 
     @Test
@@ -71,7 +72,7 @@ class LateDepartureTest {
         val dropped = predict("18:00:00", waitingFor1749, "1:3046")
         assertTrue(dropped.departures.none { it.scheduled == tbilisi("${day}T17:49:00") })
         assertEquals("1:3046", dropped.departures.at("326", "18:07").waitingVehicle)
-        assertEquals(tbilisi("${day}T18:07:00"), dropped.memory.vehicles.getValue(VehicleId("1:3046")).waitingFor)
+        assertEquals(tbilisi("${day}T18:07:00"), dropped.memory.of("1:3046").waitingFor)
     }
 
     @Test
@@ -100,7 +101,7 @@ class LateDepartureTest {
     fun `a bus that left is no longer late`() {
         val result = predict("17:50:30", waitingFor1749, "1:9999")
         assertTrue(result.departures.none { it.state is DepartureState.Late })
-        assertTrue(VehicleId("1:3046") !in result.memory.vehicles)
+        assertTrue(!result.memory.remembers(VehicleId("1:3046")))
     }
 
     @Test

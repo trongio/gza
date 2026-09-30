@@ -11,7 +11,7 @@ import java.time.Instant
 import java.time.ZonedDateTime
 
 /** Live states by row index, and the memory entries of the route's parked buses. */
-internal class TerminusOutcome(val states: Map<Int, DepartureState>, val memory: Map<VehicleId, ParkedVehicle>)
+internal class TerminusOutcome(val states: Map<Int, DepartureState>, val memory: Map<ParkedKey, ParkedVehicle>)
 
 /**
  * Gives the buses parked at the stop to the departures of the patterns that start there, for
@@ -24,7 +24,7 @@ internal class TerminusAssignment(
     private val previous: LayoverMemory
 ) {
     private val states = HashMap<Int, DepartureState>()
-    private val memory = LinkedHashMap<VehicleId, ParkedVehicle>()
+    private val memory = LinkedHashMap<ParkedKey, ParkedVehicle>()
 
     /** [rows] sorted by time; [positions] null when there is no fresh live data. */
     fun assign(routeId: RouteId, rows: List<ScheduledDeparture>, positions: RoutePositions?): TerminusOutcome {
@@ -33,8 +33,7 @@ internal class TerminusAssignment(
             val parked = positions.vehicles
                 .filter { it.isInLayoverAt(terminus, rules) }
                 .map { vehicle ->
-                    // An entry of another route is another bus's history, not this one's.
-                    val remembered = previous.vehicles[vehicle.vehicleId]?.takeIf { it.routeId == routeId }
+                    val remembered = previous.vehicles[ParkedKey(routeId, vehicle.vehicleId)]
                     Parked(vehicle, remembered, firstSeen(remembered))
                 }
             val byPattern = parked.groupBy { targetPattern(it.position, firstStopRows, rows) }
@@ -61,7 +60,8 @@ internal class TerminusAssignment(
                 val leavesAt = latest(rows[index].scheduled, turnaroundEnd(bus))
                 states[index] = DepartureState.Waiting(bus.id, leavesAt)
             }
-            memory[bus.id] = ParkedVehicle(routeId, pattern, bus.firstSeen, index?.let { rows[it].scheduled })
+            memory[ParkedKey(routeId, bus.id)] =
+                ParkedVehicle(pattern, bus.firstSeen, index?.let { rows[it].scheduled })
         }
         val next = upcoming.firstOrNull()
         if (next != null && next !in states && !rows[next].scheduled.isAfter(now.plus(rules.noBusWindow))) {
@@ -85,7 +85,7 @@ internal class TerminusAssignment(
         val missed = rows[index].scheduled
         val leavesAt = latest(now.plus(rules.lateStep), turnaroundEnd(bus))
         states[index] = DepartureState.Late(bus.id, leavesAt, Duration.between(missed, leavesAt))
-        memory[bus.id] = ParkedVehicle(routeId, pattern, bus.firstSeen, missed)
+        memory[ParkedKey(routeId, bus.id)] = ParkedVehicle(pattern, bus.firstSeen, missed)
         return true
     }
 

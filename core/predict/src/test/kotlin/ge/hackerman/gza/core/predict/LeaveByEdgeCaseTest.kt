@@ -79,8 +79,7 @@ class LeaveByEdgeCaseTest {
     fun `a late bus you can still reach is the plan, from its moving time`() {
         val memory = LayoverMemory(
             mapOf(
-                VehicleId("1:3046") to ParkedVehicle(
-                    r326.id,
+                ParkedKey(r326.id, VehicleId("1:3046")) to ParkedVehicle(
                     PatternSuffix("0:01"),
                     tbilisi("${day}T17:40:00").toInstant(),
                     tbilisi("${day}T17:49:00")

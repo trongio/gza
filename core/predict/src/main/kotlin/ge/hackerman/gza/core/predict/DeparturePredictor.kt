@@ -5,7 +5,6 @@ import ge.hackerman.gza.core.model.RouteId
 import ge.hackerman.gza.core.model.RoutePositions
 import ge.hackerman.gza.core.model.StopBoard
 import ge.hackerman.gza.core.model.TransportKind
-import ge.hackerman.gza.core.model.VehicleId
 import java.time.Clock
 import java.time.Duration
 import java.time.ZonedDateTime
@@ -28,7 +27,7 @@ class DeparturePredictor(private val clock: Clock, private val rules: Prediction
 
         val missing = mutableListOf<RouteId>()
         val departures = mutableListOf<PredictedDeparture>()
-        val memory = LinkedHashMap<VehicleId, ParkedVehicle>()
+        val memory = LinkedHashMap<ParkedKey, ParkedVehicle>()
         val liveRoutes = mutableSetOf<RouteId>()
 
         for (snapshot in request.routes) {
@@ -51,8 +50,8 @@ class DeparturePredictor(private val clock: Clock, private val rules: Prediction
         }
 
         // An offline poll must not erase what earlier polls learned about a route.
-        request.memory.vehicles.forEach { (id, parked) ->
-            if (parked.routeId !in liveRoutes && id !in memory) memory[id] = parked
+        request.memory.vehicles.forEach { (key, parked) ->
+            if (key.routeId !in liveRoutes && key !in memory) memory[key] = parked
         }
 
         val earliest = now.minus(rules.pastGrace)

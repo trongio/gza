@@ -8,8 +8,11 @@ import ge.hackerman.gza.core.predict.testing.Synthetic.parked
 import ge.hackerman.gza.core.predict.testing.Synthetic.positions
 import ge.hackerman.gza.core.predict.testing.Synthetic.route
 import ge.hackerman.gza.core.predict.testing.Synthetic.schedule
+import ge.hackerman.gza.core.predict.testing.memoryOf
+import ge.hackerman.gza.core.predict.testing.of
 import ge.hackerman.gza.core.predict.testing.tbilisi
 import ge.hackerman.gza.core.predict.testing.tbilisiClock
+import ge.hackerman.gza.core.predict.testing.vehicleIds
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -44,26 +47,26 @@ class LayoverMemoryFoldTest {
     @Test
     fun `first sighting is now and later polls keep it`() {
         val first = poll("17:30:00", LayoverMemory.Empty, listOf("1:1"))
-        assertEquals(instant("17:30:00"), first.vehicles.getValue(VehicleId("1:1")).firstSeen)
+        assertEquals(instant("17:30:00"), first.of("1:1").firstSeen)
 
         val second = poll("17:30:15", first, listOf("1:1"))
-        assertEquals(instant("17:30:00"), second.vehicles.getValue(VehicleId("1:1")).firstSeen)
-        assertEquals(tbilisi("${day}T17:49:00"), second.vehicles.getValue(VehicleId("1:1")).waitingFor)
+        assertEquals(instant("17:30:00"), second.of("1:1").firstSeen)
+        assertEquals(tbilisi("${day}T17:49:00"), second.of("1:1").waitingFor)
     }
 
     @Test
     fun `a bus that leaves is dropped`() {
         val first = poll("17:30:00", LayoverMemory.Empty, listOf("1:1", "1:2"))
         val second = poll("17:30:15", first, listOf("1:2"))
-        assertEquals(setOf(VehicleId("1:2")), second.vehicles.keys)
+        assertEquals(setOf(VehicleId("1:2")), second.vehicleIds)
     }
 
     @Test
     fun `an offline poll keeps what earlier polls learned about that route`() {
         val first = poll("17:30:00", LayoverMemory.Empty, listOf("1:1"), listOf("1:5"))
         val offline326 = poll("17:30:15", first, vehicles326 = null, vehicles551 = listOf("1:5"))
-        assertEquals(first.vehicles.getValue(VehicleId("1:1")), offline326.vehicles.getValue(VehicleId("1:1")))
-        assertEquals(setOf(VehicleId("1:1"), VehicleId("1:5")), offline326.vehicles.keys)
+        assertEquals(first.of("1:1"), offline326.of("1:1"))
+        assertEquals(setOf(VehicleId("1:1"), VehicleId("1:5")), offline326.vehicleIds)
 
         val bothOffline = poll("17:30:30", first, vehicles326 = null)
         assertEquals(first, bothOffline)
@@ -71,29 +74,39 @@ class LayoverMemoryFoldTest {
 
     @Test
     fun `entries of routes not asked about are kept`() {
-        val elsewhere = ParkedVehicle(route("999").id, PatternSuffix("0:01"), instant("17:00:00"), null)
-        val memory = LayoverMemory(mapOf(VehicleId("1:77") to elsewhere))
-        assertEquals(elsewhere, poll("17:30:00", memory, emptyList()).vehicles.getValue(VehicleId("1:77")))
+        val elsewhere = ParkedVehicle(PatternSuffix("0:01"), instant("17:00:00"), null)
+        val memory = memoryOf(route("999").id, "1:77" to elsewhere)
+        assertEquals(elsewhere, poll("17:30:00", memory, emptyList()).of("1:77"))
     }
 
     @Test
     fun `a first sighting in the future counts as now`() {
-        val future = LayoverMemory(
-            mapOf(VehicleId("1:1") to ParkedVehicle(r326.id, PatternSuffix("0:01"), instant("17:45:00"), null))
-        )
+        val future = memoryOf(r326.id, "1:1" to ParkedVehicle(PatternSuffix("0:01"), instant("17:45:00"), null))
         val folded = poll("17:30:00", future, listOf("1:1"))
-        assertEquals(instant("17:30:00"), folded.vehicles.getValue(VehicleId("1:1")).firstSeen)
+        assertEquals(instant("17:30:00"), folded.of("1:1").firstSeen)
     }
 
     @Test
     fun `history of the same vehicle id on another route is not reused`() {
-        val other = LayoverMemory(
-            mapOf(VehicleId("1:1") to ParkedVehicle(r551.id, PatternSuffix("0:01"), instant("17:00:00"), null))
-        )
+        val other = memoryOf(r551.id, "1:1" to ParkedVehicle(PatternSuffix("0:01"), instant("17:00:00"), null))
         val folded = poll("17:30:00", other, listOf("1:1"), vehicles551 = emptyList())
-        val entry = folded.vehicles.getValue(VehicleId("1:1"))
-        assertEquals(r326.id, entry.routeId)
+        val entry = folded.vehicles.getValue(ParkedKey(r326.id, VehicleId("1:1")))
         assertEquals(instant("17:30:00"), entry.firstSeen)
+        assertEquals(setOf(ParkedKey(r326.id, VehicleId("1:1"))), folded.vehicles.keys)
+    }
+
+    @Test
+    fun `the same vehicle id on two routes keeps two histories`() {
+        val first = poll("17:30:00", LayoverMemory.Empty, listOf("1:1"), listOf("1:1"))
+        val on326 = ParkedKey(r326.id, VehicleId("1:1"))
+        val on551 = ParkedKey(r551.id, VehicleId("1:1"))
+        assertEquals(setOf(on326, on551), first.vehicles.keys)
+        assertEquals(tbilisi("${day}T17:49:00"), first.vehicles.getValue(on551).waitingFor)
+
+        // 551 no longer sees it: its entry goes, the 326 history is untouched.
+        val second = poll("17:32:00", first, listOf("1:1"), emptyList())
+        assertEquals(setOf(on326), second.vehicles.keys)
+        assertEquals(first.vehicles.getValue(on326), second.vehicles.getValue(on326))
     }
 
     @Test
@@ -106,6 +119,6 @@ class LayoverMemoryFoldTest {
         val memory = DeparturePredictor(tbilisiClock("${day}T17:30:00"))
             .predict(StopRequest(home, listOf(snapshot)))
             .memory
-        assertNull(memory.vehicles.getValue(VehicleId("1:3")).waitingFor)
+        assertNull(memory.of("1:3").waitingFor)
     }
 }
