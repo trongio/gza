@@ -3,6 +3,7 @@ package ge.hackerman.gza.core.data.testing
 import androidx.datastore.core.DataStore
 import ge.hackerman.gza.core.data.datastore.DataStoreFiles
 import ge.hackerman.gza.core.data.datastore.TtcConfigData
+import ge.hackerman.gza.core.data.datastore.UserPreferencesData
 import ge.hackerman.gza.core.data.di.jsonDataStore
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -23,6 +24,12 @@ internal class TestDataStores(private val dir: File) : AutoCloseable {
 
     fun ttcConfig(name: String = DataStoreFiles.TTC_CONFIG): DataStore<TtcConfigData> =
         jsonDataStore(TtcConfigData.serializer(), TtcConfigData(), newScope()) { file(name) }
+
+    fun userPreferences(): DataStore<UserPreferencesData> = jsonDataStore(
+        UserPreferencesData.serializer(),
+        UserPreferencesData(),
+        newScope()
+    ) { file(DataStoreFiles.USER_PREFERENCES) }
 
     fun newScope(): CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()).also { scopes += it }
 
