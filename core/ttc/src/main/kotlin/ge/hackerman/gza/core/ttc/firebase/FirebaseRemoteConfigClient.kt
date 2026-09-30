@@ -97,24 +97,6 @@ class FirebaseRemoteConfigClient(
         bestEffortCache("Installation write") { cache.writeInstallation(installation) }
     }
 
-    // The store is a file (T04): a disk error there must never cost the key. Same rules as
-    // DefaultGatewayConfigProvider: a cancelled caller still cancels, only the class name is logged.
-    @Suppress("TooGenericExceptionCaught") // Whatever the store throws is a failed cache call, not a failed fetch.
-    private suspend fun <T> bestEffortCache(what: String, block: suspend () -> T): T? = try {
-        block()
-    } catch (e: CancellationException) {
-        currentCoroutineContext().ensureActive()
-        logCacheFailure(what, e)
-        null
-    } catch (e: Exception) {
-        logCacheFailure(what, e)
-        null
-    }
-
-    private fun logCacheFailure(what: String, e: Exception) {
-        logger.warning("$what failed: ${e.javaClass.name}")
-    }
-
     // Uses the returned fid: the server replaces a malformed one with its own.
     private fun parseInstallation(body: String): FirebaseInstallation? {
         val response = rest.decode(InstallationResponse.serializer(), body)
@@ -224,8 +206,6 @@ class FirebaseRemoteConfigClient(
         const val KEY_ENTRY: String = "PIS_GATEWAY_KEY"
         const val BASE_URL_ENTRY: String = "PIS_GATEWAY_BASE_URL"
 
-        private val logger: Logger = Logger.getLogger(FirebaseRemoteConfigClient::class.java.name)
-
         private const val AUTH_VERSION = "FIS_v2"
         private const val INSTALLATIONS_SDK_VERSION = "w:0.6.4"
         private const val REMOTE_CONFIG_SDK_VERSION = "0.4.0"
@@ -247,3 +227,23 @@ class FirebaseRemoteConfigClient(
         }
     }
 }
+
+// The store is a file (T04): a disk error there must never cost the key. Same rules as
+// DefaultGatewayConfigProvider: a cancelled caller still cancels, only the class name is logged.
+@Suppress("TooGenericExceptionCaught") // Whatever the store throws is a failed cache call, not a failed fetch.
+private suspend fun <T> bestEffortCache(what: String, block: suspend () -> T): T? = try {
+    block()
+} catch (e: CancellationException) {
+    currentCoroutineContext().ensureActive()
+    logCacheFailure(what, e)
+    null
+} catch (e: Exception) {
+    logCacheFailure(what, e)
+    null
+}
+
+private fun logCacheFailure(what: String, e: Exception) {
+    logger.warning("$what failed: ${e.javaClass.name}")
+}
+
+private val logger: Logger = Logger.getLogger(FirebaseRemoteConfigClient::class.java.name)
