@@ -8,7 +8,9 @@ import ge.hackerman.gza.core.model.ServicePeriod
 import ge.hackerman.gza.core.model.StopId
 import ge.hackerman.gza.core.predict.testing.PredictFixtures
 import ge.hackerman.gza.core.predict.testing.PredictFixtures.ROUTE_326
+import ge.hackerman.gza.core.predict.testing.Synthetic
 import ge.hackerman.gza.core.predict.testing.tbilisi
+import ge.hackerman.gza.core.predict.testing.tbilisiClock
 import java.time.DayOfWeek.FRIDAY
 import java.time.DayOfWeek.MONDAY
 import java.time.DayOfWeek.SUNDAY
@@ -186,4 +188,44 @@ class TimetableDeparturesTest {
             row
         )
     }
+
+    @Test
+    fun `empty service day gives no rows and is not missing`() {
+        val weekdaysOnly = RouteSnapshot(
+            Synthetic.route("326"),
+            listOf(Synthetic.schedule(Synthetic.route("326"), "0:01", listOf("8:00"), from = MONDAY, to = FRIDAY))
+        )
+        val saturday = predictor("2026-10-03T12:00:00").predict(StopRequest(Synthetic.home, listOf(weekdaysOnly)))
+        assertTrue(saturday.departures.isEmpty())
+        assertTrue(saturday.missingTimetables.isEmpty())
+
+        val sunday = predictor("2026-10-04T12:00:00").predict(StopRequest(Synthetic.home, listOf(weekdaysOnly)))
+        assertEquals(listOf(tbilisi("2026-10-05T08:00:00")), sunday.departures.map { it.scheduled })
+    }
+
+    @Test
+    fun `missing schedule is reported and gives no rows`() {
+        val r301 = Synthetic.route("301")
+        val r326 = Synthetic.route("326")
+        val r551 = Synthetic.route("551")
+        val r472 = Synthetic.route("472")
+        val result = predictor("2026-09-28T12:00:00").predict(
+            StopRequest(
+                Synthetic.home,
+                listOf(
+                    RouteSnapshot(r301, emptyList()),
+                    RouteSnapshot(r326, listOf(RouteSchedule(r326.id, PatternSuffix("0:01"), emptyList()))),
+                    RouteSnapshot(
+                        r551,
+                        listOf(Synthetic.schedule(r551, "0:01", listOf("12:30"), stopId = StopId("1:1")))
+                    ),
+                    RouteSnapshot(r472, listOf(Synthetic.schedule(r472, "0:03", listOf("12:30"))))
+                )
+            )
+        )
+        assertEquals(listOf(r301.id, r326.id, r551.id), result.missingTimetables)
+        assertEquals(setOf(r472.id), result.departures.map { it.routeId }.toSet())
+    }
+
+    private fun predictor(local: String) = DeparturePredictor(tbilisiClock(local))
 }
