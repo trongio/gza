@@ -29,6 +29,7 @@ espresso = "3.7.0"
 spotless = "8.10.3"
 ktlint = "1.8.0"
 detekt = "1.23.8"
+kover = "0.9.11"
 animalsniffer = "2.0.1"
 gummyBears = "0.15.0"
 
@@ -124,6 +125,7 @@ hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 room3 = { id = "androidx.room3", version.ref = "room3" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 animalsniffer = { id = "ru.vyarus.animalsniffer", version.ref = "animalsniffer" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 

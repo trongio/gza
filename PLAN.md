@@ -40,12 +40,16 @@ The official app's biggest flaw: a bus resting at its first or last stop always 
 **"arrives in 0 min"**, even though it is waiting for its scheduled departure or a
 driver break. Gza treats a parked bus as *waiting*, not *arriving*:
 
-- **Detect layover:** a vehicle within ~120 m of a terminus of its pattern, with
-  `heading: null` / `nextStopId: null` or no movement across two polls, is in layover.
+- **Detect layover:** a vehicle with `heading` and `nextStopId` both null within 500 m
+  of the first stop of its pattern is in layover (fixtures: lay-by buses waited 318 m
+  and 442 m from the stop, so ~120 m missed them; the null heading, not the distance,
+  keeps moving buses out). The gateway sends no speed, so "no movement across two
+  polls" for a bus with a stale heading is left to a later phase.
   A bus that just reached the **last** stop of pattern A is expected to start pattern B
   (the reverse direction) next.
 - **Predict its real departure:** max(next timetable departure of that terminus, arrival
-  time + minimum turnaround learned for that route). Never "now" unless the timetable
+  time + minimum turnaround). Until Phase 6 learns it per route, the turnaround floor is
+  2 min from the poll that first saw the bus parked. Never "now" unless the timetable
   says now.
 - **Propagate downstream:** for any stop along the route, the ETA of a laid-over bus is
   its predicted terminus departure plus the travel time to that stop, not
@@ -80,7 +84,8 @@ four sources, in this order of trust:
 | Timetable | Floor at termini, fallback elsewhere | A bus never leaves a first stop early |
 
 Rules:
-- **Terminus:** a bus parked within ~120 m of the first stop means an on-time departure.
+- **Terminus:** a bus parked (heading and next stop both null) within 500 m of the first
+  stop means an on-time departure, no sooner than 2 min after it was first seen.
   No bus parked means prediction = max(timetable, ETA of the inbound bus to the
   terminus + turnaround time learned per route).
 - **Mid-route stop:** ETA = remaining polyline distance / learned speed for the upcoming
