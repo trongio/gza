@@ -38,7 +38,7 @@ jobs:
           ttc.firebaseAppId=ci-dummy
           PROPS
       - name: Gate
-        run: ./gradlew spotlessCheck detekt lint test assembleDebug verifyRoborazziDebug --continue
+        run: ./gradlew spotlessCheck detekt lint test assembleDebug verifyRoborazziDebug :core:predict:koverVerify --continue
       - name: Upload reports
         if: failure()
         uses: actions/upload-artifact@v7
