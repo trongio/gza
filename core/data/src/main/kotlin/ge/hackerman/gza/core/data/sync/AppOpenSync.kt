@@ -6,6 +6,7 @@ import androidx.lifecycle.LifecycleOwner
 import ge.hackerman.gza.core.data.coroutines.ApplicationScope
 import ge.hackerman.gza.core.data.database.GzaDatabase
 import ge.hackerman.gza.core.data.language.ContentLanguage
+import ge.hackerman.gza.core.data.model.SyncOutcome
 import java.time.Clock
 import java.time.Duration
 import javax.inject.Inject
@@ -17,13 +18,14 @@ import kotlinx.coroutines.launch
 /**
  * What the app does each time it comes to the foreground (register it on
  * `ProcessLifecycleOwner`). Every step is a no-op when nothing is stale, so no throttle: keeps
- * the weekly catalog job scheduled, asks for the catalog now when it is missing or overdue,
+ * the weekly catalog job scheduled, syncs the catalog now when it is missing or overdue,
  * refreshes the routes in use, and re-reads the app language.
  */
 @Singleton
 @Suppress("LongParameterList") // Injected collaborators, one per step.
 class AppOpenSync @Inject internal constructor(
     private val scheduler: SyncScheduler,
+    private val catalogSync: CatalogSync,
     private val routeSync: RouteSync,
     private val database: GzaDatabase,
     private val contentLanguage: ContentLanguage,
@@ -38,10 +40,23 @@ class AppOpenSync @Inject internal constructor(
     internal suspend fun run() {
         step("Language refresh") { contentLanguage.refresh() }
         step("Periodic catalog sync") { scheduler.ensurePeriodicCatalogSync() }
-        step("Catalog check") { if (isCatalogOverdue()) scheduler.requestCatalogSyncNow() }
+        step("Catalog check") { if (isCatalogOverdue()) syncCatalogNow() }
         // In the app process, not WorkManager: it is "on app open" by definition, one indexed
         // query when nothing is stale, and offline it just fails until the next open.
         step("Active routes refresh") { routeSync.refreshActiveRoutes() }
+    }
+
+    /**
+     * In this process first, not only through the worker: the worker waits for a network, so a
+     * fresh install opened offline would record no attempt, and every catalog flow would stay
+     * `Loading` instead of saying offline. A retryable failure also enqueues the worker, which
+     * runs as soon as a network is up. Both share [CatalogSync]'s per-table lock, so they never
+     * download the catalog twice.
+     */
+    private suspend fun syncCatalogNow() {
+        val outcome = catalogSync.syncIfStale(respectBackoff = true)
+        Log.i(TAG, "Catalog sync on app open: $outcome")
+        if (outcome is SyncOutcome.Failed && outcome.error.isRetryable()) scheduler.requestCatalogSyncNow()
     }
 
     // The weekly job normally keeps this fresh; a day past a week means it is late or failing.

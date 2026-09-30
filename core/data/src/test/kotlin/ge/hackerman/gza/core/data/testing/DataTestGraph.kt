@@ -1,15 +1,19 @@
 package ge.hackerman.gza.core.data.testing
 
+import androidx.work.WorkManager
 import ge.hackerman.gza.core.data.database.GzaDatabase
 import ge.hackerman.gza.core.data.language.ContentLanguage
 import ge.hackerman.gza.core.data.repository.OfflineFirstRouteRepository
 import ge.hackerman.gza.core.data.repository.OfflineFirstStopRepository
+import ge.hackerman.gza.core.data.sync.AppOpenSync
 import ge.hackerman.gza.core.data.sync.CatalogSync
 import ge.hackerman.gza.core.data.sync.RouteSync
 import ge.hackerman.gza.core.data.sync.StalenessPolicy
 import ge.hackerman.gza.core.data.sync.StopRoutesSync
+import ge.hackerman.gza.core.data.sync.SyncScheduler
 import ge.hackerman.gza.core.data.sync.SyncStatusTracker
 import ge.hackerman.gza.core.model.Language
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -36,4 +40,8 @@ internal class DataTestGraph(
     val stopRoutesSync = StopRoutesSync(gateway, db, tracker, policy, clock)
     val stops = OfflineFirstStopRepository(db, stopRoutesSync, tracker, policy, clock, language, Dispatchers.Default)
     val routes = OfflineFirstRouteRepository(db, routeSync, tracker, policy, clock, language, Dispatchers.Default)
+
+    /** The app-open trigger, the way GzaApplication gets it, on a test WorkManager. */
+    fun appOpenSync(workManager: WorkManager, scope: CoroutineScope) =
+        AppOpenSync(SyncScheduler { workManager }, catalogSync, routeSync, db, language, policy, clock, scope)
 }

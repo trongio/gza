@@ -1,10 +1,19 @@
 package ge.hackerman.gza.core.data.repository
 
+import android.content.Context
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.work.Configuration
+import androidx.work.WorkManager
+import androidx.work.testing.SynchronousExecutor
+import androidx.work.testing.WorkManagerTestInitHelper
 import ge.hackerman.gza.core.data.model.CachedResult
 import ge.hackerman.gza.core.data.model.Freshness
 import ge.hackerman.gza.core.data.model.SyncError
 import ge.hackerman.gza.core.data.model.SyncOutcome
+import ge.hackerman.gza.core.data.sync.SyncKey
 import ge.hackerman.gza.core.data.testing.DataTestGraph
 import ge.hackerman.gza.core.data.testing.FakeTtcGatewayClient
 import ge.hackerman.gza.core.data.testing.FixtureDomain
@@ -18,10 +27,17 @@ import ge.hackerman.gza.core.ttc.gateway.TtcGatewayException
 import java.io.File
 import java.io.IOException
 import java.time.Duration
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -40,8 +56,27 @@ class OfflineAfterOnlineLaunchTest {
     private val s970 = StopId(FixtureDomain.STOP_970)
     private val usedRoutes = listOf("301", "326", "551").map { FixtureDomain.routeId(it) }
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private lateinit var workManager: WorkManager
+
+    @Before
+    fun initWorkManager() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        WorkManagerTestInitHelper.initializeTestWorkManager(
+            context,
+            Configuration.Builder().setExecutor(SynchronousExecutor()).build()
+        )
+        workManager = WorkManager.getInstance(context)
+    }
+
+    @After
+    fun cancelScope() = scope.cancel()
+
     private fun graph(dbFile: File, gateway: FakeTtcGatewayClient = FakeTtcGatewayClient()) =
         DataTestGraph(TestDatabase.onFile(dbFile), gateway, clock)
+
+    /** What the app does on coming to the foreground, the catalog check included. */
+    private suspend fun DataTestGraph.openApp() = appOpenSync(workManager, scope).run()
 
     /** Launch 1, online: what the Now screen needs for stop 1:970, plus a saved stop. */
     private fun onlineLaunch(dbFile: File, stores: TestDataStores) = runBlocking {
@@ -64,8 +99,11 @@ class OfflineAfterOnlineLaunchTest {
         val offlineGateway = FakeTtcGatewayClient().apply { failure = TtcGatewayException.Network(IOException()) }
         val offline = graph(dbFile, offlineGateway)
         try {
-            // The app's triggers all try, and all fail.
-            assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), offline.catalogSync.syncIfStale())
+            // The app's triggers all try, and all fail: app open (the catalog is 8 days old,
+            // so overdue, and the used routes are stale), then the Now screen's refreshes.
+            offline.openApp()
+            assertEquals(SyncError.OFFLINE, offline.tracker.current(SyncKey.Stops).lastError)
+            assertEquals(SyncError.OFFLINE, offline.tracker.current(SyncKey.Routes).lastError)
             assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), offline.stops.refreshStopRoutesIfStale(s970))
             usedRoutes.forEach {
                 assertEquals(SyncOutcome.Failed(SyncError.OFFLINE), offline.routes.refreshRouteIfStale(it))
@@ -108,8 +146,11 @@ class OfflineAfterOnlineLaunchTest {
         val gateway = FakeTtcGatewayClient().apply { failure = TtcGatewayException.Http(401, null) }
         val noKey = graph(dbFile, gateway)
         try {
-            noKey.catalogSync.syncIfStale()
-            noKey.routes.refreshRouteIfStale(usedRoutes[1])
+            noKey.openApp()
+            assertEquals(
+                SyncOutcome.Failed(SyncError.NO_KEY),
+                noKey.routes.refreshRouteIfStale(usedRoutes[1])
+            )
             val stops = noKey.stops.observeStops().first() as CachedResult.Data
             assertEquals(SyncError.NO_KEY, stops.refreshError)
             assertEquals(2753, stops.value.size)
@@ -126,10 +167,21 @@ class OfflineAfterOnlineLaunchTest {
         val gateway = FakeTtcGatewayClient().apply { failure = TtcGatewayException.Network(IOException()) }
         val offline = graph(folder.newFile("fresh.db").also { it.delete() }, gateway)
         try {
-            offline.catalogSync.syncIfStale()
+            // The real trigger: the process comes to the foreground; nothing calls the catalog
+            // sync by hand, and the weekly worker never runs without a network.
+            val owner = object : LifecycleOwner {
+                override val lifecycle = LifecycleRegistry.createUnsafe(this)
+            }
+            offline.appOpenSync(workManager, scope).onStart(owner)
+            val stops = withTimeout(APP_OPEN_TIMEOUT_MS) {
+                offline.stops.observeStops().first { it != CachedResult.Loading }
+            }
+            assertEquals(CachedResult.Unavailable(SyncError.OFFLINE), stops)
+            withTimeout(APP_OPEN_TIMEOUT_MS) {
+                offline.routes.observeRoutes().first { it != CachedResult.Loading }
+            }
             offline.routes.refreshRouteIfStale(usedRoutes[0])
             offline.stops.refreshStopRoutesIfStale(s970)
-            assertEquals(CachedResult.Unavailable(SyncError.OFFLINE), offline.stops.observeStops().first())
             assertEquals(CachedResult.Unavailable(SyncError.OFFLINE), offline.routes.observeRoutes().first())
             assertEquals(
                 CachedResult.Unavailable(SyncError.OFFLINE),
@@ -147,5 +199,9 @@ class OfflineAfterOnlineLaunchTest {
         assertEquals(Freshness.STALE, data.freshness)
         assertEquals(SyncError.OFFLINE, data.refreshError)
         return data.value
+    }
+
+    private companion object {
+        const val APP_OPEN_TIMEOUT_MS = 10_000L
     }
 }

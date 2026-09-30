@@ -10,13 +10,19 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.WorkManagerTestInitHelper
+import ge.hackerman.gza.core.data.model.CachedResult
+import ge.hackerman.gza.core.data.model.SyncError
 import ge.hackerman.gza.core.data.testing.DataTestGraph
 import ge.hackerman.gza.core.data.testing.FixtureDomain
 import ge.hackerman.gza.core.data.testing.TestDatabase
+import ge.hackerman.gza.core.data.testing.failInsertOf
+import ge.hackerman.gza.core.ttc.gateway.TtcGatewayException
+import java.io.IOException
 import java.time.Duration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.After
@@ -41,15 +47,7 @@ class AppOpenSyncTest {
             Configuration.Builder().setExecutor(SynchronousExecutor()).build()
         )
         workManager = WorkManager.getInstance(context)
-        appOpen = AppOpenSync(
-            SyncScheduler { workManager },
-            graph.routeSync,
-            graph.db,
-            graph.language,
-            graph.policy,
-            graph.clock,
-            scope
-        )
+        appOpen = graph.appOpenSync(workManager, scope)
     }
 
     @After
@@ -62,10 +60,47 @@ class AppOpenSyncTest {
         workManager.getWorkInfosForUniqueWork(name).get().filter { it.state == WorkInfo.State.ENQUEUED }
 
     @Test
-    fun `an empty catalog asks for a sync now and schedules the weekly one`() = runBlocking {
+    fun `an empty catalog is synced right away in process and the weekly job is scheduled`() = runBlocking {
         appOpen.run()
+        assertEquals(2753, graph.db.stopDao().count())
+        assertEquals(280, graph.db.routeDao().count())
         assertEquals(1, enqueued(SyncScheduler.PERIODIC_WORK).size)
+        assertTrue(enqueued(SyncScheduler.ONE_TIME_WORK).isEmpty())
+    }
+
+    @Test
+    fun `a fresh install offline records the failure and leaves the retry to the worker`() = runBlocking {
+        graph.gateway.failure = TtcGatewayException.Network(IOException())
+        appOpen.run()
+        assertEquals(SyncError.OFFLINE, graph.tracker.current(SyncKey.Stops).lastError)
+        assertEquals(SyncError.OFFLINE, graph.tracker.current(SyncKey.Routes).lastError)
+        assertEquals(CachedResult.Unavailable(SyncError.OFFLINE), graph.stops.observeStops().first())
+        assertEquals(CachedResult.Unavailable(SyncError.OFFLINE), graph.routes.observeRoutes().first())
+        // The worker waits for a network, then syncs.
         assertEquals(1, enqueued(SyncScheduler.ONE_TIME_WORK).size)
+    }
+
+    @Test
+    fun `reopening offline within the backoff makes no catalog request`() = runBlocking {
+        graph.gateway.failure = TtcGatewayException.Network(IOException())
+        appOpen.run()
+        graph.gateway.calls.clear()
+        graph.clock.advanceBy(Duration.ofMinutes(4))
+        appOpen.run()
+        assertTrue(graph.gateway.calls.isEmpty())
+        graph.clock.advanceBy(Duration.ofMinutes(1))
+        appOpen.run()
+        // The first failed request of each table cancels its sibling, so only both EN are sure.
+        assertTrue(graph.gateway.calls.containsAll(listOf("stops EN", "routes EN")))
+    }
+
+    @Test
+    fun `a storage failure does not enqueue a retry`() = runBlocking {
+        graph.db.failInsertOf("stops", FixtureDomain.STOP_970, column = "id")
+        appOpen.run()
+        assertEquals(SyncError.STORAGE, graph.tracker.current(SyncKey.Stops).lastError)
+        assertEquals(280, graph.db.routeDao().count())
+        assertTrue(enqueued(SyncScheduler.ONE_TIME_WORK).isEmpty())
     }
 
     @Test
@@ -82,12 +117,15 @@ class AppOpenSyncTest {
         graph.catalogSync.syncIfStale()
         graph.clock.advanceBy(Duration.ofDays(9))
         appOpen.run()
-        assertEquals(1, enqueued(SyncScheduler.ONE_TIME_WORK).size)
+        assertEquals(graph.clock.now, graph.db.syncStateDao().get(SyncKey.Stops.value)?.syncedAt)
+        assertEquals(graph.clock.now, graph.db.syncStateDao().get(SyncKey.Routes.value)?.syncedAt)
+        assertTrue(enqueued(SyncScheduler.ONE_TIME_WORK).isEmpty())
     }
 
     @Test
     fun `active stale routes are refreshed and the language is re-read`() = runBlocking {
         val r326 = FixtureDomain.routeId("326")
+        graph.catalogSync.syncIfStale()
         graph.routeSync.syncIfStale(r326)
         graph.clock.advanceBy(Duration.ofHours(13))
         graph.gateway.calls.clear()
