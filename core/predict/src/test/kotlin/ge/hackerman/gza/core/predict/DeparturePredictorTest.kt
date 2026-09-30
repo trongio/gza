@@ -15,6 +15,7 @@ import ge.hackerman.gza.core.predict.testing.at
 import ge.hackerman.gza.core.predict.testing.tbilisi
 import ge.hackerman.gza.core.predict.testing.waitingVehicle
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.test.assertEquals
@@ -61,6 +62,25 @@ class DeparturePredictorTest {
         val result = predictAt("${monday}T17:32:00", snapshot)
         assertEquals("1:3046", result.departures.at("326", "17:49").waitingVehicle)
         assertEquals(PatternSuffix("0:01"), result.memory.vehicles.getValue(VehicleId("1:3046")).pattern)
+    }
+
+    @Test
+    fun `a relabelled bus goes to the pattern that leaves here next`() {
+        val now = "${monday}T17:32:00"
+        val snapshot = RouteSnapshot(
+            r326,
+            listOf(
+                schedule(r326, "0:01", listOf("17:55")),
+                schedule(r326, "0:02", listOf("17:40")),
+                schedule(r326, "0:03", listOf("7:00"), from = DayOfWeek.MONDAY, to = DayOfWeek.MONDAY),
+                schedule(r326, "1:01", listOf("17:35"), position = 3)
+            ),
+            positions = positions(r326, live(now), parked("1:3046", pattern = "1:01"))
+        )
+        val result = predictAt(now, snapshot)
+        assertEquals("1:3046", result.departures.at("326", "17:40").waitingVehicle)
+        assertEquals(PatternSuffix("0:02"), result.memory.vehicles.getValue(VehicleId("1:3046")).pattern)
+        assertEquals(DepartureState.TimetableOnly, result.departures.at("326", "17:55").state)
     }
 
     @Test
@@ -160,6 +180,19 @@ class DeparturePredictorTest {
         assertEquals(4, rows.first { it.routeId == metro.id }.boardHint?.realtimeMinutes)
         assertNull(rows.first { it.routeId == bus1.id }.boardHint)
         assertNull(rows.first { it.routeId == r326.id }.boardHint)
+    }
+
+    @Test
+    fun `a bus board row is not attached to a cable car of the same number`() {
+        val now = "${monday}T17:32:00"
+        val cableCar = route("1", id = "1:Gondola_1", kind = TransportKind.CABLE_CAR)
+        val board = StopBoard(home.id, live(now), listOf(boardRow("1", null, 4)))
+        val rows = predictAt(
+            now,
+            RouteSnapshot(cableCar, listOf(schedule(cableCar, "0:01", listOf("17:40")))),
+            board = board
+        ).departures
+        assertNull(rows.first().boardHint)
     }
 
     @Test
